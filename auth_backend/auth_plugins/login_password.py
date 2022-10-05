@@ -1,5 +1,5 @@
 from .auth_interface import AuthInterface
-from auth_backend.models import Session
+from auth_backend.models import Session, User, AuthMethod
 
 
 class LoginPassword(AuthInterface):

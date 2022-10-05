@@ -1,7 +1,17 @@
 from abc import ABCMeta
 from dataclasses import dataclass
+from typing import Callable
 
 from auth_backend.models import Session
+
+AUTH_METHODS = []
+
+
+def add_method(method: Callable) -> Callable:
+    def wrapped(*args, **kwargs):
+        AUTH_METHODS.append(method.__name__)
+        return method(*args, **kwargs)
+    return wrapped
 
 
 class AuthInterface(metaclass=ABCMeta):
