@@ -18,5 +18,8 @@ class AuthInterface(metaclass=ABCMeta):
     def logout(self) -> None:
         raise NotImplementedError()
 
+    def change_params(self) -> Session | None:
+        raise NotImplementedError()
+
     def forgot_password(self) -> Session | None:
         raise NotImplementedError()
