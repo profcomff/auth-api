@@ -7,8 +7,6 @@ import sqlalchemy.orm
 class User(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
 
-    def __repr__(self) -> str:
-        return f"<User {self.id=}"
 
 
 class AuthMethod(Base):
