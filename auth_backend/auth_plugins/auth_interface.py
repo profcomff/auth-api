@@ -1,7 +1,7 @@
 from abc import ABCMeta
 from dataclasses import dataclass
 from typing import Callable
-
+from sqlalchemy.orm import Session as ORMSession
 from auth_backend.models import Session
 
 AUTH_METHODS = []
@@ -20,19 +20,19 @@ class AuthInterface(metaclass=ABCMeta):
         auth_params which auth type need: like email, hashed_password and salt
     """
 
-    def register(self) -> Session | None:
+    def register(self, session: ORMSession) -> Session | None:
         raise NotImplementedError()
 
-    def login(self) -> Session | None:
+    def login(self, session: ORMSession) -> Session | None:
         raise NotImplementedError()
 
-    def logout(self) -> None:
+    def logout(self, session: ORMSession) -> None:
         raise NotImplementedError()
 
-    def change_params(self) -> Session | None:
+    def change_params(self, session: ORMSession) -> Session | None:
         raise NotImplementedError()
 
-    def forgot_password(self) -> Session | None:
+    def forgot_password(self, session: ORMSession) -> Session | None:
         raise NotImplementedError()
 
     @dataclass
