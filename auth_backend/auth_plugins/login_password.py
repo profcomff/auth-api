@@ -4,9 +4,9 @@ from auth_backend.models import Session
 
 class LoginPassword(AuthInterface):
 
-    email: str
-    hashed_password: str
-    salt: str
+    email = AuthInterface.Prop(str)
+    hashed_password = AuthInterface.Prop(str)
+    salt = AuthInterface.Prop(str)
 
     def register(self) -> Session | None:
         pass
