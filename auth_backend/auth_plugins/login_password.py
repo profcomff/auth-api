@@ -30,7 +30,6 @@ class LoginPassword(AuthInterface):
             return self.value
 
         def validate_password(password: str, hashed_password: str):
-            """ Проверяет, что хеш пароля совпадает с хешем из БД """
             salt, hashed = hashed_password.split("$")
             return LoginPassword.Password.hash_password(password, salt) == hashed
 
