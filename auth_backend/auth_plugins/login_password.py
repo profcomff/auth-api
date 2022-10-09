@@ -1,3 +1,4 @@
+import datetime
 import random
 import string
 from dataclasses import dataclass
@@ -84,8 +85,15 @@ class LoginPassword(AuthInterface):
         db_session.flush()
         return session
 
-    def logout(self, db_session: DBSession, session: Session = None) -> None:
-        pass
+    def logout(self, db_session: DBSession, *, token: str = None) -> None:
+        session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
+        if not session:
+            raise Exception
+        if session.expires <= datetime.datetime.utcnow():
+            raise Exception
+        session.expires = datetime.datetime.utcnow()
+        db_session.flush()
+        return None
 
     def change_params(self, session: DBSession) -> Session | None:
         pass
