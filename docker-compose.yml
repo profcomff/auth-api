@@ -21,6 +21,3 @@ networks:
     external: true
   backend:
 
-volumes:
-  postgres:
-    name: redirect-data
