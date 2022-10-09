@@ -16,24 +16,25 @@ def get_salt() -> str:
 class LoginPassword(AuthInterface):
     @dataclass
     class Password(AuthInterface.Prop):
+        salt: str | None
 
-        def __init__(self):
+        def __init__(self, salt: str | None = None):
             super().__init__(datatype=str)
+            self.salt = salt
 
-        @staticmethod
-        def __hash_password(password: str, salt: str = None):
-            salt = salt or get_salt()
+        def __hash_password(self, password: str):
+            salt = self.salt or get_salt()
             enc = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100_000)
             return enc.hex()
 
-        def set_value(self, value: str, *, salt=None):
+        def set_value(self, value: str, *, salt: str = None):
             if not isinstance(value, self.datatype):
                 raise TypeError(f"Expected {self.datatype}, got {value} with type {type(value)}")
             self.value = LoginPassword.Password.__hash_password(value, salt)
             return self.value
 
         @staticmethod
-        def __validate_password(password: str, hashed_password: str):
+        def validate_password(password: str, hashed_password: str):
             salt, hashed = hashed_password.split("$")
             return LoginPassword.Password.__hash_password(password, salt) == hashed
 
@@ -45,7 +46,9 @@ class LoginPassword(AuthInterface):
         super().__init__(**kwargs)
 
     def register(self, session: ORMSession, *, user_id: int | None = None) -> Session | None:
-        if session.query(AuthMethod).filter(AuthMethod.auth_method == self.__class__.__name__, AuthMethod.value == self.email).all():
+        if session.query(AuthMethod).filter(AuthMethod.auth_method == self.__class__.__name__,
+                                            AuthMethod.param == "email",
+                                            AuthMethod.value == self.email).one_or_none():
             raise Exception
         if not user_id:
             session.add(user := User())
@@ -63,9 +66,23 @@ class LoginPassword(AuthInterface):
         session.flush()
         return token
 
+    def login(self, session: ORMSession, *, email: str = None, password: str = None) -> Session | None:
+        if not email or not password:
+            return None
+        check_existing: AuthMethod = session.query(AuthMethod).filter(AuthMethod.auth_method == self.__class__.__name__,
+                                                                      AuthMethod.param == "email",
+                                                                      AuthMethod.value == email).one_or_none()
+        if not check_existing:
+            raise Exception
+        secrets = {row.name: row.value for row in session.query(AuthMethod).filter(AuthMethod.user_id == check_existing.user.id,
+                                                   AuthMethod.auth_method == self.__class__.__name__).all()}
+        if secrets.get("email") != self.email or not LoginPassword.Password.validate_password(password, secrets.get("hashed_password")):
+            raise Exception
+        session.add(token := Session(user_id=check_existing.user.id, token=str(uuid4())))
+        session.flush()
+        return token
 
-    def login(self, session: ORMSession) -> Session | None:
-        pass
+
 
     def logout(self, session: ORMSession) -> None:
         pass
