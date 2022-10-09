@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from .auth_interface import AuthInterface
 from sqlalchemy.orm import Session as ORMSession
 from auth_backend.models import Session, User, AuthMethod
+import hashlib
 
 
 def get_salt():
@@ -14,13 +15,24 @@ def get_salt():
 class LoginPassword(AuthInterface):
     @dataclass
     class Password(AuthInterface.Prop):
+
+        @staticmethod
+        def hash_password(password: str, salt: str = None):
+            """ Хеширует пароль с солью """
+            salt = salt or get_salt()
+            enc = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100_000)
+            return enc.hex()
+
         def set_value(self, value: str, *, salt=None):
-            import hashlib
             if not isinstance(value, self.datatype):
                 raise TypeError(f"Expected {self.datatype}, got {value} with type {type(value)}")
-            salt = salt or get_salt()
-            self.value = hashlib.pbkdf2_hmac("sha256", value.encode(), salt.encode(), 100_000)
+            self.value = LoginPassword.Password.hash_password(value, salt)
             return self.value
+
+        def validate_password(password: str, hashed_password: str):
+            """ Проверяет, что хеш пароля совпадает с хешем из БД """
+            salt, hashed = hashed_password.split("$")
+            return hash_password(password, salt) == hashed
 
     email = AuthInterface.Prop(str)
     salt = AuthInterface.Prop(str)
