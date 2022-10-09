@@ -23,16 +23,16 @@ class AuthInterface(metaclass=ABCMeta):
     def register(self, session: ORMSession, **kwargs) -> Session | None:
         raise NotImplementedError()
 
-    def login(self, session: ORMSession) -> Session | None:
+    def login(self, session: ORMSession, **kwargs) -> Session | None:
         raise NotImplementedError()
 
-    def logout(self, session: ORMSession) -> None:
+    def logout(self, session: ORMSession, **kwargs) -> None:
         raise NotImplementedError()
 
-    def change_params(self, session: ORMSession) -> Session | None:
+    def change_params(self, session: ORMSession, **kwargs) -> Session | None:
         raise NotImplementedError()
 
-    def forgot_password(self, session: ORMSession) -> Session | None:
+    def forgot_password(self, session: ORMSession, **kwargs) -> Session | None:
         raise NotImplementedError()
 
     @dataclass
