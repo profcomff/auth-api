@@ -20,7 +20,7 @@ class AuthInterface(metaclass=ABCMeta):
         auth_params which auth type need: like email, hashed_password and salt
     """
 
-    def register(self, session: ORMSession) -> Session | None:
+    def register(self, session: ORMSession, **kwargs) -> Session | None:
         raise NotImplementedError()
 
     def login(self, session: ORMSession) -> Session | None:
@@ -45,7 +45,7 @@ class AuthInterface(metaclass=ABCMeta):
             self.name = None
             self.datatype = datatype
 
-        def set_value(self, value):
+        def set_value(self, value, **kwargs):
             if not isinstance(value, self.datatype):
                 raise TypeError(f"Expected {self.datatype}, but got {value} with type {type(value)}")
             self.value = value
