@@ -38,10 +38,11 @@ class LoginPassword(AuthInterface):
     salt = AuthInterface.Prop(str)
     hashed_password = Password()
 
-    def __init__(self, email: str, salt: str, password: str):
-        self.email.set_value(email)
-        self.salt.set_value(salt)
-        self.hashed_password.set_value(password, salt=salt)
+    def __init__(self, email: str, salt: str, password: str, **kwargs):
+        super().__init__(**kwargs)
+        # self.email.set_value(email)
+        # self.salt.set_value(salt)
+        # self.hashed_password.set_value(password, salt=salt)
 
     def register(self, session: ORMSession, *, user_id: int | None = None) -> Session | None:
         if session.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.value == self.email).all():
