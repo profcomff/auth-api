@@ -49,6 +49,8 @@ class LoginPassword(AuthInterface):
             raise Exception
         if not user_id:
             ...
+        else:
+            ...
 
     def login(self, session: ORMSession) -> Session | None:
         pass
