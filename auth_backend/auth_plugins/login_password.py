@@ -48,8 +48,7 @@ class LoginPassword(AuthInterface):
         if session.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.value == self.email).all():
             raise Exception
         if not user_id:
-            salt = get_salt()
-            pass
+            ...
 
     def login(self, session: ORMSession) -> Session | None:
         pass
