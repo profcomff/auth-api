@@ -45,7 +45,7 @@ class AuthInterface(metaclass=ABCMeta):
             self.name = None
             self.datatype = datatype
 
-        def set_value(self, value, **kwargs):
+        def set_value(self, value, **kwargs) -> datatype:
             if not isinstance(value, self.datatype):
                 raise TypeError(f"Expected {self.datatype}, but got {value} with type {type(value)}")
             self.value = value
@@ -61,7 +61,7 @@ class AuthInterface(metaclass=ABCMeta):
             setattr(self, attr_name, attr.set_value(kwargs.get(attr_name)))
             self.cols += [attr]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
                 f"{self.__class__.__name__}(" +
                 ", ".join([
