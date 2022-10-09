@@ -3,7 +3,7 @@ import string
 from dataclasses import dataclass
 
 from .auth_interface import AuthInterface
-from sqlalchemy.orm import Session as ORMSession
+from sqlalchemy.orm import Session as DBSession
 from auth_backend.models import Session, User, AuthMethod
 import hashlib
 from uuid import uuid4
@@ -45,50 +45,50 @@ class LoginPassword(AuthInterface):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def register(self, session: ORMSession, *, user_id: int | None = None) -> Session | None:
-        if session.query(AuthMethod).filter(AuthMethod.auth_method == self.__class__.__name__,
-                                            AuthMethod.param == "email",
-                                            AuthMethod.value == self.email).one_or_none():
+    def register(self, db_session: DBSession, *, user_id: int | None = None) -> Session | None:
+        if db_session.query(AuthMethod).filter(AuthMethod.auth_method == self.__class__.__name__,
+                                               AuthMethod.param == "email",
+                                               AuthMethod.value == self.email).one_or_none():
             raise Exception
         if not user_id:
-            session.add(user := User())
+            db_session.add(user := User())
         else:
-            user = session.query(User).get(user_id)
+            user = db_session.query(User).get(user_id)
         if not user:
             raise Exception
         for attr_name in dir(self):
             attr = getattr(self, attr_name)
             if not isinstance(attr, AuthInterface.Prop):
                 continue
-            session.add(AuthMethod(user_id=user.id, auth_method=attr.__class__.__name__, value=str(attr.value),
-                                   param=attr.name))
-        session.add(token := Session(token=str(uuid4()), user_id=user.id))
-        session.flush()
-        return token
+            db_session.add(AuthMethod(user_id=user.id, auth_method=attr.__class__.__name__, value=str(attr.value),
+                                      param=attr.name))
+        db_session.add(session := Session(token=str(uuid4()), user_id=user.id))
+        db_session.flush()
+        return session
 
-    def login(self, session: ORMSession, *, email: str = None, password: str = None) -> Session | None:
-        if not email or not password:
-            return None
-        check_existing: AuthMethod = session.query(AuthMethod).filter(AuthMethod.auth_method == self.__class__.__name__,
-                                                                      AuthMethod.param == "email",
-                                                                      AuthMethod.value == email).one_or_none()
+    def login(self, db_session: DBSession, **kwargs) -> Session | None:
+        check_existing: AuthMethod = db_session.query(AuthMethod).filter(
+            AuthMethod.auth_method == self.__class__.__name__,
+            AuthMethod.param == "email",
+            AuthMethod.value == self.email).one_or_none()
         if not check_existing:
             raise Exception
-        secrets = {row.name: row.value for row in session.query(AuthMethod).filter(AuthMethod.user_id == check_existing.user.id,
-                                                   AuthMethod.auth_method == self.__class__.__name__).all()}
-        if secrets.get("email") != self.email or not LoginPassword.Password.validate_password(password, secrets.get("hashed_password")):
+        secrets = {row.name: row.value for row in
+                   db_session.query(AuthMethod).filter(AuthMethod.user_id == check_existing.user.id,
+                                                       AuthMethod.auth_method == self.__class__.__name__).all()}
+        if secrets.get("email") != self.email or not LoginPassword.Password.validate_password(str(self.hashed_password),
+                                                                                              secrets.get(
+                                                                                                      "hashed_password")):
             raise Exception
-        session.add(token := Session(user_id=check_existing.user.id, token=str(uuid4())))
-        session.flush()
-        return token
+        db_session.add(session := Session(user_id=check_existing.user.id, token=str(uuid4())))
+        db_session.flush()
+        return session
 
-
-
-    def logout(self, session: ORMSession) -> None:
+    def logout(self, db_session: DBSession, session: Session = None) -> None:
         pass
 
-    def change_params(self, session: ORMSession) -> Session | None:
+    def change_params(self, session: DBSession) -> Session | None:
         pass
 
-    def forgot_password(self, session: ORMSession) -> Session | None:
+    def forgot_password(self, session: DBSession) -> Session | None:
         pass
