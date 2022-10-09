@@ -44,7 +44,6 @@ class LoginPassword(AuthInterface):
         self.salt.value = salt
         self.hashed_password.set_value(password, salt=salt)
 
-
     def register(self, session: ORMSession, *, user_id: int | None = None) -> Session | None:
         if session.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.value == self.email).all():
             raise Exception
