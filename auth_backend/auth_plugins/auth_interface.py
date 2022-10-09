@@ -72,5 +72,5 @@ class AuthInterface(metaclass=ABCMeta):
         )
 
     @property
-    def columns(cls) -> list:
-        return cls.cols
+    def columns(self) -> list:
+        return self.cols
