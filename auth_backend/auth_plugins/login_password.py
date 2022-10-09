@@ -29,6 +29,7 @@ class LoginPassword(AuthInterface):
             self.value = LoginPassword.Password.hash_password(value, salt)
             return self.value
 
+        @staticmethod
         def validate_password(password: str, hashed_password: str):
             salt, hashed = hashed_password.split("$")
             return LoginPassword.Password.hash_password(password, salt) == hashed
