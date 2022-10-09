@@ -13,11 +13,12 @@ def get_salt():
 
 
 class LoginPassword(AuthInterface):
+
     @dataclass
     class Password(AuthInterface.Prop):
 
         @staticmethod
-        def hash_password(password: str, salt: str = None):
+        def __hash_password(password: str, salt: str = None):
             """ Хеширует пароль с солью """
             salt = salt or get_salt()
             enc = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100_000)
@@ -26,21 +27,30 @@ class LoginPassword(AuthInterface):
         def set_value(self, value: str, *, salt=None):
             if not isinstance(value, self.datatype):
                 raise TypeError(f"Expected {self.datatype}, got {value} with type {type(value)}")
-            self.value = LoginPassword.Password.hash_password(value, salt)
+            self.value = LoginPassword.Password.__hash_password(value, salt)
             return self.value
 
         @staticmethod
-        def validate_password(password: str, hashed_password: str):
+        def __validate_password(password: str, hashed_password: str):
             salt, hashed = hashed_password.split("$")
-            return LoginPassword.Password.hash_password(password, salt) == hashed
+            return LoginPassword.Password.__hash_password(password, salt) == hashed
 
     email = AuthInterface.Prop(str)
     salt = AuthInterface.Prop(str)
     hashed_password = Password()
 
+    def __init__(self, email: str, salt: str, password: str):
+        self.email.value = email
+        self.salt.value = salt
+        self.hashed_password.set_value(password, salt=salt)
+
+
     def register(self, session: ORMSession, *, user_id: int | None = None) -> Session | None:
         if session.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.value == self.email).all():
             raise Exception
+        if not user_id:
+            salt = get_salt()
+            pass
 
     def login(self, session: ORMSession) -> Session | None:
         pass
