@@ -17,6 +17,9 @@ class LoginPassword(AuthInterface):
     @dataclass
     class Password(AuthInterface.Prop):
 
+        def __init__(self):
+            super().__init__(datatype=str)
+
         @staticmethod
         def __hash_password(password: str, salt: str = None):
             salt = salt or get_salt()
