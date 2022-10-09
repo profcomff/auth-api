@@ -8,12 +8,11 @@ from auth_backend.models import Session, User, AuthMethod
 import hashlib
 
 
-def get_salt():
+def get_salt() -> str:
     return "".join([random.choice(string.ascii_letters) for _ in range(12)])
 
 
 class LoginPassword(AuthInterface):
-
     @dataclass
     class Password(AuthInterface.Prop):
 
@@ -41,17 +40,21 @@ class LoginPassword(AuthInterface):
     salt = AuthInterface.Prop(str)
     hashed_password = Password()
 
-    def __init__(self, email: str, salt: str, password: str, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # self.email.set_value(email)
-        # self.salt.set_value(salt)
-        # self.hashed_password.set_value(password, salt=salt)
 
     def register(self, session: ORMSession, *, user_id: int | None = None) -> Session | None:
         if session.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.value == self.email).all():
             raise Exception
         if not user_id:
-            ...
+            session.add(user := User())
+            for attr_name in dir(self):
+                attr = getattr(self, attr_name)
+                if not isinstance(attr, AuthInterface.Prop):
+                    continue
+                session.add(AuthMethod(user_id=user.id, auth_method=attr.__class__.name, value=str(attr.value),
+                                       param=attr.name))
+            session.flush()
         else:
             ...
 
