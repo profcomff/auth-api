@@ -6,6 +6,7 @@ from .auth_interface import AuthInterface
 from sqlalchemy.orm import Session as ORMSession
 from auth_backend.models import Session, User, AuthMethod
 import hashlib
+from uuid import uuid4
 
 
 def get_salt() -> str:
@@ -44,19 +45,24 @@ class LoginPassword(AuthInterface):
         super().__init__(**kwargs)
 
     def register(self, session: ORMSession, *, user_id: int | None = None) -> Session | None:
-        if session.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.value == self.email).all():
+        if session.query(AuthMethod).filter(AuthMethod.auth_method == self.__class__.__name__, AuthMethod.value == self.email).all():
             raise Exception
         if not user_id:
             session.add(user := User())
-            for attr_name in dir(self):
-                attr = getattr(self, attr_name)
-                if not isinstance(attr, AuthInterface.Prop):
-                    continue
-                session.add(AuthMethod(user_id=user.id, auth_method=attr.__class__.name, value=str(attr.value),
-                                       param=attr.name))
-            session.flush()
         else:
-            ...
+            user = session.query(User).get(user_id)
+        if not user:
+            raise Exception
+        for attr_name in dir(self):
+            attr = getattr(self, attr_name)
+            if not isinstance(attr, AuthInterface.Prop):
+                continue
+            session.add(AuthMethod(user_id=user.id, auth_method=attr.__class__.__name__, value=str(attr.value),
+                                   param=attr.name))
+        session.add(token := Session(token=str(uuid4()), user_id=user.id))
+        session.flush()
+        return token
+
 
     def login(self, session: ORMSession) -> Session | None:
         pass
