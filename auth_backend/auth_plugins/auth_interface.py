@@ -1,10 +1,11 @@
+from __future__ import annotations
 from abc import ABCMeta
 from dataclasses import dataclass
 from typing import Callable
 from sqlalchemy.orm import Session as ORMSession
 from auth_backend.models import Session
 
-AUTH_METHODS = []
+AUTH_METHODS: dict[str, AuthInterface] = {}
 
 
 def add_method(method: Callable) -> Callable:
@@ -24,15 +25,6 @@ class AuthInterface(metaclass=ABCMeta):
         raise NotImplementedError()
 
     def login(self, session: ORMSession, **kwargs) -> Session | None:
-        raise NotImplementedError()
-
-    def logout(self, session: ORMSession, **kwargs) -> None:
-        raise NotImplementedError()
-
-    def change_params(self, session: ORMSession, **kwargs) -> Session | None:
-        raise NotImplementedError()
-
-    def forgot_password(self, session: ORMSession, **kwargs) -> Session | None:
         raise NotImplementedError()
 
     @dataclass
@@ -60,6 +52,10 @@ class AuthInterface(metaclass=ABCMeta):
             attr.name = attr_name
             setattr(self, attr_name, attr.set_value(kwargs.get(attr_name)))
             self.cols += [attr]
+
+    @classmethod
+    def __init_subclass__(cls):
+        AUTH_METHODS[cls.__name__] = cls
 
     def __repr__(self) -> str:
         return (

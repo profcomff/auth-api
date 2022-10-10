@@ -1,13 +1,13 @@
-import datetime
+import hashlib
 import random
 import string
 from dataclasses import dataclass
-
-from .auth_interface import AuthInterface
-from sqlalchemy.orm import Session as DBSession
-from auth_backend.models import Session, User, AuthMethod
-import hashlib
 from uuid import uuid4
+
+from sqlalchemy.orm import Session as DBSession
+
+from auth_backend.models import Session, User, AuthMethod
+from .auth_interface import AuthInterface
 
 
 def get_salt() -> str:
@@ -84,19 +84,3 @@ class LoginPassword(AuthInterface):
         db_session.add(session := Session(user_id=check_existing.user.id, token=str(uuid4())))
         db_session.flush()
         return session
-
-    def logout(self, db_session: DBSession, *, token: str = None) -> None:
-        session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
-        if not session:
-            raise Exception
-        if session.expires <= datetime.datetime.utcnow():
-            raise Exception
-        session.expires = datetime.datetime.utcnow()
-        db_session.flush()
-        return None
-
-    def change_params(self, session: DBSession) -> Session | None:
-        pass
-
-    def forgot_password(self, session: DBSession) -> Session | None:
-        pass
