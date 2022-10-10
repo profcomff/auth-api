@@ -29,3 +29,9 @@ class Session(Base):
     token = sqlalchemy.Column(sqlalchemy.String, unique=True)
 
     user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="sessions")
+
+    @property
+    def expired(self):
+        if self.expires <= datetime.datetime.utcnow():
+            return True
+        return False
