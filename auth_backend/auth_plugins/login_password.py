@@ -4,7 +4,7 @@ import string
 from dataclasses import dataclass
 from uuid import uuid4
 
-from sqlalchemy.orm import Session as DBSession
+from sqlalchemy.orm import Session as DBSession, Session as ORMSession
 
 from auth_backend.models import Session, User, AuthMethod
 from .auth_interface import AuthInterface
@@ -15,6 +15,18 @@ def get_salt() -> str:
 
 
 class LoginPassword(AuthInterface):
+
+    @staticmethod
+    def change_params(token: str, db_session: ORMSession, **kwargs) -> Session | None:
+        session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
+        if session.expired():
+            raise Exception
+        for row in session.user.get_auth_methods(LoginPassword.__name__):
+            if row.param in kwargs.keys():
+                row.value = kwargs[row.param]
+        db_session.flush()
+
+
     @dataclass
     class Password(AuthInterface.Prop):
         salt: str | None
@@ -88,9 +100,7 @@ class LoginPassword(AuthInterface):
             raise Exception
         secrets = {
             row.name: row.value
-            for row in db_session.query(AuthMethod)
-            .filter(AuthMethod.user_id == check_existing.user.id, AuthMethod.auth_method == self.__class__.__name__)
-            .all()
+            for row in check_existing.user.get_auth_methods(self.__class__.__name__)
         }
         if secrets.get("email") != self.email or not LoginPassword.Password.validate_password(
             str(self.hashed_password), secrets.get("hashed_password")
