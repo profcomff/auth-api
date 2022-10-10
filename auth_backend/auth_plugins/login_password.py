@@ -17,7 +17,7 @@ def get_salt() -> str:
 class LoginPassword(AuthInterface):
 
     @staticmethod
-    def change_params(token: str, db_session: ORMSession, **kwargs) -> Session | None:
+    def change_params(token: str, db_session: ORMSession, **kwargs) -> None:
         session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
         if session.expired():
             raise Exception
@@ -25,6 +25,7 @@ class LoginPassword(AuthInterface):
             if row.param in kwargs.keys():
                 row.value = kwargs[row.param]
         db_session.flush()
+        return None
 
 
     @dataclass

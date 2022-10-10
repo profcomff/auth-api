@@ -1,19 +1,13 @@
 from __future__ import annotations
+
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Callable
+
 from sqlalchemy.orm import Session as ORMSession
+
 from auth_backend.models import Session
 
 AUTH_METHODS: dict[str, type(AuthInterface)] = {}
-
-
-def add_method(method: Callable) -> Callable:
-    def wrapped(*args, **kwargs):
-        AUTH_METHODS.append(method.__name__)
-        return method(*args, **kwargs)
-
-    return wrapped
 
 
 class AuthInterface(metaclass=ABCMeta):
@@ -32,7 +26,7 @@ class AuthInterface(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def change_params(token: str, session: ORMSession, **kwargs) -> Session | None:
+    def change_params(token: str, session: ORMSession, **kwargs) -> None:
         raise NotImplementedError()
 
     @dataclass
