@@ -105,3 +105,7 @@ class LoginPassword(AuthInterface):
         db_session.add(session := Session(user_id=check_existing.user.id, token=str(uuid4())))
         db_session.flush()
         return session
+
+    @staticmethod
+    def forgot_password():
+        pass
