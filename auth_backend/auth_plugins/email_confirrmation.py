@@ -9,7 +9,7 @@ def send_confirmation_email(subject, to_addr, link):
     """
     Send confirmation email
     """
-    from_addr = 'profcom@physics.msu.ru'
+    from_addr = settings.email
 
     BODY = "\r\n".join((
         f"From: {from_addr}",

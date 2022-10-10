@@ -1,10 +1,11 @@
 from functools import lru_cache
 
-from pydantic import BaseSettings, PostgresDsn
+from pydantic import BaseSettings, PostgresDsn, EmailStr
 
 
 class Settings(BaseSettings):
     DB_DSN: PostgresDsn
+    email: EmailStr | None
 
     CORS_ALLOW_ORIGINS: list[str] = ['*']
     CORS_ALLOW_CREDENTIALS: bool = True
