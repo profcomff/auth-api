@@ -14,14 +14,16 @@ handles = APIRouter(prefix="", tags=["Auth"])
 async def registration(type: str, schema: Email) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
-    return Session.from_orm(AUTH_METHODS[type].register(db.session, **schema.dict()))
+    auth = AUTH_METHODS[type].__init__(**schema.dict())
+    return Session.from_orm(auth.register(db.session))
 
 
 @handles.post("/login", response_model=Token)
 async def login(type: str, schema: Email) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
-    return Session.from_orm(AUTH_METHODS[type].login(db.session, **schema.dict()))
+    auth = AUTH_METHODS[type].__init__(**schema.dict())
+    return Session.from_orm(auth.login(db.session))
 
 
 @handles.post("/logout", response_model=None)
