@@ -21,6 +21,7 @@ class AuthModelsBase:
             return False
         return True
 
+
 class Token(Base):
     token: str
 

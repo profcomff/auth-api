@@ -6,7 +6,7 @@ from fastapi_sqlalchemy import db
 from auth_backend.auth_plugins.auth_interface import AUTH_METHODS
 from auth_backend.models.db import Session as DbSession
 from auth_backend.routes.models.base import Token, Session
-from auth_backend.routes.models.login_password import LoginPasswordPost
+from auth_backend.routes.models.login_password import LoginPasswordPost, LoginPasswordPatch
 
 handles = APIRouter(prefix="", tags=["Auth"])
 
@@ -15,7 +15,8 @@ handles = APIRouter(prefix="", tags=["Auth"])
 async def registration(type: str, schema: LoginPasswordPost) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
-    schema.represents_check(AUTH_METHODS[type])
+    if not schema.represents_check(AUTH_METHODS[type]):
+        raise Exception
     auth = AUTH_METHODS[type](**schema.dict())
     return Session.from_orm(auth.register(db.session))
 
@@ -23,6 +24,8 @@ async def registration(type: str, schema: LoginPasswordPost) -> Session:
 @handles.post("/login", response_model=Session)
 async def login(type: str, schema: LoginPasswordPost) -> Session:
     if type not in AUTH_METHODS.keys():
+        raise Exception
+    if not schema.represents_check(AUTH_METHODS[type]):
         raise Exception
     auth = AUTH_METHODS[type](**schema.dict())
     return Session.from_orm(auth.login(db.session))
@@ -38,9 +41,8 @@ async def logout(token: Token) -> None:
     return None
 
 
-@handles.post("/security", response_model=Session)
-async def change_params(token: Token) -> Session:
-    ...
-
-
-
+@handles.post("/security", response_model=None)
+async def change_params(type: str, token: Token, schema: LoginPasswordPatch) -> None:
+    if not schema.represents_check(AUTH_METHODS[type]):
+        raise Exception
+    return AUTH_METHODS[type].change_params(token, db.session, **schema.dict())

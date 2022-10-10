@@ -15,7 +15,6 @@ def get_salt() -> str:
 
 
 class LoginPassword(AuthInterface):
-
     @staticmethod
     def change_params(token: str, db_session: ORMSession, **kwargs) -> None:
         session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
@@ -26,7 +25,6 @@ class LoginPassword(AuthInterface):
                 row.value = kwargs[row.param]
         db_session.flush()
         return None
-
 
     @dataclass
     class Password(AuthInterface.Prop):
@@ -99,10 +97,7 @@ class LoginPassword(AuthInterface):
         )
         if not check_existing:
             raise Exception
-        secrets = {
-            row.name: row.value
-            for row in check_existing.user.get_auth_methods(self.__class__.__name__)
-        }
+        secrets = {row.name: row.value for row in check_existing.user.get_auth_methods(self.__class__.__name__)}
         if secrets.get("email") != self.email or not LoginPassword.Password.validate_password(
             str(self.hashed_password), secrets.get("hashed_password")
         ):
