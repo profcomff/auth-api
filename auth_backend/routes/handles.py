@@ -14,7 +14,7 @@ handles = APIRouter(prefix="", tags=["Auth"])
 async def registration(type: str, schema: Email) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
-    auth = AUTH_METHODS[type].__init__(**schema.dict())
+    auth = AUTH_METHODS[type](**schema.dict())
     return Session.from_orm(auth.register(db.session))
 
 
@@ -22,7 +22,7 @@ async def registration(type: str, schema: Email) -> Session:
 async def login(type: str, schema: Email) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
-    auth = AUTH_METHODS[type].__init__(**schema.dict())
+    auth = AUTH_METHODS[type](**schema.dict())
     return Session.from_orm(auth.login(db.session))
 
 
@@ -34,4 +34,6 @@ async def logout(token: Token) -> None:
     session.expires = datetime.datetime.utcnow()
     db.session.flush()
     return None
+
+
 

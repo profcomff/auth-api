@@ -5,7 +5,7 @@ from typing import Callable
 from sqlalchemy.orm import Session as ORMSession
 from auth_backend.models import Session
 
-AUTH_METHODS: dict[str, AuthInterface] = {}
+AUTH_METHODS: dict[str, type(AuthInterface)] = {}
 
 
 def add_method(method: Callable) -> Callable:
