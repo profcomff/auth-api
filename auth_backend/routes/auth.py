@@ -8,10 +8,10 @@ from auth_backend.models.db import Session as DbSession
 from auth_backend.routes.models.base import Token, Session
 from auth_backend.routes.models.login_password import LoginPasswordPost, LoginPasswordPatch
 
-handles = APIRouter(prefix="", tags=["Auth"])
+auth = APIRouter(prefix="", tags=["Auth"])
 
 
-@handles.post("/registration", response_model=Session)
+@auth.post("/registration", response_model=Session)
 async def registration(type: str, schema: LoginPasswordPost) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
@@ -21,7 +21,7 @@ async def registration(type: str, schema: LoginPasswordPost) -> Session:
     return Session.from_orm(auth.register(db.session))
 
 
-@handles.post("/login", response_model=Session)
+@auth.post("/login", response_model=Session)
 async def login(type: str, schema: LoginPasswordPost) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
@@ -31,7 +31,7 @@ async def login(type: str, schema: LoginPasswordPost) -> Session:
     return Session.from_orm(auth.login(db.session))
 
 
-@handles.post("/logout", response_model=None)
+@auth.post("/logout", response_model=None)
 async def logout(token: Token) -> None:
     session: DbSession = db.session.query(DbSession).filter(DbSession.token == token.token).one_or_none()
     if session.expired():
@@ -41,7 +41,7 @@ async def logout(token: Token) -> None:
     return None
 
 
-@handles.post("/security", response_model=None)
+@auth.post("/security", response_model=None)
 async def change_params(type: str, token: Token, schema: LoginPasswordPatch) -> None:
     if not schema.represents_check(AUTH_METHODS[type]):
         raise Exception
