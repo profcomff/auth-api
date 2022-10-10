@@ -12,6 +12,7 @@ def add_method(method: Callable) -> Callable:
     def wrapped(*args, **kwargs):
         AUTH_METHODS.append(method.__name__)
         return method(*args, **kwargs)
+
     return wrapped
 
 
@@ -59,12 +60,9 @@ class AuthInterface(metaclass=ABCMeta):
 
     def __repr__(self) -> str:
         return (
-                f"{self.__class__.__name__}(" +
-                ", ".join([
-                    f"{attr.name}=\"{getattr(self, attr.name)}\""
-                    for attr in self.cols
-                ]) +
-                ")"
+            f"{self.__class__.__name__}("
+            + ", ".join([f"{attr.name}=\"{getattr(self, attr.name)}\"" for attr in self.cols])
+            + ")"
         )
 
     @property

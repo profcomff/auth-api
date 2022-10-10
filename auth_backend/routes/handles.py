@@ -16,7 +16,6 @@ async def registration(type: str, schema: Email) -> Token:
     return Token.from_orm(AUTH_METHODS[type].register(db.session, **schema.dict()))
 
 
-
 @handles.post("/login", response_model=Token)
 async def login(type: str, schema: Email) -> Token:
     if type not in AUTH_METHODS.keys():
@@ -27,6 +26,3 @@ async def login(type: str, schema: Email) -> Token:
 @handles.post("/logout", response_model=None)
 async def logout(token: Token) -> None:
     ...
-
-
-

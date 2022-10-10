@@ -11,12 +11,12 @@ class Base(BaseModel):
         return "{}({})".format(self.__class__.__name__, ', '.join(attrs))
 
 
-class Email(BaseModel):
+class Email(Base):
     email: EmailStr
     password: str
 
 
-class Token(BaseModel):
+class Token(Base):
     token: str
 
 
