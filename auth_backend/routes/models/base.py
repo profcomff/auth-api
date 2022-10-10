@@ -21,23 +21,6 @@ class AuthModelsBase:
             return False
         return True
 
-
-class LoginPasswordPost(Base, AuthModelsBase):
-
-    __represents__ = LoginPassword
-
-    email: EmailStr
-    password: str
-
-
-class LoginPasswordPatch(Base, AuthModelsBase):
-
-    __represents__ = LoginPassword
-
-    email: EmailStr | None
-    password: str | None
-
-
 class Token(Base):
     token: str
 

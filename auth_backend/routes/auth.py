@@ -5,7 +5,8 @@ from fastapi_sqlalchemy import db
 
 from auth_backend.auth_plugins.auth_interface import AUTH_METHODS
 from auth_backend.models.db import Session as DbSession
-from auth_backend.routes.models.models import Token, LoginPasswordPost, Session
+from auth_backend.routes.models.base import Token, Session
+from auth_backend.routes.models.login_password import LoginPasswordPost
 
 handles = APIRouter(prefix="", tags=["Auth"])
 
