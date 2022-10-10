@@ -34,7 +34,9 @@ class AuthMethod(Base):
 class Session(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"))
-    expires = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7), nullable=False)
+    expires = sqlalchemy.Column(
+        sqlalchemy.DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7), nullable=False
+    )
     token = sqlalchemy.Column(sqlalchemy.String, unique=True, nullable=False)
 
     user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="sessions")
