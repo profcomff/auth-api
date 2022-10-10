@@ -35,14 +35,14 @@ class LoginPassword(AuthInterface):
             self.salt = salt
 
         def __hash_password(self, password: str):
-            salt = self.salt or get_salt()
+            salt = self.salt
             enc = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100_000)
             return enc.hex()
 
-        def set_value(self, value: str, *, salt: str = None):
+        def set_value(self, value: str, **kwargs):
             if not isinstance(value, self.datatype):
                 raise TypeError(f"Expected {self.datatype}, got {value} with type {type(value)}")
-            self.value = LoginPassword.Password.__hash_password(value, salt)
+            self.value = LoginPassword.Password.__hash_password(value, self.salt)
             return self.value
 
         @staticmethod
@@ -52,7 +52,8 @@ class LoginPassword(AuthInterface):
 
     email = AuthInterface.Prop(str)
     salt = AuthInterface.Prop(str)
-    hashed_password = Password()
+    salt.set_value(get_salt())
+    hashed_password = Password(salt=str(salt.value))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
