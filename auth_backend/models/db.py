@@ -23,19 +23,19 @@ class User(Base):
 
 class AuthMethod(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("User.id"))
-    auth_method = sqlalchemy.Column(sqlalchemy.String)
-    param = sqlalchemy.Column(sqlalchemy.String)
-    value = sqlalchemy.Column(sqlalchemy.JSON)
+    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"))
+    auth_method = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    param = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    value = sqlalchemy.Column(sqlalchemy.JSON, nullable=False)
 
     user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="auth_methods")
 
 
 class Session(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("User.id"))
-    expires = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7))
-    token = sqlalchemy.Column(sqlalchemy.String, unique=True)
+    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"))
+    expires = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7), nullable=False)
+    token = sqlalchemy.Column(sqlalchemy.String, unique=True, nullable=False)
 
     user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="sessions")
 
