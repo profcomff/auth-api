@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi_sqlalchemy import DBSessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
+from .auth import handles
 
 from auth_backend.settings import get_settings
 
@@ -22,3 +23,5 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
+
+app.include_router(handles)

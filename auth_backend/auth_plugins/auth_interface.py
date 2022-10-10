@@ -1,5 +1,5 @@
 from __future__ import annotations
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from typing import Callable
 from sqlalchemy.orm import Session as ORMSession
@@ -22,10 +22,17 @@ class AuthInterface(metaclass=ABCMeta):
         auth_params which auth type need: like email, hashed_password and salt
     """
 
+    @abstractmethod
     def register(self, session: ORMSession, **kwargs) -> Session | None:
         raise NotImplementedError()
 
+    @abstractmethod
     def login(self, session: ORMSession, **kwargs) -> Session | None:
+        raise NotImplementedError()
+
+    @staticmethod
+    @abstractmethod
+    def change_params(token: str, session: ORMSession, **kwargs) -> Session | None:
         raise NotImplementedError()
 
     @dataclass

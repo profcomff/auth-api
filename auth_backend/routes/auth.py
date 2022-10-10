@@ -5,21 +5,22 @@ from fastapi_sqlalchemy import db
 
 from auth_backend.auth_plugins.auth_interface import AUTH_METHODS
 from auth_backend.models.db import Session as DbSession
-from .models import Token, Email, Session
+from auth_backend.routes.models.models import Token, LoginPasswordPost, Session
 
 handles = APIRouter(prefix="", tags=["Auth"])
 
 
-@handles.post("/registration", response_model=Token)
-async def registration(type: str, schema: Email) -> Session:
+@handles.post("/registration", response_model=Session)
+async def registration(type: str, schema: LoginPasswordPost) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
+    schema.represents_check(AUTH_METHODS[type])
     auth = AUTH_METHODS[type](**schema.dict())
     return Session.from_orm(auth.register(db.session))
 
 
-@handles.post("/login", response_model=Token)
-async def login(type: str, schema: Email) -> Session:
+@handles.post("/login", response_model=Session)
+async def login(type: str, schema: LoginPasswordPost) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
     auth = AUTH_METHODS[type](**schema.dict())
@@ -34,6 +35,11 @@ async def logout(token: Token) -> None:
     session.expires = datetime.datetime.utcnow()
     db.session.flush()
     return None
+
+
+@handles.post("/security", response_model=Session)
+async def change_params(token: Token) -> Session:
+    ...
 
 
 
