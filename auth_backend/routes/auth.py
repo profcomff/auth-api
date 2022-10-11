@@ -17,7 +17,7 @@ async def registration(type: str, schema: LoginPasswordPost) -> Session:
         raise Exception
     if not schema.represents_check(AUTH_METHODS[type]):
         raise Exception
-    auth = AUTH_METHODS[type](**schema.dict())
+    auth = AUTH_METHODS[type](db.session, **schema.dict())
     return Session.from_orm(auth.register(db.session))
 
 
@@ -27,7 +27,7 @@ async def login(type: str, schema: LoginPasswordPost) -> Session:
         raise Exception
     if not schema.represents_check(AUTH_METHODS[type]):
         raise Exception
-    auth = AUTH_METHODS[type](**schema.dict())
+    auth = AUTH_METHODS[type](db.session, **schema.dict())
     return Session.from_orm(auth.login(db.session))
 
 

@@ -50,11 +50,24 @@ class LoginPassword(AuthInterface):
             salt, hashed = hashed_password.split("$")
             return LoginPassword.Password.__hash_password(password, salt) == hashed
 
-    email: AuthInterface.Prop
+    email: AuthInterface.Prop = AuthInterface.Prop(str)
     salt: AuthInterface.Prop
     hashed_password: Password
 
-    def __init__(self, **kwargs):
+    def __init__(self, db_session: DBSession, **kwargs):
+        if "email" not in kwargs.keys():
+            raise Exception
+        salt: str = None
+        ## FIXME
+        if query := db_session.query(AuthMethod).filter(AuthMethod.value == kwargs.get("email")).one_or_none():
+            for row in query.user.get_auth_methods(self.__class__.__name__):
+                if row.param == "salt":
+                    salt = row.value
+        else:
+            salt = get_salt()
+        self.salt = AuthInterface.Prop(str)
+        self.salt.set_value(salt)
+        self.hashed_password = LoginPassword.Password(str(self.salt.value))
         super().__init__(**kwargs)
 
     def register(self, db_session: DBSession, *, user_id: int | None = None) -> Session | None:
