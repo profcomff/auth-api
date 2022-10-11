@@ -11,8 +11,8 @@ import sqlalchemy.orm
 class User(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
 
-    auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys=[id])
-    sessions: list[Session] = sqlalchemy.orm.relationship("Session", foreign_keys=[id])
+    auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
+    sessions: list[Session] = sqlalchemy.orm.relationship("Session", foreign_keys="Session.user_id")
 
     @hybrid_method
     def get_auth_methods(self, auth_method: str) -> Iterator[AuthMethod]:

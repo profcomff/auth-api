@@ -34,8 +34,8 @@ class LoginPassword(AuthInterface):
             super().__init__(datatype=str)
             self.salt = salt
 
-        def __hash_password(self, password: str):
-            salt = self.salt
+        @staticmethod
+        def __hash_password(password: str, salt: str):
             enc = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100_000)
             return enc.hex()
 
@@ -50,10 +50,9 @@ class LoginPassword(AuthInterface):
             salt, hashed = hashed_password.split("$")
             return LoginPassword.Password.__hash_password(password, salt) == hashed
 
-    email = AuthInterface.Prop(str)
-    salt = AuthInterface.Prop(str)
-    salt.set_value(get_salt())
-    hashed_password = Password(salt=str(salt.value))
+    email: AuthInterface.Prop
+    salt: AuthInterface.Prop
+    hashed_password: Password
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
