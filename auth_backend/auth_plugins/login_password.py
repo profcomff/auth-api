@@ -3,6 +3,8 @@ import random
 import string
 from uuid import uuid4
 
+import sqlalchemy
+from sqlalchemy import cast
 from sqlalchemy.orm import Session as DBSession
 
 from auth_backend.models import Session, User, AuthMethod
@@ -37,7 +39,7 @@ class LoginPassword(AuthInterface):
                         .filter(
                     AuthMethod.auth_method == LoginPassword.__name__,
                     AuthMethod.param == self.email.param,
-                    AuthMethod.value.as_string() == self.email.value,
+                    cast(AuthMethod.value, sqlalchemy.String) == self.email.value,
                 )
                         .one_or_none()
         ):
@@ -61,7 +63,7 @@ class LoginPassword(AuthInterface):
                 .filter(
             AuthMethod.auth_method == self.__class__.__name__,
             AuthMethod.param == "email",
-            AuthMethod.value == self.email,
+            cast(AuthMethod.value, sqlalchemy.String) == self.email,
         )
                 .one_or_none()):
             raise Exception

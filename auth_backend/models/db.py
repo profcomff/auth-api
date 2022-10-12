@@ -4,6 +4,7 @@ from typing import Iterator
 
 from sqlalchemy.ext.hybrid import hybrid_method
 
+
 from .base import Base
 import sqlalchemy.orm
 from sqlalchemy.dialects.postgresql.json import JSON
@@ -24,17 +25,17 @@ class User(Base):
 
 class AuthMethod(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"))
+    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"), nullable=False)
     auth_method = sqlalchemy.Column(sqlalchemy.String, nullable=False)
     param = sqlalchemy.Column(sqlalchemy.String, nullable=False)
-    value = sqlalchemy.Column(JSON, nullable=False)
+    value = sqlalchemy.Column(sqlalchemy.String, nullable=False)
 
     user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="auth_methods")
 
 
 class Session(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"))
+    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"), nullable=False)
     expires = sqlalchemy.Column(
         sqlalchemy.DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7), nullable=False
     )
