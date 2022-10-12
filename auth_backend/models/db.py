@@ -1,13 +1,12 @@
 from __future__ import annotations
+
 import datetime
 from typing import Iterator
 
+import sqlalchemy.orm
 from sqlalchemy.ext.hybrid import hybrid_method
 
-
 from .base import Base
-import sqlalchemy.orm
-from sqlalchemy.dialects.postgresql.json import JSON
 
 
 class User(Base):
