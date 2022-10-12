@@ -32,12 +32,19 @@ async def login(type: str, schema: LoginPasswordPost) -> Session:
         raise Exception
     salt: str | None = None
     if isinstance(schema, LoginPasswordPost):
-        query = db.session.query(AuthMethod).filter(AuthMethod.value == schema.email,
-                                                    AuthMethod.param == "email").one_or_none()
+        query = (
+            db.session.query(AuthMethod)
+            .filter(AuthMethod.value == schema.email, AuthMethod.param == "email")
+            .one_or_none()
+        )
         if not query:
             raise Exception
-        salt = db.session.query(AuthMethod).filter(AuthMethod.user_id == query.user_id,
-                                                   AuthMethod.param == "salt").one_or_none().value
+        salt = (
+            db.session.query(AuthMethod)
+            .filter(AuthMethod.user_id == query.user_id, AuthMethod.param == "salt")
+            .one_or_none()
+            .value
+        )
     auth = AUTH_METHODS[type](**schema.dict(), salt=salt)
     return Session.from_orm(auth.login(db.session))
 

@@ -11,14 +11,16 @@ def send_confirmation_email(subject, to_addr, link):
     """
     from_addr = settings.email
 
-    BODY = "\r\n".join((
-        f"From: {from_addr}",
-        f"To: {to_addr}",
-        f"Subject: {subject}",
-        "Content-Type: text/html; charset=utf-8;",
-        "",
-        MAIL_CONFIRMATION_TEMPLATE.replace('{{url}}', link)
-    ))
+    BODY = "\r\n".join(
+        (
+            f"From: {from_addr}",
+            f"To: {to_addr}",
+            f"Subject: {subject}",
+            "Content-Type: text/html; charset=utf-8;",
+            "",
+            MAIL_CONFIRMATION_TEMPLATE.replace('{{url}}', link),
+        )
+    )
 
     smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
     smtpObj.starttls()

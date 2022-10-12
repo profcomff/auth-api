@@ -29,19 +29,20 @@ class LoginPassword(AuthInterface):
     def __init__(self, *, email: str, password: str, salt: str | None = None):
         self.email = AuthInterface.Prop(value=email, datatype=str, param="email")
         self.salt = AuthInterface.Prop(value=salt or get_salt(), datatype=str, param="salt")
-        self.hashed_password = AuthInterface.Prop(value=LoginPassword.__hash_password(password, salt=self.salt.value),
-                                                  datatype=str, param="hashed_password")
+        self.hashed_password = AuthInterface.Prop(
+            value=LoginPassword.__hash_password(password, salt=self.salt.value), datatype=str, param="hashed_password"
+        )
         super().__init__()
 
     def register(self, db_session: DBSession, *, user_id: int | None = None) -> Session | None:
         if (
-                db_session.query(AuthMethod)
-                        .filter(
-                    AuthMethod.auth_method == LoginPassword.__name__,
-                    AuthMethod.param == self.email.param,
-                    AuthMethod.value == self.email.value,
-                )
-                        .one_or_none()
+            db_session.query(AuthMethod)
+            .filter(
+                AuthMethod.auth_method == LoginPassword.__name__,
+                AuthMethod.param == self.email.param,
+                AuthMethod.value == self.email.value,
+            )
+            .one_or_none()
         ):
             raise Exception
         if not user_id:
@@ -53,23 +54,28 @@ class LoginPassword(AuthInterface):
             raise Exception
         for row in (self.email, self.hashed_password, self.salt):
             db_session.add(
-                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param))
+                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param)
+            )
         db_session.add(session := Session(token=str(uuid4()), user_id=user.id))
         db_session.flush()
         return session
 
     def login(self, db_session: DBSession, **kwargs) -> Session | None:
-        if not (check_existing := db_session.query(AuthMethod)
-                .filter(
-            AuthMethod.auth_method == self.__class__.__name__,
-            AuthMethod.param == "email",
-            AuthMethod.value == self.email.value,
-        )
-                .one_or_none()):
+        if not (
+            check_existing := db_session.query(AuthMethod)
+            .filter(
+                AuthMethod.auth_method == self.__class__.__name__,
+                AuthMethod.param == "email",
+                AuthMethod.value == self.email.value,
+            )
+            .one_or_none()
+        ):
             raise Exception
         secrets = {row.param: row.value for row in check_existing.user.get_auth_methods(self.__class__.__name__)}
-        if secrets.get(self.email.param) != self.email.value or secrets.get(
-                self.hashed_password.param) != self.hashed_password.value:
+        if (
+            secrets.get(self.email.param) != self.email.value
+            or secrets.get(self.hashed_password.param) != self.hashed_password.value
+        ):
             raise Exception
         db_session.add(session := Session(user_id=check_existing.user.id, token=str(uuid4())))
         db_session.flush()

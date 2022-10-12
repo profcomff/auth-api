@@ -12,4 +12,3 @@ async def forgot_password() -> ...:
 @login_password.post("/approve", response_model=bool)
 async def approve_email(token: str):
     pass
-

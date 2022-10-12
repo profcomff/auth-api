@@ -15,6 +15,7 @@ class AuthInterface(metaclass=ABCMeta):
     Parameters:
         auth_params which auth type need: like email, hashed_password and salt
     """
+
     cols = []
 
     @dataclass()
@@ -27,7 +28,6 @@ class AuthInterface(metaclass=ABCMeta):
         for row in dir(self):
             if isinstance((attr := getattr(self, row)), AuthInterface.Prop):
                 self.cols += [attr]
-
 
     @abstractmethod
     def register(self, session: ORMSession, **kwargs) -> Session | None:
