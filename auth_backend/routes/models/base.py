@@ -12,6 +12,9 @@ class Base(BaseModel):
             attrs.append(f"{k}={v}")
         return "{}({})".format(self.__class__.__name__, ', '.join(attrs))
 
+    class Config:
+        orm_mode = True
+
 
 class AuthModelsBase:
     __represents__: AuthInterface
