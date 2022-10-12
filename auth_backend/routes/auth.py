@@ -52,7 +52,7 @@ async def login(type: str, schema: LoginPasswordPost) -> Session:
 @auth.post("/logout", response_model=None)
 async def logout(token: Token) -> None:
     session: DbSession = db.session.query(DbSession).filter(DbSession.token == token.token).one_or_none()
-    if session.expired():
+    if session.expired:
         raise Exception
     session.expires = datetime.datetime.utcnow()
     db.session.flush()
@@ -63,4 +63,4 @@ async def logout(token: Token) -> None:
 async def change_params(type: str, token: Token, schema: LoginPasswordPatch) -> None:
     if not schema.represents_check(AUTH_METHODS[type]):
         raise Exception
-    return AUTH_METHODS[type].change_params(token, db.session, **schema.dict())
+    return AUTH_METHODS[type].change_params(token.token, auth_type=AUTH_METHODS[type], db_session=db.session, **schema.dict())
