@@ -28,9 +28,9 @@ class LoginPassword(AuthInterface):
 
     @dataclass
     class Password(AuthInterface.Prop):
-        salt: str | None
+        salt: AuthInterface.Prop
 
-        def __init__(self, salt: str | None = None):
+        def __init__(self, salt: AuthInterface.Prop | None = None):
             super().__init__(datatype=str)
             self.salt = salt
 
@@ -42,7 +42,7 @@ class LoginPassword(AuthInterface):
         def set_value(self, value: str, **kwargs):
             if not isinstance(value, self.datatype):
                 raise TypeError(f"Expected {self.datatype}, got {value} with type {type(value)}")
-            self.value = LoginPassword.Password.__hash_password(value, self.salt)
+            self.value = LoginPassword.Password.__hash_password(value, str(self.salt.value))
             return self.value
 
         @staticmethod
@@ -51,23 +51,11 @@ class LoginPassword(AuthInterface):
             return LoginPassword.Password.__hash_password(password, salt) == hashed
 
     email: AuthInterface.Prop = AuthInterface.Prop(str)
-    salt: AuthInterface.Prop
-    hashed_password: Password
+    salt: AuthInterface.Prop = AuthInterface.Prop(str)
+    password: Password = Password(salt)
 
-    def __init__(self, db_session: DBSession, **kwargs):
-        if "email" not in kwargs.keys():
-            raise Exception
-        salt: str = None
-        ## FIXME
-        if query := db_session.query(AuthMethod).filter(AuthMethod.value == kwargs.get("email")).one_or_none():
-            for row in query.user.get_auth_methods(self.__class__.__name__):
-                if row.param == "salt":
-                    salt = row.value
-        else:
-            salt = get_salt()
-        self.salt = AuthInterface.Prop(str)
-        self.salt.set_value(salt)
-        self.hashed_password = LoginPassword.Password(str(self.salt.value))
+    def __init__(self, **kwargs):
+        kwargs["salt"] = kwargs.get("salt") or get_salt()
         super().__init__(**kwargs)
 
     def register(self, db_session: DBSession, *, user_id: int | None = None) -> Session | None:
@@ -112,7 +100,7 @@ class LoginPassword(AuthInterface):
             raise Exception
         secrets = {row.name: row.value for row in check_existing.user.get_auth_methods(self.__class__.__name__)}
         if secrets.get("email") != self.email or not LoginPassword.Password.validate_password(
-            str(self.hashed_password), secrets.get("hashed_password")
+            str(self.password), secrets.get("hashed_password")
         ):
             raise Exception
         db_session.add(session := Session(user_id=check_existing.user.id, token=str(uuid4())))

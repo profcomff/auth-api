@@ -47,11 +47,21 @@ class AuthInterface(metaclass=ABCMeta):
 
     def __init__(self, **kwargs):
         self.cols = []
-        for attr_name in dir(self):
-            attr = getattr(self, attr_name)
+        def f(obj: AuthInterface | AuthInterface.Prop):
+            attrs = []
+            for attr_name in dir(obj):
+                attr = getattr(obj, attr_name)
+                if not isinstance(attr, AuthInterface.Prop):
+                    continue
+                attrs.extend(f(attr))
+                if not attr in attrs:
+                    attrs.append(attr)
+            return attrs
+        attrs = f(self)
+        for attr in attrs:
             if not isinstance(attr, AuthInterface.Prop):
                 continue
-            attr.name = attr_name
+            # attr.name = attr.__
             setattr(self, attr_name, attr.set_value(kwargs.get(attr_name)))
             self.cols += [attr]
 

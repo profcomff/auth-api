@@ -5,6 +5,7 @@ from fastapi_sqlalchemy import db
 
 from auth_backend.auth_plugins.auth_interface import AUTH_METHODS
 from auth_backend.models.db import Session as DbSession
+from auth_backend.models.db import AuthMethod
 from auth_backend.routes.models.base import Token, Session
 from auth_backend.routes.models.login_password import LoginPasswordPost, LoginPasswordPatch
 
@@ -12,13 +13,13 @@ auth = APIRouter(prefix="", tags=["Auth"])
 
 
 @auth.post("/registration", response_model=Session)
-async def registration(type: str, schema: LoginPasswordPost) -> Session:
+async def registration(type: str, schema: LoginPasswordPost, user_id: int | None = None) -> Session:
     if type not in AUTH_METHODS.keys():
         raise Exception
     if not schema.represents_check(AUTH_METHODS[type]):
         raise Exception
-    auth = AUTH_METHODS[type](db.session, **schema.dict())
-    return Session.from_orm(auth.register(db.session))
+    auth = AUTH_METHODS[type](**schema.dict())
+    return Session.from_orm(auth.register(db.session, user_id=user_id))
 
 
 @auth.post("/login", response_model=Session)
@@ -27,7 +28,13 @@ async def login(type: str, schema: LoginPasswordPost) -> Session:
         raise Exception
     if not schema.represents_check(AUTH_METHODS[type]):
         raise Exception
-    auth = AUTH_METHODS[type](db.session, **schema.dict())
+    salt: str | None = None
+    if isinstance(schema, LoginPasswordPost):
+        query = db.session.query(AuthMethod).filter(AuthMethod.value == schema.email).one_or_none()
+        if not query:
+            raise Exception
+        salt = db.session.query(AuthMethod).filter(AuthMethod.user_id == query.user_id, AuthMethod.param == "salt").one_or_none()
+    auth = AUTH_METHODS[type](**schema.dict(), salt=salt)
     return Session.from_orm(auth.login(db.session))
 
 
