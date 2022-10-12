@@ -3,12 +3,10 @@ import random
 import string
 from uuid import uuid4
 
-import sqlalchemy
-from sqlalchemy import cast
 from sqlalchemy.orm import Session as DBSession
 
 from auth_backend.models import Session, User, AuthMethod
-from .auth_interface import AuthInterface
+from .auth_interface import AuthInterface, AUTH_METHODS
 
 
 def get_salt() -> str:
@@ -80,6 +78,24 @@ class LoginPassword(AuthInterface):
         db_session.add(session := Session(user_id=check_existing.user.id, token=str(uuid4())))
         db_session.flush()
         return session
+
+    @staticmethod
+    def change_params(token: str, auth_type: type, db_session: DBSession,
+                      new_email: str | None = None, new_password: str | None = None) -> None:
+        session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
+        if session.expired:
+            raise Exception
+        if auth_type not in AUTH_METHODS.values():
+            raise Exception
+        for row in session.user.get_auth_methods(auth_type.__name__):
+            match row.param:
+                case "email":
+                    row.value = new_email or row.param
+                case "hashed_password":
+                    salt = get_salt()
+                    row.value = LoginPassword.__hash_password(new_password, salt)
+        db_session.flush()
+        return None
 
     @staticmethod
     def forgot_password():

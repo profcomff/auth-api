@@ -48,18 +48,10 @@ class AuthInterface(metaclass=ABCMeta):
             + ")"
         )
 
+    @abstractmethod
     @staticmethod
     def change_params(token: str, auth_type: type, db_session: ORMSession, **kwargs) -> None:
-        session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
-        if session.expired:
-            raise Exception
-        if AuthInterface.__name__ not in auth_type.__class__.mro():
-            raise Exception
-        for row in session.user.get_auth_methods(type.__name__):
-            if row.param in kwargs.keys():
-                row.value = kwargs[row.param]
-        db_session.flush()
-        return None
+        raise NotImplementedError()
 
     @property
     def columns(self) -> list:
