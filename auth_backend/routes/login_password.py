@@ -26,7 +26,6 @@ async def approve_email(token: str) -> None:
     for row in query:
         row.is_active = True
     db.session.flush()
-    return None
 
 
 # @login_password.post("/approve/password", response_model=bool)

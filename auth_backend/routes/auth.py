@@ -28,7 +28,7 @@ async def registration(auth_type: str, schema: LoginPasswordPost, user_id: int |
         raise Exception
     auth = AUTH_METHODS[auth_type](**schema.dict(), salt=None)
     if auth_type == LoginPassword.__name__:
-        link = f"{settings.host}/approve/email?token={auth.register(db.session, user_id=user_id)}"
+        link = f"{settings.host}/email/approve/email?token={auth.register(db.session, user_id=user_id)}"
         return send_confirmation_email(subject="Email confirmation", to_addr=schema.email, link=link)
     return Session.from_orm(auth.register(db.session, user_id=user_id))
 
