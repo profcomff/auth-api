@@ -1,11 +1,12 @@
 from functools import lru_cache
 
-from pydantic import BaseSettings, PostgresDsn, EmailStr
+from pydantic import BaseSettings, PostgresDsn, EmailStr, HttpUrl
 
 
 class Settings(BaseSettings):
     DB_DSN: PostgresDsn
     email: EmailStr | None
+    host: HttpUrl = 'http://127.0.0.1:8000'
 
     CORS_ALLOW_ORIGINS: list[str] = ['*']
     CORS_ALLOW_CREDENTIALS: bool = True

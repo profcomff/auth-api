@@ -32,7 +32,7 @@ class LoginPassword(AuthInterface):
         )
         super().__init__()
 
-    def register(self, db_session: DBSession, *, user_id: int | None = None) -> Session | None:
+    def register(self, db_session: DBSession, *, user_id: int | None = None) -> str | None:
         if (
             db_session.query(AuthMethod)
             .filter(
@@ -52,11 +52,11 @@ class LoginPassword(AuthInterface):
             raise Exception
         for row in (self.email, self.hashed_password, self.salt):
             db_session.add(
-                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param)
+                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param, is_active=False)
             )
-        db_session.add(session := Session(token=str(uuid4()), user_id=user.id))
-        db_session.flush()
-        return session
+        email_token = uuid4()
+        return str(email_token)
+
 
     def login(self, db_session: DBSession, **kwargs) -> Session | None:
         if not (

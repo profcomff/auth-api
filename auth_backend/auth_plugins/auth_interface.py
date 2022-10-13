@@ -30,11 +30,22 @@ class AuthInterface(metaclass=ABCMeta):
                 self.cols += [attr]
 
     @abstractmethod
-    def register(self, session: ORMSession, **kwargs) -> Session | None:
+    def register(self, session: ORMSession, **kwargs) -> Session | str | None:
+        """
+        :param session: from fastapi_sqlalchemy db.session
+        :param kwargs:
+        :return: Session(completed registration) or str: token to confirm smth(email fox example), None if registration failed
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def login(self, session: ORMSession, **kwargs) -> Session | None:
+        """
+
+        :param session: from fastapi_sqalchemy db.session
+        :param kwargs:
+        :return: Session(completed registration) or None if failed
+        """
         raise NotImplementedError()
 
     @classmethod
@@ -48,8 +59,9 @@ class AuthInterface(metaclass=ABCMeta):
             + ")"
         )
 
-    @abstractmethod
+
     @staticmethod
+    @abstractmethod
     def change_params(token: str, auth_type: type, db_session: ORMSession, **kwargs) -> None:
         raise NotImplementedError()
 
