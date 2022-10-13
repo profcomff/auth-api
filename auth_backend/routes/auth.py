@@ -18,15 +18,15 @@ settings = get_settings()
 auth = APIRouter(prefix="", tags=["Auth"])
 
 
-@auth.post("/registration", response_model=Session)
-async def registration(auth_type: str, schema: LoginPasswordPost, user_id: int | None = None) -> Session:
+@auth.post("/registration", response_model=Session | None)
+async def registration(auth_type: str, schema: LoginPasswordPost, user_id: int | None = None) -> Session | None:
     if auth_type not in AUTH_METHODS.keys():
         raise Exception
     if not schema.represents_check(AUTH_METHODS[auth_type]):
         raise Exception
     auth = AUTH_METHODS[auth_type](**schema.dict(), salt=None)
-    if auth_type == type(LoginPassword):
-        link = f"{settings}/approve?token={auth.register(db.session, user_id=user_id)}"
+    if auth_type == LoginPassword.__name__:
+        link = f"{settings.host}/approve?token={auth.register(db.session, user_id=user_id)}"
         return send_confirmation_email(subject="Email confirmation", to_addr=schema.email, link=link)
     return Session.from_orm(auth.register(db.session, user_id=user_id))
 

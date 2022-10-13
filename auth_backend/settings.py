@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     DB_DSN: PostgresDsn
     email: EmailStr | None
     host: HttpUrl = 'http://127.0.0.1:8000'
+    EMAIL_PASS: str = None
 
     CORS_ALLOW_ORIGINS: list[str] = ['*']
     CORS_ALLOW_CREDENTIALS: bool = True
