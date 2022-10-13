@@ -29,6 +29,7 @@ class AuthMethod(Base):
     param = sqlalchemy.Column(sqlalchemy.String, nullable=False)
     value = sqlalchemy.Column(sqlalchemy.String, nullable=False)
     is_active = sqlalchemy.Column(sqlalchemy.Boolean, default=False, nullable=False)
+    token = sqlalchemy.Column(sqlalchemy.String, nullable=True)
 
     user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="auth_methods")
 

@@ -34,13 +34,13 @@ class LoginPassword(AuthInterface):
 
     def register(self, db_session: DBSession, *, user_id: int | None = None) -> str | None:
         if (
-            db_session.query(AuthMethod)
-            .filter(
-                AuthMethod.auth_method == LoginPassword.__name__,
-                AuthMethod.param == self.email.param,
-                AuthMethod.value == self.email.value,
-            )
-            .one_or_none()
+                db_session.query(AuthMethod)
+                        .filter(
+                    AuthMethod.auth_method == LoginPassword.__name__,
+                    AuthMethod.param == self.email.param,
+                    AuthMethod.value == self.email.value,
+                )
+                        .one_or_none()
         ):
             raise Exception
         if not user_id:
@@ -51,28 +51,28 @@ class LoginPassword(AuthInterface):
         if not user:
             raise Exception
         for row in (self.email, self.hashed_password, self.salt):
+            email_token = uuid4()
             db_session.add(
-                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param, is_active=False)
+                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param,
+                           is_active=False, token=str(email_token))
             )
-        email_token = uuid4()
         return str(email_token)
-
 
     def login(self, db_session: DBSession, **kwargs) -> Session | None:
         if not (
-            check_existing := db_session.query(AuthMethod)
-            .filter(
-                AuthMethod.auth_method == self.__class__.__name__,
-                AuthMethod.param == "email",
-                AuthMethod.value == self.email.value,
-            )
-            .one_or_none()
+                check_existing := db_session.query(AuthMethod)
+                        .filter(
+                    AuthMethod.auth_method == self.__class__.__name__,
+                    AuthMethod.param == "email",
+                    AuthMethod.value == self.email.value,
+                )
+                        .one_or_none()
         ):
             raise Exception
         secrets = {row.param: row.value for row in check_existing.user.get_auth_methods(self.__class__.__name__)}
         if (
-            secrets.get(self.email.param) != self.email.value
-            or secrets.get(self.hashed_password.param) != self.hashed_password.value
+                secrets.get(self.email.param) != self.email.value
+                or secrets.get(self.hashed_password.param) != self.hashed_password.value
         ):
             raise Exception
         db_session.add(session := Session(user_id=check_existing.user.id, token=str(uuid4())))

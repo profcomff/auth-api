@@ -46,6 +46,8 @@ async def login(type: str, schema: LoginPasswordPost) -> Session:
         )
         if not query:
             raise Exception
+        if not query.is_active:
+            raise Exception
         salt = (
             db.session.query(AuthMethod)
             .filter(AuthMethod.user_id == query.user_id, AuthMethod.param == "salt")
