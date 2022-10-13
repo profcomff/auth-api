@@ -1,4 +1,6 @@
 import datetime
+from types import NoneType
+from typing import Optional, Union
 
 import sqlalchemy
 from fastapi import APIRouter
@@ -18,7 +20,7 @@ settings = get_settings()
 auth = APIRouter(prefix="", tags=["Auth"])
 
 
-@auth.post("/registration", response_model=Session | None)
+@auth.post("/registration", response_model=Union[Session, NoneType])
 async def registration(auth_type: str, schema: LoginPasswordPost, user_id: int | None = None) -> Session | None:
     if auth_type not in AUTH_METHODS.keys():
         raise Exception

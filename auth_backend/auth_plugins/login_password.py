@@ -43,6 +43,7 @@ class LoginPassword(AuthInterface):
                         .one_or_none()
         ):
             raise Exception
+        email_token = str(uuid4())
         if not user_id:
             db_session.add(user := User())
             db_session.flush()
@@ -51,7 +52,6 @@ class LoginPassword(AuthInterface):
         if not user:
             raise Exception
         for row in (self.email, self.hashed_password, self.salt):
-            email_token = uuid4()
             db_session.add(
                 AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param,
                            is_active=False, token=str(email_token))
