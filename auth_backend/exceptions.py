@@ -21,3 +21,8 @@ class SessionExpired(Exception):
 class IncorrectAuthType(Exception):
     def __init__(self):
         super().__init__(f"Incorrect Authentication Type")
+
+
+class UserNotActive(Exception):
+    def __init__(self):
+        super().__init__(f"Confirm registration")

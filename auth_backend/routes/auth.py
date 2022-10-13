@@ -14,6 +14,7 @@ from auth_backend.models.db import Session as DbSession
 from auth_backend.models.db import AuthMethod
 from auth_backend.routes.models.base import Token, Session
 from auth_backend.settings import get_settings
+from auth_backend.exceptions import IncorrectAuthType, IncorrectLoginOrPassword,SessionExpired, UserNotActive
 from auth_backend.routes.models.login_password import LoginPasswordPost, LoginPasswordPatch
 
 settings = get_settings()
@@ -23,9 +24,9 @@ auth = APIRouter(prefix="", tags=["Auth"])
 @auth.post("/registration", response_model=Union[Session, NoneType])
 async def registration(auth_type: str, schema: LoginPasswordPost, user_id: int | None = None) -> Session | None:
     if auth_type not in AUTH_METHODS.keys():
-        raise Exception
+        raise IncorrectAuthType()
     if not schema.represents_check(AUTH_METHODS[auth_type]):
-        raise Exception
+        raise IncorrectAuthType()
     auth = AUTH_METHODS[auth_type](**schema.dict(), salt=None)
     if auth_type == LoginPassword.__name__:
         link = f"{settings.host}/email/approve/email?token={auth.register(db.session, user_id=user_id)}"
@@ -36,9 +37,9 @@ async def registration(auth_type: str, schema: LoginPasswordPost, user_id: int |
 @auth.post("/login", response_model=Session)
 async def login(type: str, schema: LoginPasswordPost) -> Session:
     if type not in AUTH_METHODS.keys():
-        raise Exception
+        raise IncorrectAuthType()
     if not schema.represents_check(AUTH_METHODS[type]):
-        raise Exception
+        raise IncorrectAuthType()
     salt: str | None = None
     if isinstance(schema, LoginPasswordPost):
         query = (
@@ -47,9 +48,9 @@ async def login(type: str, schema: LoginPasswordPost) -> Session:
             .one_or_none()
         )
         if not query:
-            raise Exception
+            raise IncorrectLoginOrPassword
         if not query.is_active:
-            raise Exception
+            raise UserNotActive()
         salt = (
             db.session.query(AuthMethod)
             .filter(AuthMethod.user_id == query.user_id, AuthMethod.param == "salt")
@@ -64,7 +65,7 @@ async def login(type: str, schema: LoginPasswordPost) -> Session:
 async def logout(token: Token) -> None:
     session: DbSession = db.session.query(DbSession).filter(DbSession.token == token.token).one_or_none()
     if session.expired:
-        raise Exception
+        raise SessionExpired()
     session.expires = datetime.datetime.utcnow()
     db.session.flush()
     return None
@@ -73,5 +74,5 @@ async def logout(token: Token) -> None:
 @auth.post("/security", response_model=None)
 async def change_params(type: str, token: Token, schema: LoginPasswordPatch) -> None:
     if not schema.represents_check(AUTH_METHODS[type]):
-        raise Exception
+        raise IncorrectAuthType()
     return AUTH_METHODS[type].change_params(token.token, auth_type=AUTH_METHODS[type], db_session=db.session, **schema.dict())
