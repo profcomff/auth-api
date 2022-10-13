@@ -18,15 +18,15 @@ login_password = APIRouter(prefix="/email", tags=["Email"])
 #     return send_change_password_confirmation_email("Password change", to_addr=email, link=f"{settings.host}/approve/password")
 
 
-@login_password.post("/approve/email", response_model=bool)
-async def approve_email(token: str):
+@login_password.post("/approve/email", response_model=None)
+async def approve_email(token: str) -> None:
     query: list[AuthMethod] = db.session.query(AuthMethod).filter(AuthMethod.token == token).all()
     if not query:
         raise Exception
     for row in query:
         row.is_active = True
     db.session.flush()
-    return 200
+    return None
 
 
 # @login_password.post("/approve/password", response_model=bool)

@@ -4,6 +4,7 @@ import string
 from uuid import uuid4
 
 from sqlalchemy.orm import Session as DBSession
+from auth_backend.exceptions import ObjectNotFound, IncorrectLoginOrPassword, AlreadyExists, SessionExpired, IncorrectAuthType
 
 from auth_backend.models import Session, User, AuthMethod
 from .auth_interface import AuthInterface, AUTH_METHODS
@@ -33,7 +34,7 @@ class LoginPassword(AuthInterface):
         super().__init__()
 
     def register(self, db_session: DBSession, *, user_id: int | None = None) -> str | None:
-        if (
+        if (query :=
                 db_session.query(AuthMethod)
                         .filter(
                     AuthMethod.auth_method == LoginPassword.__name__,
@@ -42,7 +43,7 @@ class LoginPassword(AuthInterface):
                 )
                         .one_or_none()
         ):
-            raise Exception
+            raise AlreadyExists(User, query.user_id)
         email_token = str(uuid4())
         if not user_id:
             db_session.add(user := User())
@@ -50,12 +51,13 @@ class LoginPassword(AuthInterface):
         else:
             user = db_session.query(User).get(user_id)
         if not user:
-            raise Exception
+            raise ObjectNotFound(User, user_id)
         for row in (self.email, self.hashed_password, self.salt):
             db_session.add(
                 AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param,
                            is_active=False, token=str(email_token))
             )
+        db_session.flush()
         return str(email_token)
 
     def login(self, db_session: DBSession, **kwargs) -> Session | None:
@@ -68,13 +70,13 @@ class LoginPassword(AuthInterface):
                 )
                         .one_or_none()
         ):
-            raise Exception
+            raise IncorrectLoginOrPassword()
         secrets = {row.param: row.value for row in check_existing.user.get_auth_methods(self.__class__.__name__)}
         if (
                 secrets.get(self.email.param) != self.email.value
                 or secrets.get(self.hashed_password.param) != self.hashed_password.value
         ):
-            raise Exception
+            raise IncorrectLoginOrPassword()
         db_session.add(session := Session(user_id=check_existing.user.id, token=str(uuid4())))
         db_session.flush()
         return session
@@ -84,9 +86,9 @@ class LoginPassword(AuthInterface):
                       new_email: str | None = None, new_password: str | None = None) -> None:
         session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
         if session.expired:
-            raise Exception
+            raise SessionExpired()
         if auth_type not in AUTH_METHODS.values():
-            raise Exception
+            raise IncorrectAuthType()
         for row in session.user.get_auth_methods(auth_type.__name__):
             match row.param:
                 case "email":
