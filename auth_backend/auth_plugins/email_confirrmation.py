@@ -9,7 +9,7 @@ def send_confirmation_email(subject, to_addr, link):
     """
     Send confirmation email
     """
-    from_addr = settings.email
+    from_addr = settings.EMAIL
 
     BODY = "\r\n".join(
         (
@@ -33,7 +33,7 @@ def send_change_password_confirmation_email(subject, to_addr, link):
     """
     Send confirmation email
     """
-    from_addr = settings.email
+    from_addr = settings.EMAIL
 
     BODY = "\r\n".join(
         (

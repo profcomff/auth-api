@@ -5,8 +5,8 @@ from pydantic import BaseSettings, PostgresDsn, EmailStr, HttpUrl
 
 class Settings(BaseSettings):
     DB_DSN: PostgresDsn
-    email: EmailStr | None
-    host: HttpUrl = 'http://127.0.0.1:8000'
+    EMAIL: EmailStr | None
+    HOST: HttpUrl = 'http://127.0.0.1:8000'
     EMAIL_PASS: str = None
 
     CORS_ALLOW_ORIGINS: list[str] = ['*']
