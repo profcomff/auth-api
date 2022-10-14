@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     EMAIL: EmailStr | None
     HOST: HttpUrl = 'http://127.0.0.1:8000'
     EMAIL_PASS: str = None
+    SMTP_HOST: HttpUrl = 'smtp.gmail.com'
+    SMTP_PORT: int = 587
 
     CORS_ALLOW_ORIGINS: list[str] = ['*']
     CORS_ALLOW_CREDENTIALS: bool = True

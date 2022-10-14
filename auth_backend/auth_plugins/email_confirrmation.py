@@ -22,7 +22,7 @@ def send_confirmation_email(subject, to_addr, link):
         )
     )
 
-    smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
+    smtpObj = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
     smtpObj.starttls()
     smtpObj.login(from_addr, settings.EMAIL_PASS)
     smtpObj.sendmail(from_addr, [to_addr], BODY.encode('utf-8'))
@@ -46,7 +46,7 @@ def send_change_password_confirmation(subject, to_addr, link):
         )
     )
 
-    smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
+    smtpObj = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
     smtpObj.starttls()
     smtpObj.login(from_addr, settings.EMAIL_PASS)
     smtpObj.sendmail(from_addr, [to_addr], BODY.encode('utf-8'))
