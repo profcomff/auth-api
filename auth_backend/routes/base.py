@@ -1,15 +1,12 @@
-from typing import Optional, Union
-
 from fastapi import FastAPI
 from fastapi_sqlalchemy import DBSessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import PlainTextResponse
 
+from auth_backend.exceptions import ObjectNotFound, IncorrectAuthType, AlreadyExists
+from auth_backend.settings import get_settings
 from .auth import auth
 from .login_password import login_password
-from auth_backend.exceptions import ObjectNotFound, IncorrectAuthType, AlreadyExists
-
-from auth_backend.settings import get_settings
 
 settings = get_settings()
 
