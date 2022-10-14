@@ -7,7 +7,7 @@ from starlette.responses import PlainTextResponse
 
 from .auth import auth
 from .login_password import login_password
-from auth_backend.exceptions import ObjectNotFound, IncorrectAuthType, SessionExpired, AlreadyExists
+from auth_backend.exceptions import ObjectNotFound, IncorrectAuthType, AlreadyExists
 
 from auth_backend.settings import get_settings
 
@@ -22,11 +22,6 @@ async def not_found_handler(req, exc: ObjectNotFound):
 
 @app.exception_handler(IncorrectAuthType)
 async def not_found_handler(req, exc: IncorrectAuthType):
-    return PlainTextResponse(f"{exc}", status_code=403)
-
-
-@app.exception_handler(SessionExpired)
-async def not_found_handler(req, exc: SessionExpired):
     return PlainTextResponse(f"{exc}", status_code=403)
 
 

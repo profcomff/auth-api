@@ -27,7 +27,7 @@ class AuthMethod(Base):
     user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"), nullable=False)
     auth_method = sqlalchemy.Column(sqlalchemy.String, nullable=False)
     param = sqlalchemy.Column(sqlalchemy.String, nullable=False)
-    value = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    value = sqlalchemy.Column(sqlalchemy.String, nullable=True)
 
     user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="auth_methods")
 
