@@ -3,7 +3,7 @@ from fastapi_sqlalchemy import db
 
 from auth_backend.models.db import AuthMethod
 from auth_backend.models.db import Session as DbSession
-from auth_backend.auth_plugins.email_confirrmation import send_change_password_confirmation_email
+from auth_backend.auth_plugins.email_confirrmation import send_change_password_confirmation
 from .models.base import Session
 from pydantic import EmailStr
 from auth_backend.settings import get_settings

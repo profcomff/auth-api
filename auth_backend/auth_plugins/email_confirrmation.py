@@ -29,9 +29,9 @@ def send_confirmation_email(subject, to_addr, link):
     smtpObj.quit()
 
 
-def send_change_password_confirmation_email(subject, to_addr, link):
+def send_change_password_confirmation(subject, to_addr, link):
     """
-    Send confirmation email
+    Send change password confirmation
     """
     from_addr = settings.EMAIL
 
