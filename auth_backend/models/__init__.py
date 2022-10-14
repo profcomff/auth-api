@@ -1,3 +1,3 @@
-from .db import User, Session, AuthMethod
+from .db import User, UserSession, AuthMethod
 
-__all__ = ["User", "Session", "AuthMethod"]
+__all__ = ["User", "UserSession", "AuthMethod"]

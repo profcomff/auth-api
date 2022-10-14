@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session as ORMSession
 
-from auth_backend.models import Session
+from auth_backend.models import UserSession
 
 AUTH_METHODS: dict[str, type(AuthInterface)] = {}
 
@@ -30,7 +30,7 @@ class AuthInterface(metaclass=ABCMeta):
                 self.cols += [attr]
 
     @abstractmethod
-    def register(self, session: ORMSession, **kwargs) -> Session | str | None:
+    def register(self, session: ORMSession, **kwargs) -> UserSession | str | None:
         """
         :param session: from fastapi_sqlalchemy db.session
         :param kwargs:
@@ -39,7 +39,7 @@ class AuthInterface(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def login(self, session: ORMSession, **kwargs) -> Session | None:
+    def login(self, session: ORMSession, **kwargs) -> UserSession | None:
         """
 
         :param session: from fastapi_sqalchemy db.session

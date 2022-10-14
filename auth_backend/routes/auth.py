@@ -10,7 +10,7 @@ from auth_backend.auth_plugins.auth_interface import AUTH_METHODS
 from auth_backend.auth_plugins.email_confirrmation import send_confirmation_email
 from auth_backend.auth_plugins.login_password import LoginPassword
 from auth_backend.models.db import AuthMethod
-from auth_backend.models.db import Session as DbSession
+from auth_backend.models.db import UserSession as DbSession
 from auth_backend.routes.models.base import Token, Session
 from auth_backend.routes.models.login_password import LoginPasswordPost, LoginPasswordPatch
 from auth_backend.settings import get_settings

@@ -7,7 +7,7 @@ from uuid import uuid4
 from sqlalchemy.orm import Session as DBSession
 
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists, AuthFailed
-from auth_backend.models import Session, User, AuthMethod
+from auth_backend.models import UserSession, User, AuthMethod
 from .auth_interface import AuthInterface
 
 # Constant strings to use instead of typing
@@ -81,7 +81,7 @@ class LoginPassword(AuthInterface):
         db_session.flush()
         return str(email_token)
 
-    def login(self, db_session: DBSession, **kwargs) -> Session | None:
+    def login(self, db_session: DBSession, **kwargs) -> UserSession | None:
         if not (
                 query := db_session.query(AuthMethod)
                         .filter(
@@ -101,14 +101,14 @@ class LoginPassword(AuthInterface):
                 or secrets.get(self.hashed_password.param) != self.hashed_password.value
         ):
             raise AuthFailed(error="Incorrect login or password")
-        db_session.add(session := Session(user_id=query.user.id, token=str(uuid4())))
+        db_session.add(session := UserSession(user_id=query.user.id, token=str(uuid4())))
         db_session.flush()
         return session
 
     @staticmethod
     def change_params(token: str, db_session: DBSession,
                       new_email: str | None = None, new_password: str | None = None) -> None:
-        session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
+        session: UserSession = db_session.query(UserSession).filter(UserSession.token == token).one_or_none()
         if session.expired:
             raise AuthFailed(error="Session expired, log in system again")
         for row in session.user.get_auth_methods(LoginPassword.__name__):
