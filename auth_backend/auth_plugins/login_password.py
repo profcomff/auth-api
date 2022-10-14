@@ -4,7 +4,8 @@ import string
 from uuid import uuid4
 
 from sqlalchemy.orm import Session as DBSession
-from auth_backend.exceptions import ObjectNotFound, IncorrectLoginOrPassword, AlreadyExists, SessionExpired, IncorrectAuthType
+from auth_backend.exceptions import ObjectNotFound, IncorrectLoginOrPassword, AlreadyExists, SessionExpired, \
+    IncorrectAuthType
 
 from auth_backend.models import Session, User, AuthMethod
 from .auth_interface import AuthInterface, AUTH_METHODS
@@ -18,6 +19,9 @@ class LoginPassword(AuthInterface):
     email: AuthInterface.Prop
     hashed_password: AuthInterface.Prop
     salt: AuthInterface.Prop
+    confirmed: AuthInterface.Prop
+    confirmation_token: AuthInterface.Prop
+    reset_token: AuthInterface.Prop
     cols = []
 
     @staticmethod
@@ -34,17 +38,23 @@ class LoginPassword(AuthInterface):
         super().__init__()
 
     def register(self, db_session: DBSession, *, user_id: int | None = None) -> str | None:
-        if (query :=
-                db_session.query(AuthMethod)
-                        .filter(
-                    AuthMethod.auth_method == LoginPassword.__name__,
-                    AuthMethod.param == self.email.param,
-                    AuthMethod.value == self.email.value,
-                )
-                        .one_or_none()
-        ):
-            raise AlreadyExists(User, query.user_id)
         email_token = str(uuid4())
+        if (query :=
+        db_session.query(AuthMethod)
+                .filter(
+            AuthMethod.auth_method == LoginPassword.__name__,
+            AuthMethod.param == self.email.param,
+            AuthMethod.value == self.email.value,
+        )
+                .one_or_none()
+        ):
+            if query.confirmed:
+                raise AlreadyExists(User, query.user_id)
+            else:
+                for row in query.user.get_auth_methods(LoginPassword.__name__):
+                    row.value = email_token if row.param == "confirmation_token" else row.value
+                db_session.flush()
+                return str(email_token)
         if not user_id:
             db_session.add(user := User())
             db_session.flush()
@@ -52,17 +62,20 @@ class LoginPassword(AuthInterface):
             user = db_session.query(User).get(user_id)
         if not user:
             raise ObjectNotFound(User, user_id)
-        for row in (self.email, self.hashed_password, self.salt):
+        self.confirmed = AuthInterface.Prop(datatype=bool, param="confirmed", value=False)
+        self.confirmation_token = AuthInterface.Prop(datatype=str, param="confirmation_token", value=str(uuid4()))
+        self.reset_token = AuthInterface.Prop(datatype=str, param="reset_token", value=None)
+        for row in (
+        self.email, self.hashed_password, self.salt, self.confirmed, self.confirmation_token, self.reset_token):
             db_session.add(
-                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param,
-                           is_active=False, token=str(email_token))
+                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param)
             )
         db_session.flush()
         return str(email_token)
 
     def login(self, db_session: DBSession, **kwargs) -> Session | None:
         if not (
-                check_existing := db_session.query(AuthMethod)
+                query := db_session.query(AuthMethod)
                         .filter(
                     AuthMethod.auth_method == self.__class__.__name__,
                     AuthMethod.param == "email",
@@ -71,13 +84,15 @@ class LoginPassword(AuthInterface):
                         .one_or_none()
         ):
             raise IncorrectLoginOrPassword()
-        secrets = {row.param: row.value for row in check_existing.user.get_auth_methods(self.__class__.__name__)}
+        secrets = {row.param: row.value for row in query.user.get_auth_methods(self.__class__.__name__)}
+        if not secrets.get("is_active"):
+            raise IncorrectLoginOrPassword()
         if (
                 secrets.get(self.email.param) != self.email.value
                 or secrets.get(self.hashed_password.param) != self.hashed_password.value
         ):
             raise IncorrectLoginOrPassword()
-        db_session.add(session := Session(user_id=check_existing.user.id, token=str(uuid4())))
+        db_session.add(session := Session(user_id=query.user.id, token=str(uuid4())))
         db_session.flush()
         return session
 
