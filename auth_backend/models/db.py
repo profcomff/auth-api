@@ -44,6 +44,4 @@ class Session(Base):
 
     @property
     def expired(self):
-        if self.expires <= datetime.datetime.utcnow():
-            return True
-        return False
+        return self.expires <= datetime.datetime.utcnow()
