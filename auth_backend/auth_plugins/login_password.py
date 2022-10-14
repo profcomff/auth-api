@@ -4,7 +4,7 @@ import string
 from typing import Final
 from uuid import uuid4
 
-from sqlalchemy.orm import Session as DBSession
+from sqlalchemy.orm import Session
 
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists, AuthFailed
 from auth_backend.models import UserSession, User, AuthMethod
@@ -45,7 +45,7 @@ class LoginPassword(AuthInterface):
         )
         super().__init__()
 
-    def register(self, db_session: DBSession, *, user_id: int | None = None) -> str | None:
+    def register(self, db_session: Session, *, user_id: int | None = None) -> str | None:
         email_token = str(uuid4())
         if (query :=
         db_session.query(AuthMethod)
@@ -81,7 +81,7 @@ class LoginPassword(AuthInterface):
         db_session.flush()
         return str(email_token)
 
-    def login(self, db_session: DBSession, **kwargs) -> UserSession | None:
+    def login(self, db_session: Session, **kwargs) -> UserSession | None:
         if not (
                 query := db_session.query(AuthMethod)
                         .filter(
@@ -106,7 +106,7 @@ class LoginPassword(AuthInterface):
         return session
 
     @staticmethod
-    def change_params(token: str, db_session: DBSession,
+    def change_params(token: str, db_session: Session,
                       new_email: str | None = None, new_password: str | None = None) -> None:
         session: UserSession = db_session.query(UserSession).filter(UserSession.token == token).one_or_none()
         if session.expired:

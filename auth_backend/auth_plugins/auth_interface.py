@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 
-from sqlalchemy.orm import Session as ORMSession
+from sqlalchemy.orm import Session
 
 from auth_backend.models import UserSession
 
@@ -30,7 +30,7 @@ class AuthInterface(metaclass=ABCMeta):
                 self.cols += [attr]
 
     @abstractmethod
-    def register(self, session: ORMSession, **kwargs) -> UserSession | str | None:
+    def register(self, session: Session, **kwargs) -> UserSession | str | None:
         """
         :param session: from fastapi_sqlalchemy db.session
         :param kwargs:
@@ -39,7 +39,7 @@ class AuthInterface(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def login(self, session: ORMSession, **kwargs) -> UserSession | None:
+    def login(self, session: Session, **kwargs) -> UserSession | None:
         """
 
         :param session: from fastapi_sqalchemy db.session
@@ -62,7 +62,7 @@ class AuthInterface(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def change_params(token: str, auth_type: type, db_session: ORMSession, **kwargs) -> None:
+    def change_params(token: str, auth_type: type, db_session: Session, **kwargs) -> None:
         raise NotImplementedError()
 
     @property
