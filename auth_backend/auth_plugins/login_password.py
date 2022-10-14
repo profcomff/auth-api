@@ -1,6 +1,7 @@
 import hashlib
 import random
 import string
+from typing import Final
 from uuid import uuid4
 
 from sqlalchemy.orm import Session as DBSession
@@ -8,6 +9,14 @@ from sqlalchemy.orm import Session as DBSession
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists, AuthFailed
 from auth_backend.models import Session, User, AuthMethod
 from .auth_interface import AuthInterface
+
+# Constant strings to use instead of typing
+EMAIL: Final[str] = "email"
+HASHED_PASSWORD: Final[str] = "hashed_password"
+SALT: Final[str] = "salt"
+CONFIRMED: Final[str] = "confirmed"
+CONFIRMATION_TOKEN: Final[str] = "confirmation_token"
+RESET_TOKEN: Final[str] = "reset_token"
 
 
 def get_salt() -> str:
@@ -29,10 +38,10 @@ class LoginPassword(AuthInterface):
         return enc.hex()
 
     def __init__(self, *, email: str, password: str, salt: str | None = None):
-        self.email = AuthInterface.Prop(value=email, datatype=str, param="email")
-        self.salt = AuthInterface.Prop(value=salt or get_salt(), datatype=str, param="salt")
+        self.email = AuthInterface.Prop(value=email, datatype=str, param=EMAIL)
+        self.salt = AuthInterface.Prop(value=salt or get_salt(), datatype=str, param=SALT)
         self.hashed_password = AuthInterface.Prop(
-            value=LoginPassword.__hash_password(password, salt=self.salt.value), datatype=str, param="hashed_password"
+            value=LoginPassword.__hash_password(password, salt=self.salt.value), datatype=str, param=HASHED_PASSWORD
         )
         super().__init__()
 
@@ -51,7 +60,7 @@ class LoginPassword(AuthInterface):
                 raise AlreadyExists(User, query.user_id)
             else:
                 for row in query.user.get_auth_methods(LoginPassword.__name__):
-                    row.value = email_token if row.param == "confirmation_token" else row.value
+                    row.value = email_token if row.param == CONFIRMATION_TOKEN else row.value
                 db_session.flush()
                 return str(email_token)
         if not user_id:
@@ -61,11 +70,11 @@ class LoginPassword(AuthInterface):
             user = db_session.query(User).get(user_id)
         if not user:
             raise ObjectNotFound(User, user_id)
-        self.confirmed = AuthInterface.Prop(datatype=bool, param="confirmed", value=False)
-        self.confirmation_token = AuthInterface.Prop(datatype=str, param="confirmation_token", value=str(uuid4()))
-        self.reset_token = AuthInterface.Prop(datatype=str, param="reset_token", value=None)
+        self.confirmed = AuthInterface.Prop(datatype=bool, param=CONFIRMED, value=False)
+        self.confirmation_token = AuthInterface.Prop(datatype=str, param=CONFIRMATION_TOKEN, value=str(uuid4()))
+        self.reset_token = AuthInterface.Prop(datatype=str, param=RESET_TOKEN, value=None)
         for row in (
-        self.email, self.hashed_password, self.salt, self.confirmed, self.confirmation_token, self.reset_token):
+                self.email, self.hashed_password, self.salt, self.confirmed, self.confirmation_token, self.reset_token):
             db_session.add(
                 AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param)
             )
@@ -77,15 +86,16 @@ class LoginPassword(AuthInterface):
                 query := db_session.query(AuthMethod)
                         .filter(
                     AuthMethod.auth_method == self.__class__.__name__,
-                    AuthMethod.param == "email",
+                    AuthMethod.param == EMAIL,
                     AuthMethod.value == self.email.value,
                 )
                         .one_or_none()
         ):
             raise AuthFailed(error="Incorrect login or password")
         secrets = {row.param: row.value for row in query.user.get_auth_methods(self.__class__.__name__)}
-        if not secrets.get("is_active"):
-            raise AuthFailed(error="Registration wasn't completed. Try to registrate again and approve your email")
+        if not secrets.get(CONFIRMED):
+            raise AuthFailed(
+                error="Registration wasn't completed. Try to registrate again and do not forget to approve your email")
         if (
                 secrets.get(self.email.param) != self.email.value
                 or secrets.get(self.hashed_password.param) != self.hashed_password.value
@@ -102,12 +112,11 @@ class LoginPassword(AuthInterface):
         if session.expired:
             raise AuthFailed(error="Session expired, log in system again")
         for row in session.user.get_auth_methods(LoginPassword.__name__):
-            match row.param:
-                case "email":
-                    row.value = new_email or row.param
-                case "hashed_password":
-                    salt = get_salt()
-                    row.value = LoginPassword.__hash_password(new_password, salt)
+            if row.param == EMAIL:
+                row.value = new_email or row.value
+            if row.param == HASHED_PASSWORD:
+                salt = get_salt()
+                row.value = LoginPassword.__hash_password(new_password, salt)
         db_session.flush()
         return None
 
