@@ -33,7 +33,7 @@ MAIL_CHANGE_PASS_CONFIRMATION_TEMPLATE = """
         alt="Авторизация ФизФак МГУ" />
     <div class="content" style="width: 80%; max-width: 800px; padding: 10px; margin: 0 auto; font: 1.3rem sans-serif;">
         <h1>Измеенение пароля</h1>
-        <p>Привет! Это команда программистов ФФ МГУ!</p>
+        <p>Привет! Это команда программистов ФФ МГУ! Нам пришел запрос на изменене пароля вашеего аккаунта</p>
         <p>Вот ссылка на изменение пароля</p>
         <p><a href={{url}}>{{url}}</a></p>
     </div>

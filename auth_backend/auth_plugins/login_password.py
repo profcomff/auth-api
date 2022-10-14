@@ -4,11 +4,10 @@ import string
 from uuid import uuid4
 
 from sqlalchemy.orm import Session as DBSession
-from auth_backend.exceptions import ObjectNotFound, IncorrectLoginOrPassword, AlreadyExists, SessionExpired, \
-    IncorrectAuthType
 
+from auth_backend.exceptions import ObjectNotFound, AlreadyExists, AuthFailed
 from auth_backend.models import Session, User, AuthMethod
-from .auth_interface import AuthInterface, AUTH_METHODS
+from .auth_interface import AuthInterface
 
 
 def get_salt() -> str:
@@ -83,28 +82,26 @@ class LoginPassword(AuthInterface):
                 )
                         .one_or_none()
         ):
-            raise IncorrectLoginOrPassword()
+            raise AuthFailed(error="Incorrect login or password")
         secrets = {row.param: row.value for row in query.user.get_auth_methods(self.__class__.__name__)}
         if not secrets.get("is_active"):
-            raise IncorrectLoginOrPassword()
+            raise AuthFailed(error="Registration wasn't completed. Try to registrate again and approve your email")
         if (
                 secrets.get(self.email.param) != self.email.value
                 or secrets.get(self.hashed_password.param) != self.hashed_password.value
         ):
-            raise IncorrectLoginOrPassword()
+            raise AuthFailed(error="Incorrect login or password")
         db_session.add(session := Session(user_id=query.user.id, token=str(uuid4())))
         db_session.flush()
         return session
 
     @staticmethod
-    def change_params(token: str, auth_type: type, db_session: DBSession,
+    def change_params(token: str, db_session: DBSession,
                       new_email: str | None = None, new_password: str | None = None) -> None:
         session: Session = db_session.query(Session).filter(Session.token == token).one_or_none()
         if session.expired:
-            raise SessionExpired()
-        if auth_type not in AUTH_METHODS.values():
-            raise IncorrectAuthType()
-        for row in session.user.get_auth_methods(auth_type.__name__):
+            raise AuthFailed(error="Session expired, log in system again")
+        for row in session.user.get_auth_methods(LoginPassword.__name__):
             match row.param:
                 case "email":
                     row.value = new_email or row.param
