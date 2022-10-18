@@ -71,11 +71,16 @@ class LoginPassword(AuthInterface):
         self.confirmed = False
         self.confirmation_token = str(uuid4())
         self.reset_token = None
-        for row in (
-                (EMAIL, self.email), (HASHED_PASSWORD, self.hashed_password), (SALT, self.salt), (CONFIRMED, self.confirmed), (CONFIRMATION_TOKEN, self.confirmation_token), (RESET_TOKEN, self.reset_token)):
-            db_session.add(
-                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row[1], param=row[0])
-            )
+        db_session.add(AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=EMAIL, value=self.email))
+        db_session.add(AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=HASHED_PASSWORD,
+                                  value=self.hashed_password))
+        db_session.add(AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=SALT, value=self.salt))
+        db_session.add(
+            AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=CONFIRMED, value=str(self.confirmed)))
+        db_session.add(AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=CONFIRMATION_TOKEN,
+                                  value=self.confirmation_token))
+        db_session.add(
+            AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=RESET_TOKEN, value=self.reset_token))
         db_session.flush()
         return str(email_token)
 
@@ -85,7 +90,7 @@ class LoginPassword(AuthInterface):
                         .filter(
                     AuthMethod.auth_method == self.__class__.__name__,
                     AuthMethod.param == EMAIL,
-                    AuthMethod.value == self.email.value,
+                    AuthMethod.value == self.email,
                 )
                         .one_or_none()
         ):
@@ -95,8 +100,8 @@ class LoginPassword(AuthInterface):
             raise AuthFailed(
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email")
         if (
-                secrets.get(self.email.param) != self.email.value
-                or secrets.get(self.hashed_password.param) != self.hashed_password.value
+                secrets.get(EMAIL) != self.email
+                or secrets.get(HASHED_PASSWORD) != self.hashed_password
         ):
             raise AuthFailed(error="Incorrect login or password")
         db_session.add(session := UserSession(user_id=query.user.id, token=str(uuid4())))
