@@ -76,16 +76,16 @@ class LoginPassword(AuthInterface):
         self.confirmed = False
         self.confirmation_token = str(uuid4())
         self.reset_token = None
-        db_session.add(AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=EMAIL, value=self.email))
-        db_session.add(AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=HASHED_PASSWORD,
+        db_session.add(AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, param=EMAIL, value=self.email))
+        db_session.add(AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, param=HASHED_PASSWORD,
                                   value=self.hashed_password))
-        db_session.add(AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=SALT, value=self.salt))
+        db_session.add(AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, param=SALT, value=self.salt))
         db_session.add(
-            AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=CONFIRMED, value=str(self.confirmed)))
-        db_session.add(AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=CONFIRMATION_TOKEN,
+            AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, param=CONFIRMED, value=str(self.confirmed)))
+        db_session.add(AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, param=CONFIRMATION_TOKEN,
                                   value=self.confirmation_token))
         db_session.add(
-            AuthMethod(user_id=user_id, auth_method=LoginPassword.__name__, param=RESET_TOKEN, value=self.reset_token))
+            AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, param=RESET_TOKEN, value=self.reset_token))
         db_session.flush()
         return str(email_token)
 
