@@ -10,6 +10,7 @@ from auth_backend.exceptions import ObjectNotFound, AlreadyExists, AuthFailed
 from auth_backend.models import UserSession, User, AuthMethod
 from .auth_interface import AuthInterface
 
+
 # Constant strings to use instead of typing
 EMAIL: Final[str] = "email"
 HASHED_PASSWORD: Final[str] = "hashed_password"
@@ -43,7 +44,7 @@ class LoginPassword(AuthInterface):
         self.hashed_password = LoginPassword.hash_password(password, salt=self.salt)
         super().__init__()
 
-    def register(self, db_session: Session, *, user_id: int | None = None) -> str | None:
+    def register(self, db_session: Session, *, user_id: int | None = None, token: str | None = None) -> str | None:
         email_token = str(uuid4())
         if (query :=
         db_session.query(AuthMethod)
@@ -61,11 +62,15 @@ class LoginPassword(AuthInterface):
                     row.value = email_token if row.param == CONFIRMATION_TOKEN else row.value
                 db_session.flush()
                 return str(email_token)
-        if not user_id:
+        if user_id and token:
+            user: User = db_session.query(User).get(user_id)
+            if not (session_query := db_session.query(UserSession).filter(UserSession.token == token, UserSession.user_id == user_id).one_or_none()):
+                raise AuthFailed(error="Token not found, log in system")
+            if session_query.expired:
+                raise AuthFailed(error="Session expired, log in system again")
+        else:
             db_session.add(user := User())
             db_session.flush()
-        else:
-            user = db_session.query(User).get(user_id)
         if not user:
             raise ObjectNotFound(User, user_id)
         self.confirmed = False
