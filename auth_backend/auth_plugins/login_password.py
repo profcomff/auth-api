@@ -33,7 +33,7 @@ class LoginPassword(AuthInterface):
     cols = []
 
     @staticmethod
-    def _hash_password(password: str, salt: str):
+    def hash_password(password: str, salt: str):
         enc = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100_000)
         return enc.hex()
 
@@ -41,7 +41,7 @@ class LoginPassword(AuthInterface):
         self.email = AuthInterface.Prop(value=email, datatype=str, param=EMAIL)
         self.salt = AuthInterface.Prop(value=salt or get_salt(), datatype=str, param=SALT)
         self.hashed_password = AuthInterface.Prop(
-            value=LoginPassword._hash_password(password, salt=self.salt.value), datatype=str, param=HASHED_PASSWORD
+            value=LoginPassword.hash_password(password, salt=self.salt.value), datatype=str, param=HASHED_PASSWORD
         )
         super().__init__()
 
@@ -116,7 +116,7 @@ class LoginPassword(AuthInterface):
                 row.value = new_email or row.value
             if row.param == HASHED_PASSWORD:
                 salt = get_salt()
-                row.value = LoginPassword._hash_password(new_password, salt)
+                row.value = LoginPassword.hash_password(new_password, salt)
         db_session.flush()
         return None
 
