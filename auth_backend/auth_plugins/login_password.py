@@ -24,13 +24,13 @@ def get_salt() -> str:
 
 
 class LoginPassword(AuthInterface):
-    email: AuthInterface.Prop
-    hashed_password: AuthInterface.Prop
-    salt: AuthInterface.Prop
-    confirmed: AuthInterface.Prop
-    confirmation_token: AuthInterface.Prop
-    reset_token: AuthInterface.Prop
-    cols = []
+    email: str
+    hashed_password: str
+    salt: str
+    confirmed: bool
+    confirmation_token: str
+    reset_token: str | None
+    cols: Final[list[str]] = [EMAIL, HASHED_PASSWORD, SALT, CONFIRMED, CONFIRMATION_TOKEN, RESET_TOKEN]
 
     @staticmethod
     def hash_password(password: str, salt: str):
@@ -38,11 +38,9 @@ class LoginPassword(AuthInterface):
         return enc.hex()
 
     def __init__(self, *, email: str, password: str, salt: str | None = None):
-        self.email = AuthInterface.Prop(value=email, datatype=str, param=EMAIL)
-        self.salt = AuthInterface.Prop(value=salt or get_salt(), datatype=str, param=SALT)
-        self.hashed_password = AuthInterface.Prop(
-            value=LoginPassword.hash_password(password, salt=self.salt.value), datatype=str, param=HASHED_PASSWORD
-        )
+        self.email = email
+        self.salt = salt or get_salt()
+        self.hashed_password = LoginPassword.hash_password(password, salt=self.salt)
         super().__init__()
 
     def register(self, db_session: Session, *, user_id: int | None = None) -> str | None:
@@ -51,8 +49,8 @@ class LoginPassword(AuthInterface):
         db_session.query(AuthMethod)
                 .filter(
             AuthMethod.auth_method == LoginPassword.__name__,
-            AuthMethod.param == self.email.param,
-            AuthMethod.value == self.email.value,
+            AuthMethod.param == EMAIL,
+            AuthMethod.value == self.email,
         )
                 .one_or_none()
         ):
@@ -70,13 +68,13 @@ class LoginPassword(AuthInterface):
             user = db_session.query(User).get(user_id)
         if not user:
             raise ObjectNotFound(User, user_id)
-        self.confirmed = AuthInterface.Prop(datatype=bool, param=CONFIRMED, value=False)
-        self.confirmation_token = AuthInterface.Prop(datatype=str, param=CONFIRMATION_TOKEN, value=str(uuid4()))
-        self.reset_token = AuthInterface.Prop(datatype=str, param=RESET_TOKEN, value=None)
+        self.confirmed = False
+        self.confirmation_token = str(uuid4())
+        self.reset_token = None
         for row in (
-                self.email, self.hashed_password, self.salt, self.confirmed, self.confirmation_token, self.reset_token):
+                (EMAIL, self.email), (HASHED_PASSWORD, self.hashed_password), (SALT, self.salt), (CONFIRMED, self.confirmed), (CONFIRMATION_TOKEN, self.confirmation_token), (RESET_TOKEN, self.reset_token)):
             db_session.add(
-                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row.value, param=row.param)
+                AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, value=row[1], param=row[0])
             )
         db_session.flush()
         return str(email_token)

@@ -18,17 +18,6 @@ class AuthInterface(metaclass=ABCMeta):
 
     cols = []
 
-    @dataclass()
-    class Prop:
-        datatype: type
-        value: datatype
-        param: str
-
-    def __init__(self):
-        for row in dir(self):
-            if isinstance((attr := getattr(self, row)), AuthInterface.Prop):
-                self.cols += [attr]
-
     @abstractmethod
     def register(self, session: Session, **kwargs) -> UserSession | str | None:
         """
@@ -65,6 +54,6 @@ class AuthInterface(metaclass=ABCMeta):
     def change_params(token: str, auth_type: type, db_session: Session, **kwargs) -> None:
         raise NotImplementedError()
 
-    @property
-    def columns(self) -> list:
-        return self.cols
+    @classmethod
+    def columns(cls) -> list:
+        return cls.cols
