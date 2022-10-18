@@ -123,18 +123,8 @@ class LoginPassword(AuthInterface):
         if session.expired:
             raise AuthFailed(error="Session expired, log in system again")
         salt = get_salt()
-        for row in session.user.get_auth_methods(LoginPassword.__name__):
-            if row.param == EMAIL and new_email:
-                row.value = new_email
-            if row.param == CONFIRMED and new_email:
-                row.value = str(False)
-            if row.param == CONFIRMATION_TOKEN:
-                row.value = str(uuid4())
-
-            if row.param == HASHED_PASSWORD and new_password:
-                row.value = LoginPassword.hash_password(new_password, salt)
-            if row.param == SALT and new_password:
-                row.value = salt
+        pass
+        ## TODO
 
         db_session.flush()
         return None
