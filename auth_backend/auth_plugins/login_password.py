@@ -114,12 +114,15 @@ class LoginPassword(AuthInterface):
         session: UserSession = db_session.query(UserSession).filter(UserSession.token == token).one_or_none()
         if session.expired:
             raise AuthFailed(error="Session expired, log in system again")
+        salt = get_salt()
         for row in session.user.get_auth_methods(LoginPassword.__name__):
-            if row.param == EMAIL:
-                row.value = new_email or row.value
-            if row.param == HASHED_PASSWORD:
-                salt = get_salt()
+            if row.param == EMAIL and new_email:
+                row.value = new_email
+            if row.param == HASHED_PASSWORD and new_password:
                 row.value = LoginPassword.hash_password(new_password, salt)
+            if row.param == SALT and new_password:
+                row.value = salt
+
         db_session.flush()
         return None
 
