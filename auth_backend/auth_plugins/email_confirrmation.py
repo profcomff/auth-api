@@ -1,6 +1,5 @@
 import smtplib
 from auth_backend.settings import get_settings
-from auth_backend.tamplates import MAIL_CONFIRMATION_TEMPLATE
 
 settings = get_settings()
 

@@ -22,7 +22,7 @@ DOCS = "https://github.com/profcomff/auth-api"
 
 
 @auth.post("/registration", response_model=Union[Session, NoneType])
-async def registration(auth_type: str, schema: LoginPasswordPost, user_id: int | None = None) -> Session | None:
+async def registration(auth_type: str, schema: LoginPasswordPost, user_id: int | None = None, token: Token | None = None) -> Session | None:
     if auth_type not in AUTH_METHODS.keys():
         raise HTTPException(status_code=422,
                             detail=f"Incorrect auth type. Check supported auth types at {DOCS}")
@@ -31,9 +31,9 @@ async def registration(auth_type: str, schema: LoginPasswordPost, user_id: int |
                             detail=f"Invalid JSON schema. Check docs at {DOCS}")
     auth = AUTH_METHODS[auth_type](**schema.dict(), salt=None)
     if auth_type == LoginPassword.__name__:
-        link = f"{settings.HOST}/email/approve/email?token={auth.register(db.session, user_id=user_id)}"
+        link = f"{settings.HOST}/email/approve/email?token={auth.register(db.session, user_id=user_id, token=token.token)}"
         return send_confirmation_email(subject="Email confirmation", to_addr=schema.email, link=link)
-    return Session.from_orm(auth.register(db.session, user_id=user_id))
+    return Session.from_orm(auth.register(db.session, user_id=user_id, token=token.token))
 
 
 @auth.post("/login", response_model=Session)
