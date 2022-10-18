@@ -15,7 +15,7 @@ login_password = APIRouter(prefix="/email", tags=["Email"])
 #     return send_change_password_confirmation_email("Password change", to_addr=email, link=f"{settings.host}/approve/password")
 
 
-@login_password.post("/approve/email", response_model=None)
+@login_password.get("/approve/email", response_model=None)
 async def approve_email(token: str) -> None:
     query: AuthMethod = db.session.query(AuthMethod).filter(AuthMethod.value == token).one_or_none()
     if not query:

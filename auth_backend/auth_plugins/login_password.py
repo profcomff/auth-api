@@ -55,7 +55,8 @@ class LoginPassword(AuthInterface):
         )
                 .one_or_none()
         ):
-            if query.confirmed:
+            secrets = {row.param: row.value for row in query.user.get_auth_methods(LoginPassword.__name__)}
+            if secrets.get(CONFIRMED) == str(True):
                 raise AlreadyExists(User, query.user_id)
             else:
                 for row in query.user.get_auth_methods(LoginPassword.__name__):
@@ -74,7 +75,7 @@ class LoginPassword(AuthInterface):
         if not user:
             raise ObjectNotFound(User, user_id)
         self.confirmed = False
-        self.confirmation_token = str(uuid4())
+        self.confirmation_token = email_token
         self.reset_token = None
         db_session.add(AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, param=EMAIL, value=self.email))
         db_session.add(AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, param=HASHED_PASSWORD,
@@ -87,7 +88,7 @@ class LoginPassword(AuthInterface):
         db_session.add(
             AuthMethod(user_id=user.id, auth_method=LoginPassword.__name__, param=RESET_TOKEN, value=self.reset_token))
         db_session.flush()
-        return str(email_token)
+        return str(self.confirmation_token)
 
     def login(self, db_session: Session, **kwargs) -> UserSession | None:
         if not (

@@ -10,9 +10,9 @@ def send_confirmation_email(subject, to_addr, link):
     """
     from_addr = settings.EMAIL
 
-    with open("templates/mail_confirmation.html") as f:
+    with open("auth_backend/templates/mail_confirmation.html") as f:
         tmp = f.read()
-        tmp = tmp.format(url=link)
+        tmp = tmp.replace("{{url}}", link)
 
     BODY = "\r\n".join(
         (
@@ -40,7 +40,7 @@ def send_change_password_confirmation(subject, to_addr, link):
 
     with open("templates/reset_password.html") as f:
         tmp = f.read()
-        tmp = tmp.format(url=link)
+        tmp = tmp.replace("{{url}}", link)
 
     BODY = "\r\n".join(
         (
