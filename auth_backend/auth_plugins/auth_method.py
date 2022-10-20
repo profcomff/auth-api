@@ -1,12 +1,11 @@
 from __future__ import annotations
+
 import re
 from abc import abstractmethod, ABCMeta
+
 from fastapi import APIRouter
-from fastapi_sqlalchemy import db
+
 from .models.base import Session
-from auth_backend.models.db import UserSession
-from datetime import datetime
-from auth_backend.exceptions import AuthFailed
 
 AUTH_METHODS: dict[str, type[AuthMethodMeta]] = {}
 
@@ -39,7 +38,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @staticmethod
     @abstractmethod
     async def login(**kwargs) -> Session:
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 
