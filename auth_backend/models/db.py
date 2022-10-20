@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import datetime
+from typing import Iterator
+
+from sqlalchemy.ext.hybrid import hybrid_method
 
 from .base import Base
 import sqlalchemy.orm
@@ -11,6 +14,12 @@ class User(Base):
 
     auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
     sessions: list[UserSession] = sqlalchemy.orm.relationship("UserSession", foreign_keys="UserSession.user_id")
+
+    @hybrid_method
+    def get_method_secrets(self, method_name: str) -> Iterator[AuthMethod]:
+        for row in self.auth_methods:
+            if row.auth_method == method_name:
+                yield row
 
 
 class AuthMethod(Base):

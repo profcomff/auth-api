@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from .models.base import Session
 
 
-class AuthMethod(metaclass=ABCMeta):
+class AuthMethodMeta(metaclass=ABCMeta):
     FIELDS: list[str]
     abstract_router: APIRouter
 
@@ -13,7 +13,7 @@ class AuthMethod(metaclass=ABCMeta):
         return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
     def __init__(self):
-        self.abstract_router = APIRouter(prefix=AuthMethod.get_name())
+        self.abstract_router = APIRouter(prefix=AuthMethodMeta.get_name())
         self.abstract_router.add_api_route("/registration", self.registrate, methods=["POST"])
         self.abstract_router.add_api_route("/login", self.login, methods=["POST"], response_model=Session)
 
