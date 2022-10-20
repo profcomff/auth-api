@@ -26,7 +26,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
         self.router = APIRouter()
         self.router.add_api_route("/registration", self.registrate, methods=["POST"])
         self.router.add_api_route("/login", self.login, methods=["POST"], response_model=Session)
-        self.router.add_api_route("/logout", self.logout, methods=["POST"], response_model=None)
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
@@ -42,15 +41,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
     async def login(**kwargs) -> Session:
         raise NotImplementedError
 
-    @staticmethod
-    async def logout(token: str) -> None:
-        session = db.session.query(UserSession).filter(UserSession.token == token).one_or_none()
-        if not session:
-            raise AuthFailed(error="Session not found")
-        if session.expired:
-            raise AuthFailed(error="Session expired, log in system again")
-        session.expires = datetime.utcnow()
-        db.session.flush()
 
 
 

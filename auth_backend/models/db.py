@@ -5,7 +5,7 @@ from typing import Iterator
 
 from sqlalchemy.ext.hybrid import hybrid_method
 
-from .base import Base
+from auth_backend.models.base import Base
 import sqlalchemy.orm
 
 
@@ -24,7 +24,7 @@ class User(Base):
 
 class AuthMethod(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("User.id"))
+    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"))
     auth_method = sqlalchemy.Column(sqlalchemy.String)
     param = sqlalchemy.Column(sqlalchemy.String)
     value = sqlalchemy.Column(sqlalchemy.String)
@@ -34,7 +34,7 @@ class AuthMethod(Base):
 
 class UserSession(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("User.id"))
+    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"))
     expires = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7))
     token = sqlalchemy.Column(sqlalchemy.String, unique=True)
 
