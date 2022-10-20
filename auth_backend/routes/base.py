@@ -47,5 +47,6 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
+# TODO tags fix
 
-app.include_router(Email().router)
+app.include_router(email_router := Email().router, prefix=email_router.prefix, tags=["Email"])
