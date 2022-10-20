@@ -9,8 +9,8 @@ import sqlalchemy.orm
 class User(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
 
-    auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys=[id])
-    sessions: list[Session] = sqlalchemy.orm.relationship("Session", foreign_keys=[id])
+    auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
+    sessions: list[UserSession] = sqlalchemy.orm.relationship("UserSession", foreign_keys="UserSession.user_id")
 
 
 class AuthMethod(Base):
@@ -23,7 +23,7 @@ class AuthMethod(Base):
     user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="auth_methods")
 
 
-class Session(Base):
+class UserSession(Base):
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("User.id"))
     expires = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7))
