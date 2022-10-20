@@ -2,6 +2,8 @@ import hashlib
 import random
 import string
 
+from fastapi import APIRouter
+
 from .auth_method import AuthMethodMeta
 from sqlalchemy.orm import Session
 from auth_backend.models.db import UserSession, User
@@ -17,7 +19,6 @@ def get_salt() -> str:
 
 class Email(AuthMethodMeta):
     FIELDS = ["email", "hashed_password", "salt", "confirmed", "confirmation_token", "reset_token"]
-
 
     @staticmethod
     def hash_password(password: str, salt: str):
@@ -48,6 +49,7 @@ class Email(AuthMethodMeta):
 
     def __init__(self):
         super().__init__()
+        self.router.prefix = f"/{Email.get_name()}"
 
     async def register_flow(self, *, schema: EmailPost, session: Session, user_id: int | None = None,
                             token: str | None = None) -> str:

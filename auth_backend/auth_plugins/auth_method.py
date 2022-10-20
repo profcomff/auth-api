@@ -6,16 +6,17 @@ from .models.base import Session
 
 class AuthMethodMeta(metaclass=ABCMeta):
     FIELDS: list[str]
-    abstract_router: APIRouter
+    router: APIRouter
 
     @classmethod
     def get_name(cls) -> str:
         return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
     def __init__(self):
-        self.abstract_router = APIRouter(prefix=AuthMethodMeta.get_name())
-        self.abstract_router.add_api_route("/registration", self.registrate, methods=["POST"])
-        self.abstract_router.add_api_route("/login", self.login, methods=["POST"], response_model=Session)
+        self.router = APIRouter(prefix=f"/{AuthMethodMeta.get_name()}")
+        self.router.add_api_route("/registration", self.registrate, methods=["POST"])
+        self.router.add_api_route("/login", self.login, methods=["POST"], response_model=Session)
+
 
     @abstractmethod
     async def register_flow(self, **kwargs):
