@@ -6,7 +6,7 @@ from starlette.responses import PlainTextResponse
 from auth_backend.auth_plugins.email import Email
 from auth_backend.exceptions import ObjectNotFound, IncorrectAuthType, AlreadyExists
 from auth_backend.settings import get_settings
-from .logout import logout_router
+# from .logout import logout_router
 
 settings = get_settings()
 
@@ -50,5 +50,5 @@ app.add_middleware(
 )
 # TODO tags fix
 
-app.include_router(logout_router)
+# app.include_router(logout_router)
 app.include_router(email_router := Email().router, prefix=email_router.prefix, tags=["Email"])
