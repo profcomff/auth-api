@@ -17,4 +17,5 @@ class Session(BaseModel):
     expires: datetime
     id: int
     user_id: int
+    token: str
     

@@ -23,10 +23,12 @@ def get_salt() -> str:
 
 class Email(AuthMethodMeta):
     FIELDS = ["email", "hashed_password", "salt", "confirmed", "confirmation_token", "reset_token"]
+    prefix = "/email"
 
     def __init__(self):
         super().__init__()
         self.router.add_api_route("/approve", self.approve_email, methods=["GET"])
+        self.router.prefix = self.prefix
         self.tags = ["Email"]
 
     @staticmethod
@@ -47,7 +49,7 @@ class Email(AuthMethodMeta):
         return user_session
 
     @staticmethod
-    async def registrate(schema: EmailPost, user_id: int, token: str) -> object:
+    async def registrate(schema: EmailPost, user_id: int | None = None, token: str | None = None) -> object:
         confirmation_token: str = str(uuid4())
         query: AuthMethod = db.session.query(AuthMethod).filter(AuthMethod.param == "email",
                                                                 AuthMethod.value == schema.email,
@@ -57,12 +59,12 @@ class Email(AuthMethodMeta):
             if secrets.get("confirmed") == "true":
                 raise AlreadyExists(User, query.user_id)
             else:
-                for row in query.user.get_method_secrets(Email.__name__):
+                for row in query.user.get_method_secrets(Email.get_name()):
                     row.value = confirmation_token if row.param == "confirmation_token" else row.value
                 db.session.flush()
                 # TODO
                 send_confirmation_email(subject="Повторное подтверждение регистрации Твой ФФ!", to_addr=schema.email,
-                                        link=f"{settings.HOST}/email/approve/{confirmation_token}")
+                                        link=f"{settings.HOST}/email/approve?token={confirmation_token}")
                 return PlainTextResponse(status_code=200, content="Check email")
         if user_id and token:
             user: User = db.session.query(User).get(user_id)
@@ -79,10 +81,11 @@ class Email(AuthMethodMeta):
             db.session.flush()
         salt = get_salt()
         hashed_password = Email.hash_password(schema.password, salt)
+        hashed_password = f"{salt}${hashed_password}"
         db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="email", value=schema.email))
         db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="hashed_password",
                                   value=hashed_password))
-        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="aslt", value=salt))
+        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="salt", value=salt))
         db.session.add(
             AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="confirmed", value=str(False)))
         db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="confirmation_token",
@@ -91,7 +94,7 @@ class Email(AuthMethodMeta):
             AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="reset_token", value=None))
         db.session.flush()
         send_confirmation_email(subject="Подтверждение регистрации Твой ФФ!", to_addr=schema.email,
-                                link=f"{settings.HOST}/email/approve/{confirmation_token}")
+                                link=f"{settings.HOST}/email/approve?token={confirmation_token}")
         return PlainTextResponse(status_code=200, content="Check email")
 
     @staticmethod

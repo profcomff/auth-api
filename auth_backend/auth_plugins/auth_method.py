@@ -21,7 +21,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
         return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
     def __init__(self):
-        self.prefix = f"/{AuthMethodMeta.get_name()}"
         self.router = APIRouter()
         self.router.add_api_route("/registration", self.registrate, methods=["POST"])
         self.router.add_api_route("/login", self.login, methods=["POST"], response_model=Session)
