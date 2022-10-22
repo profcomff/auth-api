@@ -64,7 +64,6 @@ class Email(AuthMethodMeta):
                 for row in query.user.get_method_secrets(Email.get_name()):
                     row.value = confirmation_token if row.param == "confirmation_token" else row.value
                 db.session.flush()
-                # TODO
                 send_confirmation_email(subject="Повторное подтверждение регистрации Твой ФФ!", to_addr=schema.email,
                                         link=f"{settings.HOST}/email/approve?token={confirmation_token}")
                 return PlainTextResponse(status_code=200, content="Check email")
