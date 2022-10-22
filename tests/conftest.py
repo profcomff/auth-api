@@ -13,9 +13,16 @@ def client():
 
 
 @pytest.fixture()
-def dbsession():
+def engine():
     settings = get_settings()
     engine = create_engine(settings.DB_DSN)
+    return engine
+
+
+@pytest.fixture()
+def dbsession(engine):
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
     return TestingSessionLocal()
+
+
