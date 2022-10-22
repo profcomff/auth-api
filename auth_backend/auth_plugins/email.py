@@ -13,6 +13,7 @@ from .auth_method import AuthMethodMeta
 from .models.email import EmailPost
 from .smtp import send_confirmation_email
 from auth_backend.settings import get_settings
+from .models.base import Session
 
 settings = get_settings()
 
@@ -32,7 +33,7 @@ class Email(AuthMethodMeta):
         self.tags = ["Email"]
 
     @staticmethod
-    async def login(schema: EmailPost) -> UserSession:
+    async def login(schema: EmailPost) -> Session:
         query = db.session.query(AuthMethod).filter(AuthMethod.value == schema.email, AuthMethod.param == "email",
                                                     AuthMethod.auth_method == Email.get_name()).one_or_none()
         if not query:
@@ -46,10 +47,11 @@ class Email(AuthMethodMeta):
             raise AuthFailed(error="Incorrect login or password")
         db.session.add(user_session := UserSession(user_id=query.user.id, token=str(uuid4())))
         db.session.flush()
-        return user_session
+        return Session(user_id=user_session.user_id, token=user_session.token, id=user_session.id,
+                       expires=user_session.expires)
 
     @staticmethod
-    async def registrate(schema: EmailPost, user_id: int | None = None, token: str | None = None) -> object:
+    async def registrate(schema: EmailPost, user_id: int | None = None, token: str | None = None) -> PlainTextResponse:
         confirmation_token: str = str(uuid4())
         query: AuthMethod = db.session.query(AuthMethod).filter(AuthMethod.param == "email",
                                                                 AuthMethod.value == schema.email,
@@ -118,7 +120,7 @@ class Email(AuthMethodMeta):
             if row.param == "confirmed":
                 row.value = True
         db.session.flush()
-
+        return PlainTextResponse(status_code=200, content="Email approved")
 
     async def change_params(self):
         pass
