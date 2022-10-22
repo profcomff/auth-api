@@ -97,7 +97,7 @@ class Email(AuthMethodMeta):
         db.session.flush()
         send_confirmation_email(subject="Подтверждение регистрации Твой ФФ!", to_addr=schema.email,
                                 link=f"{settings.HOST}/email/approve?token={confirmation_token}")
-        return PlainTextResponse(status_code=200, content="Check email")
+        return PlainTextResponse(status_code=201, content="Check email")
 
     @staticmethod
     def hash_password(password: str, salt: str):
