@@ -11,3 +11,4 @@ email-validator
 pytest
 starlette
 requests
+ConfigArgParse
