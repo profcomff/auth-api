@@ -41,9 +41,9 @@ class TestRegistration:
         response2 = client.post(self.get_url(), json=body)
         assert response2.status_code == status.HTTP_200_OK
 
-        tokens = (migrated_session.query(AuthMethod).filter(AuthMethod.user_id == user_id,
+        tokens = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == user_id,
                                                    AuthMethod.param == 'confirmation_token',
-                                                   )).all()
+                                                   ).all()
 
         curr_token = tokens[-1].value
         assert curr_token != prev_token

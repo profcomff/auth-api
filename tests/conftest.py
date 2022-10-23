@@ -9,8 +9,9 @@ from tests.utils import run_downgrade, run_upgrade
 
 
 @pytest.fixture()
-def client():
-    return TestClient(app)
+def client(session):
+    client = TestClient(app)
+    yield client
 
 
 @pytest.fixture()

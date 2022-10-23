@@ -24,15 +24,33 @@ class TestLogin:
             "password": "string"
         }
         client.post("/email/registration", json=body)
-        db_user: AuthMethod = migrated_session.query(AuthMethod).filter(AuthMethod.value == body['email'],
-                                                                        AuthMethod.param == 'email').one()
-        user_id = db_user.user_id
-        token = (migrated_session.query(AuthMethod).filter(AuthMethod.user_id == user_id,
-                                                                AuthMethod.param == 'confirmation_token',
-                                                                )).one().value
-        response = client.post(self.get_url(), json=token)
+        response = client.post(self.get_url(), json=body)
         assert response.status_code == status.HTTP_200_OK
-        response2 = client.post("/email/registration", json=body)
-        assert response2.status_code == status.HTTP_400_BAD_REQUEST
-        expire_date = migrated_session.query(UserSession).filter(UserSession.token == token).one().expires
-        assert expire_date < datetime.utcnow() + timedelta(seconds=1)
+
+    @pytest.mark.parametrize(
+        "email, password",
+        [
+            pytest.param(
+                "wrong@example.com", "string", id='incorrect_email'
+            ),
+            pytest.param(
+                "some@example.com", "strong", id='incorrect_password'
+            ),
+            pytest.param(
+                "wrong@example.com", "strong", id='incorrect email and password'
+            )
+        ]
+    )
+    def test_incorrect_data(self, client: TestClient, migrated_session: Session, email, password):
+        reg_body = {
+            "email": "some_string",
+            "password": "string"
+        }
+        client.post(self.get_url(), json=reg_body)
+        body = {
+            "email": email,
+            "password": password
+        }
+        client.post(self.get_url(), json=body)
+        response = client.post(self.get_url(), json=body)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
