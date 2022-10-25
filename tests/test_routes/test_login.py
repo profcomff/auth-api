@@ -27,8 +27,8 @@ class TestLogin:
         response = client.post(self.get_url(), json=body)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         query = migrated_session.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.param == "email", AuthMethod.value == "some@example.com").one()
-        token = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == query.user.id, AuthMethod.param == "token", AuthMethod.auth_method =="email").one()
-        response = client.get(f"/email/approve?token={token}")
+        token = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == query.user.id, AuthMethod.param == "confirmation_token", AuthMethod.auth_method =="email").one()
+        response = client.get(f"/email/approve?token={token.value}")
         assert response.status_code == status.HTTP_200_OK
         response = client.post(self.get_url(), json=body)
         assert response.status_code == status.HTTP_200_OK
@@ -60,9 +60,9 @@ class TestLogin:
                                                           AuthMethod.param == "email",
                                                           AuthMethod.value == "some@example.com").one()
         token = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == query.user.id,
-                                                          AuthMethod.param == "token",
+                                                          AuthMethod.param == "confirmation_token",
                                                           AuthMethod.auth_method == "email").one()
-        response = client.get(f"/email/approve?token={token}")
+        response = client.get(f"/email/approve?token={token.value}")
         assert response.status_code == status.HTTP_200_OK
         client.post(self.get_url(), json=body)
         response = client.post(self.get_url(), json=body)

@@ -21,16 +21,14 @@ class TestLogout:
                                                           AuthMethod.param == "email",
                                                           AuthMethod.value == "some@example.com").one()
         auth_token = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == query.user.id,
-                                                          AuthMethod.param == "token",
+                                                          AuthMethod.param == "confirmation_token",
                                                           AuthMethod.auth_method == "email").one()
-        response = client.get(f"/email/approve?token={auth_token}")
+        response = client.get(f"/email/approve?token={auth_token.value}")
         assert response.status_code == status.HTTP_200_OK
         response = client.post("/email/login", json=body)
         assert response.status_code == status.HTTP_200_OK
-        token1 = response.json()['token']
-        token2 = migrated_session.query(UserSession).filter(UserSession.token == auth_token).one()
-        assert token1 == token2
-        response = client.post(f"{self.get_url()}?token={auth_token}")
-        assert response.status_code == status.HTTP_200_OK
-        expire_date = migrated_session.query(UserSession).filter(UserSession.token == auth_token).one().expires
+        token = response.json()['token']
+        response = client.post(f"{self.get_url()}?token={token}", json=body)
+        assert response.ok
+        expire_date = migrated_session.query(UserSession).filter(UserSession.token == token).one()
         assert expire_date.expired
