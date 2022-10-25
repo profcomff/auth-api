@@ -25,7 +25,14 @@ class TestLogin:
         }
         client.post("/email/registration", json=body)
         response = client.post(self.get_url(), json=body)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        query = migrated_session.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.param == "email", AuthMethod.value == "some@example.com").one()
+        token = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == query.user.id, AuthMethod.param == "token", AuthMethod.auth_method =="email").one()
+        response = client.get(f"/email/approve?token={token}")
         assert response.status_code == status.HTTP_200_OK
+        response = client.post(self.get_url(), json=body)
+        assert response.status_code == status.HTTP_200_OK
+
 
     @pytest.mark.parametrize(
         "email, password",
@@ -42,15 +49,21 @@ class TestLogin:
         ]
     )
     def test_incorrect_data(self, client: TestClient, migrated_session: Session, email, password):
-        reg_body = {
-            "email": "some_string",
+        body = {
+            "email": "some@example.com",
             "password": "string"
         }
-        client.post(self.get_url(), json=reg_body)
-        body = {
-            "email": email,
-            "password": password
-        }
+        client.post("/email/registration", json=body)
+        response = client.post(self.get_url(), json=body)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        query = migrated_session.query(AuthMethod).filter(AuthMethod.auth_method == "email",
+                                                          AuthMethod.param == "email",
+                                                          AuthMethod.value == "some@example.com").one()
+        token = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == query.user.id,
+                                                          AuthMethod.param == "token",
+                                                          AuthMethod.auth_method == "email").one()
+        response = client.get(f"/email/approve?token={token}")
+        assert response.status_code == status.HTTP_200_OK
         client.post(self.get_url(), json=body)
         response = client.post(self.get_url(), json=body)
         assert response.status_code == status.HTTP_403_FORBIDDEN

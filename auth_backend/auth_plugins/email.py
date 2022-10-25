@@ -39,7 +39,7 @@ class Email(AuthMethodMeta):
         if not query:
             raise AuthFailed(error="Incorrect login or password")
         secrets = {row.param: row.value for row in query.user.get_method_secrets(Email.get_name())}
-        if not secrets.get("confirmed"):
+        if secrets.get("confirmed") == str(False):
             raise AuthFailed(
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email")
         if secrets.get("email") != schema.email or not Email.validate_password(schema.password,
