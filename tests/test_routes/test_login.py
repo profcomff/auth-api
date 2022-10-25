@@ -34,27 +34,32 @@ class TestLogin:
         assert response.status_code == status.HTTP_200_OK
 
 
-    @pytest.mark.parametrize(
-        "email, password",
-        [
-            pytest.param(
-                "wrong@example.com", "string", id='incorrect_email'
-            ),
-            pytest.param(
-                "some@example.com", "strong", id='incorrect_password'
-            ),
-            pytest.param(
-                "wrong@example.com", "strong", id='incorrect email and password'
-            )
-        ]
-    )
-    def test_incorrect_data(self, client: TestClient, migrated_session: Session, email, password):
-        body = {
+
+    def test_incorrect_data(self, client: TestClient, migrated_session: Session):
+        body1 = {
             "email": "some@example.com",
             "password": "string"
         }
-        client.post("/email/registration", json=body)
-        response = client.post(self.get_url(), json=body)
+        body2 = {
+            "email": "wrong@example.com",
+            "password": "string"
+        }
+        body3 = {
+            "email": "some@example.com",
+            "password": "strong"
+        }
+        body4 = {
+            "email": "wrong@example.com",
+            "password": "strong"
+        }
+        client.post("/email/registration", json=body1)
+        response = client.post(self.get_url(), json=body1)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        response = client.post(self.get_url(), json=body2)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        response = client.post(self.get_url(), json=body3)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        response = client.post(self.get_url(), json=body4)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         query = migrated_session.query(AuthMethod).filter(AuthMethod.auth_method == "email",
                                                           AuthMethod.param == "email",
@@ -64,6 +69,11 @@ class TestLogin:
                                                           AuthMethod.auth_method == "email").one()
         response = client.get(f"/email/approve?token={token.value}")
         assert response.status_code == status.HTTP_200_OK
-        client.post(self.get_url(), json=body)
-        response = client.post(self.get_url(), json=body)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        response = client.post(self.get_url(), json=body1)
+        assert response.status_code == status.HTTP_200_OK
+        response = client.post(self.get_url(), json=body2)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        response = client.post(self.get_url(), json=body3)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        response = client.post(self.get_url(), json=body4)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
