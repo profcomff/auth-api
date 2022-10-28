@@ -7,9 +7,7 @@ from datetime import datetime, timedelta
 
 
 class TestLogout:
-    @staticmethod
-    def get_url():
-        return "/logout"
+    url = "/logout"
 
     def test_main_scenario(self, client: TestClient, migrated_session: Session):
         body = {
@@ -28,7 +26,7 @@ class TestLogout:
         response = client.post("/email/login", json=body)
         assert response.status_code == status.HTTP_200_OK
         token = response.json()['token']
-        response = client.post(f"{self.get_url()}?token={token}", json=body)
+        response = client.post(f"{self.url}?token={token}", json=body)
         assert response.ok
         expire_date = migrated_session.query(UserSession).filter(UserSession.token == token).one()
         assert expire_date.expired
