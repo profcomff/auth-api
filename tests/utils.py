@@ -4,7 +4,6 @@ from types import SimpleNamespace
 from typing import Union
 
 from alembic.config import Config
-from configargparse import Namespace
 from alembic import command
 from auth_backend.settings import get_settings
 
@@ -12,7 +11,7 @@ from auth_backend.settings import get_settings
 PROJECT_PATH = Path(__file__).parent.parent.resolve()
 
 
-def make_alembic_config(cmd_opts: Union[Namespace, SimpleNamespace], base_path: Path = PROJECT_PATH) -> Config:
+def make_alembic_config(cmd_opts: Union[SimpleNamespace], base_path: Path = PROJECT_PATH) -> Config:
     """
     Создает объект конфигурации alembic на основе аргументов командной строки,
     подменяет относительные пути на абсолютные.

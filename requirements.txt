@@ -5,10 +5,10 @@ pydantic[dotenv]
 uvicorn
 alembic
 SQLAlchemy
+sqlalchemy_utils
 gunicorn
 email-validator
 
 pytest
 starlette
 requests
-ConfigArgParse
