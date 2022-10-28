@@ -18,7 +18,7 @@ def client(session):
 @pytest.fixture()
 def postgres() -> str:
     settings = get_settings()
-    tmp_name = f"{uuid4().hex}_pytest"
+    tmp_name = f"{str(uuid4().hex)}_pytest"
     settings.DB_DSN.replace(settings.DB_DSN.split('/')[-1], tmp_name)
     tmp_url = settings.DB_DSN
     if not database_exists(tmp_url):
