@@ -10,7 +10,7 @@ def send_confirmation_email(subject, to_addr, link):
     """
     from_addr = settings.EMAIL
 
-    with open("auth_backend/templates/main_confirmation.html") as f:
+    with open("/auth_backend/templates/main_confirmation.html") as f:
         tmp = f.read()
         tmp = tmp.replace("{{url}}", link)
 

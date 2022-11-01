@@ -9,13 +9,16 @@ from starlette.responses import PlainTextResponse
 from auth_backend.exceptions import AlreadyExists, AuthFailed, ObjectNotFound
 from auth_backend.models.db import AuthMethod
 from auth_backend.models.db import UserSession, User
-from .auth_method import AuthMethodMeta
-from .models.email import EmailPost
-from .smtp import send_confirmation_email
+from .auth_method import AuthMethodMeta, Session, Base
+from utils.smtp import send_confirmation_email
 from auth_backend.settings import get_settings
-from .models.base import Session
 
 settings = get_settings()
+
+
+class EmailPost(Base):
+    email: str
+    password: str
 
 
 def get_salt() -> str:
@@ -23,7 +26,6 @@ def get_salt() -> str:
 
 
 class Email(AuthMethodMeta):
-    FIELDS = ["email", "hashed_password", "salt", "confirmed", "confirmation_token", "reset_token"]
     prefix = "/email"
 
     def __init__(self):
@@ -51,7 +53,7 @@ class Email(AuthMethodMeta):
                        expires=user_session.expires)
 
     @staticmethod
-    async def registrate(schema: EmailPost, user_id: int | None = None, token: str | None = None) -> PlainTextResponse:
+    async def register(schema: EmailPost, user_id: int | None = None, token: str | None = None) -> PlainTextResponse:
         confirmation_token: str = str(uuid4())
         query: AuthMethod = db.session.query(AuthMethod).filter(AuthMethod.param == "email",
                                                                 AuthMethod.value == schema.email,

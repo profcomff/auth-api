@@ -56,7 +56,7 @@ name: Build, publish and deploy docker
         name: Testing
         url: https://auth.api.test.profcomff.com/
       env:
-        CONTAITER_NAME: com_profcomff_api_auth_test
+        CONTAITER_NAME: com_profcomff_auth_api_test
       permissions:
         packages: read
 
@@ -99,7 +99,7 @@ name: Build, publish and deploy docker
         name: Production
         url: https://auth.api.profcomff.com/
       env:
-        CONTAITER_NAME: com_profcomff_api_auth
+        CONTAITER_NAME: com_profcomff_auth_api
       permissions:
         packages: read
 
