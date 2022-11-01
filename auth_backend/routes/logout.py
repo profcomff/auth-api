@@ -10,7 +10,7 @@ from auth_backend.models.db import UserSession
 logout_router = APIRouter(prefix="", tags=["Logout"])
 
 
-@logout_router.post("/logout", response_model=PlainTextResponse)
+@logout_router.post("/logout", response_model=str)
 async def logout(token: str) -> PlainTextResponse:
     session = db.session.query(UserSession).filter(UserSession.token == token).one_or_none()
     if not session:
