@@ -11,7 +11,6 @@ AUTH_METHODS: dict[str, type[AuthMethodMeta]] = {}
 
 
 class AuthMethodMeta(metaclass=ABCMeta):
-    FIELDS: list[str]
     router: APIRouter
     prefix: str
     tags: list[str] = []

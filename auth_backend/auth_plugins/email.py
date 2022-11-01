@@ -23,7 +23,6 @@ def get_salt() -> str:
 
 
 class Email(AuthMethodMeta):
-    FIELDS = ["email", "hashed_password", "salt", "confirmed", "confirmation_token", "reset_token"]
     prefix = "/email"
 
     def __init__(self):
