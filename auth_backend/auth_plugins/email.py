@@ -21,7 +21,6 @@ class EmailPost(Base):
     password: str
 
 
-
 def get_salt() -> str:
     return "".join([random.choice(string.ascii_letters) for _ in range(12)])
 

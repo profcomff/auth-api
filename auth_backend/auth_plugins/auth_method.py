@@ -44,7 +44,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
         self.router.add_api_route("/registration", self.register, methods=["POST"])
         self.router.add_api_route("/login", self.login, methods=["POST"], response_model=Session)
 
-    @classmethod
     def __init_subclass__(cls, **kwargs):
         AUTH_METHODS[cls.__name__] = cls
 
