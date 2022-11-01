@@ -50,7 +50,7 @@ class Email(AuthMethodMeta):
                        expires=user_session.expires)
 
     @staticmethod
-    async def registrate(schema: EmailPost, user_id: int | None = None, token: str | None = None) -> PlainTextResponse:
+    async def register(schema: EmailPost, user_id: int | None = None, token: str | None = None) -> PlainTextResponse:
         confirmation_token: str = str(uuid4())
         query: AuthMethod = db.session.query(AuthMethod).filter(AuthMethod.param == "email",
                                                                 AuthMethod.value == schema.email,

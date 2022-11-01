@@ -21,7 +21,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     def __init__(self):
         self.router = APIRouter()
-        self.router.add_api_route("/registration", self.registrate, methods=["POST"])
+        self.router.add_api_route("/registration", self.register, methods=["POST"])
         self.router.add_api_route("/login", self.login, methods=["POST"], response_model=Session)
 
     @classmethod
@@ -30,7 +30,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    async def registrate(**kwargs) -> object:
+    async def register(**kwargs) -> object:
         raise NotImplementedError()
 
     @staticmethod
