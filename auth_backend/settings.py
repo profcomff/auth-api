@@ -6,7 +6,7 @@ from pydantic import BaseSettings, PostgresDsn, EmailStr, HttpUrl
 class Settings(BaseSettings):
     DB_DSN: PostgresDsn
 
-    EMAIL: EmailStr | None
+    EMAIL: str | None
     HOST: HttpUrl = 'http://127.0.0.1:8000'
     EMAIL_PASS: str = None
     SMTP_HOST: str = 'smtp.gmail.com'
