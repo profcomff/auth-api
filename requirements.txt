@@ -8,6 +8,3 @@ SQLAlchemy
 sqlalchemy_utils
 gunicorn
 email-validator
-
-pytest
-requests
