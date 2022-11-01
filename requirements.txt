@@ -10,5 +10,4 @@ gunicorn
 email-validator
 
 pytest
-starlette
 requests
