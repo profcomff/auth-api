@@ -14,8 +14,6 @@ app = FastAPI()
 
 
 @app.exception_handler(ObjectNotFound)
-
-
 async def not_found_handler(req, exc: ObjectNotFound):
     return PlainTextResponse(f"{exc}", status_code=404)
 
