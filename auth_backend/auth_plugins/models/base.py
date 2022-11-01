@@ -13,7 +13,7 @@ class Base(BaseModel):
         orm_mode = True
 
 
-class Session(BaseModel):
+class Session(Base):
     expires: datetime
     id: int
     user_id: int
