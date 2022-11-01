@@ -10,12 +10,17 @@ from auth_backend.exceptions import AlreadyExists, AuthFailed, ObjectNotFound
 from auth_backend.models.db import AuthMethod
 from auth_backend.models.db import UserSession, User
 from .auth_method import AuthMethodMeta
-from .models.email import EmailPost
 from .smtp import send_confirmation_email
 from auth_backend.settings import get_settings
-from .models.base import Session
+from .models.base import Session, Base
 
 settings = get_settings()
+
+
+class EmailPost(Base):
+    email: str
+    password: str
+
 
 
 def get_salt() -> str:
