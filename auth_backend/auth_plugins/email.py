@@ -9,10 +9,9 @@ from starlette.responses import PlainTextResponse
 from auth_backend.exceptions import AlreadyExists, AuthFailed, ObjectNotFound
 from auth_backend.models.db import AuthMethod
 from auth_backend.models.db import UserSession, User
-from .auth_method import AuthMethodMeta
+from .auth_method import AuthMethodMeta, Session, Base
 from utils.smtp import send_confirmation_email
 from auth_backend.settings import get_settings
-from .models.base import Session, Base
 
 settings = get_settings()
 
