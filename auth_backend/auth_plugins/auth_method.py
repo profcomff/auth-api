@@ -56,10 +56,3 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @abstractmethod
     async def login(**kwargs) -> Session:
         raise NotImplementedError()
-
-
-
-
-
-
-

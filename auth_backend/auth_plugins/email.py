@@ -16,9 +16,14 @@ from auth_backend.settings import get_settings
 settings = get_settings()
 
 
-class EmailPost(Base):
+class EmailLogin(Base):
     email: str
     password: str
+
+
+class EmailRegister(EmailLogin):
+    user_id: int | None
+    token: str | None
 
 
 def get_salt() -> str:
@@ -35,7 +40,7 @@ class Email(AuthMethodMeta):
         self.tags = ["Email"]
 
     @staticmethod
-    async def login(schema: EmailPost) -> Session:
+    async def login(schema: EmailLogin) -> Session:
         query = db.session.query(AuthMethod).filter(AuthMethod.value == schema.email, AuthMethod.param == "email",
                                                     AuthMethod.auth_method == Email.get_name()).one_or_none()
         if not query:
@@ -53,7 +58,7 @@ class Email(AuthMethodMeta):
                        expires=user_session.expires)
 
     @staticmethod
-    async def register(schema: EmailPost, user_id: int | None = None, token: str | None = None) -> PlainTextResponse:
+    async def register(schema: EmailRegister) -> PlainTextResponse:
         confirmation_token: str = str(uuid4())
         query: AuthMethod = db.session.query(AuthMethod).filter(AuthMethod.param == "email",
                                                                 AuthMethod.value == schema.email,
@@ -69,12 +74,12 @@ class Email(AuthMethodMeta):
                 send_confirmation_email(subject="Повторное подтверждение регистрации Твой ФФ!", to_addr=schema.email,
                                         link=f"{settings.HOST}/email/approve?token={confirmation_token}")
                 return PlainTextResponse(status_code=200, content="Check email")
-        if user_id and token:
-            user: User = db.session.query(User).get(user_id)
-            user_session: UserSession = db.session.query(UserSession).filter(UserSession.token == token,
-                                                                             UserSession.user_id == user_id).one_or_none()
+        if schema.user_id and schema.token:
+            user: User = db.session.query(User).get(schema.user_id)
+            user_session: UserSession = db.session.query(UserSession).filter(UserSession.token == schema.token,
+                                                                             UserSession.user_id == schema.user_id).one_or_none()
             if not user:
-                raise ObjectNotFound(User, user_id)
+                raise ObjectNotFound(User, schema.user_id)
             if not user_session:
                 raise AuthFailed(error="Token not found, log in system")
             if user_session.expired:
