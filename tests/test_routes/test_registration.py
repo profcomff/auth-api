@@ -2,6 +2,7 @@ from starlette import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from auth_backend.models.db import AuthMethod
+from unittest.mock import patch
 
 
 class TestRegistration:

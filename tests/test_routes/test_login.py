@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from auth_backend.models.db import AuthMethod, UserSession
 from datetime import datetime, timedelta
 
+
 class TestLogin:
     url = "/email/login"
 
@@ -30,8 +31,6 @@ class TestLogin:
         assert response.status_code == status.HTTP_200_OK
         response = client.post(self.url, json=body)
         assert response.status_code == status.HTTP_200_OK
-
-
 
     def test_incorrect_data(self, client: TestClient, migrated_session: Session):
         body1 = {

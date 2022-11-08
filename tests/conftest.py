@@ -2,23 +2,25 @@ import pytest
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from fastapi.testclient import TestClient
+import auth_backend.auth_plugins.email
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
-from sqlalchemy_utils import create_database, database_exists, drop_database
-from uuid import uuid4
-from tests.utils import run_downgrade, run_upgrade
+from sqlalchemy_utils import create_database, database_exists
+from auth_backend.models.base import Base
+from unittest.mock import Mock
 
 
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def client(session):
+    auth_backend.auth_plugins.email.send_confirmation_email = Mock(return_value=None)
     client = TestClient(app)
     yield client
 
 
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def postgres() -> str:
     settings = get_settings()
-    tmp_name = f"{str(uuid4().hex)}_pytest"
+    tmp_name = f"{__name__}_pytest"
     settings.DB_DSN.replace(settings.DB_DSN.split('/')[-1], tmp_name)
     tmp_url = settings.DB_DSN
     if not database_exists(tmp_url):
@@ -26,24 +28,24 @@ def postgres() -> str:
     yield tmp_url
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def engine(postgres):
     return create_engine(postgres)
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def session_factory(engine):
     return sessionmaker(engine, autocommit=True)
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def session(session_factory):
     with session_factory() as session:
         yield session
 
 
-@pytest.fixture
-def migrated_session(session):
-    run_upgrade()
+@pytest.fixture(scope='session')
+def migrated_session(session, engine):
+    Base.metadata.create_all(engine)
     yield session
-    run_downgrade()
+    Base.metadata.drop_all(engine)
