@@ -5,6 +5,5 @@ pydantic[dotenv]
 uvicorn
 alembic
 SQLAlchemy
-sqlalchemy_utils
 gunicorn
 email-validator

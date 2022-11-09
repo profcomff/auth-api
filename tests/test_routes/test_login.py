@@ -1,9 +1,7 @@
-import pytest
 from starlette import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from auth_backend.models.db import AuthMethod, UserSession
-from datetime import datetime, timedelta
+from auth_backend.models.db import AuthMethod
 
 
 class TestLogin:
