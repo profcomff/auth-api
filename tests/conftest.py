@@ -4,10 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from starlette import status
 
 import auth_backend.auth_plugins.email
-from auth_backend.models import AuthMethod, User
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 
