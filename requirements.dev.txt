@@ -1,5 +1,4 @@
 pytest
 pytest-cov
 requests
-sqlalchemy_utils
 pytest-github-actions-annotate-failures
