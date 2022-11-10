@@ -1,22 +1,23 @@
-from starlette import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from starlette import status
+
 from auth_backend.models.db import AuthMethod
-from unittest.mock import patch
 
 
 class TestRegistration:
     url = "/email/registration"
 
-    def test_invalid_email(self, client: TestClient):
+    def test_invalid_email(self, client: TestClient, dbsession: Session):
         body = {
             "email": "notEmailForSure",
             "password": "string"
         }
         response = client.post(self.url, json=body)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        obj = dbsession.query()
 
-    def test_main_scenario(self, client: TestClient, migrated_session: Session):
+    def test_main_scenario(self, client: TestClient):
         body = {
             "email": "user@example.com",
             "password": "string"
@@ -24,23 +25,23 @@ class TestRegistration:
         response = client.post(self.url, json=body)
         assert response.status_code == status.HTTP_201_CREATED
 
-    def test_repeated_registration_case(self, client: TestClient, migrated_session: Session):
+    def test_repeated_registration_case(self, client: TestClient, dbsession: Session):
         body = {
             "email": "some@example.com",
             "password": "string"
         }
         response = client.post(self.url, json=body)
         assert response.status_code == status.HTTP_201_CREATED
-        db_user: AuthMethod = migrated_session.query(AuthMethod).filter(AuthMethod.value == body['email'],
+        db_user: AuthMethod = dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'],
                                                                AuthMethod.param == 'email').one()
         user_id = db_user.user_id
-        prev_token = (migrated_session.query(AuthMethod).filter(AuthMethod.user_id == user_id,
+        prev_token = (dbsession.query(AuthMethod).filter(AuthMethod.user_id == user_id,
                                                        AuthMethod.param == 'confirmation_token',
                                                        )).one().value
         response2 = client.post(self.url, json=body)
         assert response2.status_code == status.HTTP_200_OK
 
-        tokens = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == user_id,
+        tokens = dbsession.query(AuthMethod).filter(AuthMethod.user_id == user_id,
                                                    AuthMethod.param == 'confirmation_token',
                                                    ).all()
 

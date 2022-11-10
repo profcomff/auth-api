@@ -15,7 +15,7 @@ class TestLogin:
         response = client.post(self.url, json=body)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_main_scenario(self, client: TestClient, migrated_session: Session):
+    def test_main_scenario(self, client: TestClient, dbsession: Session):
         body = {
             "email": "some@example.com",
             "password": "string"
@@ -23,14 +23,14 @@ class TestLogin:
         client.post("/email/registration", json=body)
         response = client.post(self.url, json=body)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        query = migrated_session.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.param == "email", AuthMethod.value == "some@example.com").one()
-        token = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == query.user.id, AuthMethod.param == "confirmation_token", AuthMethod.auth_method =="email").one()
+        query = dbsession.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.param == "email", AuthMethod.value == "some@example.com").one()
+        token = dbsession.query(AuthMethod).filter(AuthMethod.user_id == query.user.id, AuthMethod.param == "confirmation_token", AuthMethod.auth_method =="email").one()
         response = client.get(f"/email/approve?token={token.value}")
         assert response.status_code == status.HTTP_200_OK
         response = client.post(self.url, json=body)
         assert response.status_code == status.HTTP_200_OK
 
-    def test_incorrect_data(self, client: TestClient, migrated_session: Session):
+    def test_incorrect_data(self, client: TestClient, dbsession: Session):
         body1 = {
             "email": "some@example.com",
             "password": "string"
@@ -56,10 +56,10 @@ class TestLogin:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         response = client.post(self.url, json=body4)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        query = migrated_session.query(AuthMethod).filter(AuthMethod.auth_method == "email",
+        query = dbsession.query(AuthMethod).filter(AuthMethod.auth_method == "email",
                                                           AuthMethod.param == "email",
                                                           AuthMethod.value == "some@example.com").one()
-        token = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == query.user.id,
+        token = dbsession.query(AuthMethod).filter(AuthMethod.user_id == query.user.id,
                                                           AuthMethod.param == "confirmation_token",
                                                           AuthMethod.auth_method == "email").one()
         response = client.get(f"/email/approve?token={token.value}")

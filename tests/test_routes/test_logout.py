@@ -9,16 +9,16 @@ from datetime import datetime, timedelta
 class TestLogout:
     url = "/logout"
 
-    def test_main_scenario(self, client: TestClient, migrated_session: Session):
+    def test_main_scenario(self, client: TestClient, dbsession: Session):
         body = {
             "email": "some@example.com",
             "password": "string"
         }
         client.post("/email/registration", json=body)
-        query = migrated_session.query(AuthMethod).filter(AuthMethod.auth_method == "email",
+        query = dbsession.query(AuthMethod).filter(AuthMethod.auth_method == "email",
                                                           AuthMethod.param == "email",
                                                           AuthMethod.value == "some@example.com").one()
-        auth_token = migrated_session.query(AuthMethod).filter(AuthMethod.user_id == query.user.id,
+        auth_token = dbsession.query(AuthMethod).filter(AuthMethod.user_id == query.user.id,
                                                           AuthMethod.param == "confirmation_token",
                                                           AuthMethod.auth_method == "email").one()
         response = client.get(f"/email/approve?token={auth_token.value}")
@@ -28,5 +28,5 @@ class TestLogout:
         token = response.json()['token']
         response = client.post(f"{self.url}?token={token}", json=body)
         assert response.ok
-        expire_date = migrated_session.query(UserSession).filter(UserSession.token == token).one()
+        expire_date = dbsession.query(UserSession).filter(UserSession.token == token).one()
         assert expire_date.expired
