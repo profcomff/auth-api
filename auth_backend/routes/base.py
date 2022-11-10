@@ -4,7 +4,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import PlainTextResponse
 
 from auth_backend.auth_plugins.email import Email
-from auth_backend.exceptions import ObjectNotFound, IncorrectAuthType, AlreadyExists
+from auth_backend.exceptions import ObjectNotFound, IncorrectAuthType, AlreadyExists, AuthFailed
 from auth_backend.settings import get_settings
 from .logout import logout_router
 
@@ -19,13 +19,18 @@ async def not_found_handler(req, exc: ObjectNotFound):
 
 
 @app.exception_handler(IncorrectAuthType)
-async def not_found_handler(req, exc: IncorrectAuthType):
+async def incorrect_auth_type_handler(req, exc: IncorrectAuthType):
     return PlainTextResponse(f"{exc}", status_code=403)
 
 
 @app.exception_handler(AlreadyExists)
-async def not_found_handler(req, exc: AlreadyExists):
+async def already_exists_handler(req, exc: AlreadyExists):
     return PlainTextResponse(f"{exc}", status_code=409)
+
+
+@app.exception_handler(AuthFailed)
+async def auth_failed_handler(req, exc: AuthFailed):
+    return PlainTextResponse(status_code=401, content=exc.args[0])
 
 
 @app.exception_handler(Exception)

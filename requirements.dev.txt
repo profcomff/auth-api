@@ -1,0 +1,4 @@
+pytest
+pytest-cov
+requests
+pytest-github-actions-annotate-failures
