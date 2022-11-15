@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from fastapi_sqlalchemy import db
 from fastapi import Request
-from pydantic import validator
+from pydantic import validator, constr
 from starlette.responses import JSONResponse
 
 from auth_backend.exceptions import AlreadyExists, AuthFailed, ObjectNotFound, SessionExpired
@@ -21,17 +21,11 @@ settings = get_settings()
 
 class EmailLogin(Base):
     email: str
-    password: str
+    password: constr(min_length=1)
 
     @validator('email')
     def check_email(cls, v):
         if "@" not in v:
-            raise ValueError()
-        return v
-
-    @validator('password')
-    def check_password(cls, v):
-        if not v:
             raise ValueError()
         return v
 
