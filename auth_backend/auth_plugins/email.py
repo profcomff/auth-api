@@ -70,15 +70,15 @@ class Email(AuthMethodMeta):
             schema.password, secrets.get("hashed_password"), secrets.get("salt")
         ):
             raise AuthFailed(error="Incorrect login or password")
-        db.session.add(user_session := UserSession(user_id=query.user.id, token=str(uuid4())))
+        db.session.add(user_session := UserSession(user_id=query.user.id, token=random_string()))
         db.session.flush()
         return Session(
             user_id=user_session.user_id, token=user_session.token, id=user_session.id, expires=user_session.expires
         )
 
     @staticmethod
-    async def _register_and_send_approve_link(
-        schema: EmailRegister, confirmation_token: str, user: User, host: str
+    async def _add_to_db(
+        schema: EmailRegister, confirmation_token: str, user: User
     ) -> None:
         salt = random_string()
         hashed_password = Email.hash_password(schema.password, salt)
@@ -95,11 +95,6 @@ class Email(AuthMethodMeta):
         )
         db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="reset_token", value=None))
         db.session.flush()
-        send_confirmation_email(
-            subject="Подтверждение регистрации Твой ФФ!",
-            to_addr=schema.email,
-            link=f"{host}/email/approve?token={confirmation_token}",
-        )
         return None
 
     @staticmethod
@@ -145,7 +140,12 @@ class Email(AuthMethodMeta):
         else:
             db.session.add(user := User())
             db.session.flush()
-        await Email._register_and_send_approve_link(schema, confirmation_token, user, request.client.host)
+        await Email._add_to_db(schema, confirmation_token, user)
+        send_confirmation_email(
+            subject="Подтверждение регистрации Твой ФФ!",
+            to_addr=schema.email,
+            link=f"{request.client.host}/email/approve?token={confirmation_token}",
+        )
         return JSONResponse(status_code=201, content="Check email")
 
     @staticmethod
