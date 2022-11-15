@@ -6,6 +6,8 @@ on:
 
 jobs:
   test:
+    environment:
+      name: Testing
     name: Unit tests
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -27,10 +29,10 @@ jobs:
           pip install -r requirements.txt -r requirements.dev.txt
       - name: Migrate DB
         run: |
-          DB_DSN=postgresql://postgres@localhost:5432/postgres alembic upgrade head
+          ENABLED_AUTH_METHODS=${{ secrets.ENABLED_AUTH_METHODS }} DB_DSN=postgresql://postgres@localhost:5432/postgres alembic upgrade head
       - name: Build coverage file
         run: |
-          DB_DSN=postgresql://postgres@localhost:5432/postgres pytest --showlocals --cache-clear --cov=auth_backend tests > pytest-coverage.txt
+          ENABLED_AUTH_METHODS=${{ secrets.ENABLED_AUTH_METHODS }} DB_DSN=postgresql://postgres@localhost:5432/postgres pytest --showlocals --cache-clear --cov=auth_backend tests > pytest-coverage.txt
       - name: Print report
         if: always()
         run: |
