@@ -10,3 +10,8 @@ class Base(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class ResponseModel(Base):
+    status: str
+    message: str

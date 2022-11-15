@@ -27,10 +27,10 @@ jobs:
           pip install -r requirements.txt -r requirements.dev.txt
       - name: Migrate DB
         run: |
-          ENABLED_AUTH_METHODS='["email"]' DB_DSN=postgresql://postgres@localhost:5432/postgres alembic upgrade head
+          DB_DSN=postgresql://postgres@localhost:5432/postgres alembic upgrade head
       - name: Build coverage file
         run: |
-          ENABLED_AUTH_METHODS='["email"]' DB_DSN=postgresql://postgres@localhost:5432/postgres pytest --showlocals --cache-clear --cov=auth_backend tests > pytest-coverage.txt
+          DB_DSN=postgresql://postgres@localhost:5432/postgres pytest --showlocals --cache-clear --cov=auth_backend tests > pytest-coverage.txt
       - name: Print report
         if: always()
         run: |

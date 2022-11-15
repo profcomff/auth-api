@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     EMAIL_PASS: str = None
     SMTP_HOST: str = 'smtp.gmail.com'
     SMTP_PORT: int = 587
-    ENABLED_AUTH_METHODS: list[str]
+    ENABLED_AUTH_METHODS: list[str] | None
 
     CORS_ALLOW_ORIGINS: list[str] = ['*']
     CORS_ALLOW_CREDENTIALS: bool = True

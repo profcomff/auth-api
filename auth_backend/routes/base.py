@@ -26,6 +26,10 @@ app.add_middleware(
 )
 
 app.include_router(logout_router)
-for method in AUTH_METHODS.values():
-    if (name := method.get_name()) in settings.ENABLED_AUTH_METHODS:
-        app.include_router(router := method().router, prefix=router.prefix, tags=[name])
+if not settings.ENABLED_AUTH_METHODS:
+    for method in AUTH_METHODS.values():
+        app.include_router(router := method().router, prefix=router.prefix, tags=[method.get_name()])
+else:
+    for method in AUTH_METHODS.values():
+        if (name := method.get_name()) in settings.ENABLED_AUTH_METHODS:
+            app.include_router(router := method().router, prefix=router.prefix, tags=[name])

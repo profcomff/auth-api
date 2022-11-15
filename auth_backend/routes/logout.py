@@ -3,6 +3,8 @@ from datetime import datetime
 from fastapi import APIRouter
 from fastapi_sqlalchemy import db
 from starlette.responses import JSONResponse
+
+from auth_backend.base import ResponseModel
 from auth_backend.exceptions import SessionExpired
 
 from auth_backend.exceptions import AuthFailed
@@ -20,4 +22,4 @@ async def logout(token: str) -> JSONResponse:
         raise SessionExpired(session.token)
     session.expires = datetime.utcnow()
     db.session.flush()
-    return JSONResponse(status_code=200, content="Successful")
+    return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Logout successful").dict())
