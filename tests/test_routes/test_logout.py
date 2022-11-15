@@ -27,12 +27,19 @@ def test_main_scenario(client: TestClient, dbsession: Session):
     response = client.post("/email/login", json=body)
     assert response.status_code == status.HTTP_200_OK
     token = response.json()['token']
-    response = client.post(f"{url}?token={token}", json=body)
+    response = client.post(f"{url}?token={token}")
     assert response.status_code == status.HTTP_200_OK
     expire_date = dbsession.query(UserSession).filter(UserSession.token == token).one()
     assert expire_date.expired
+    response = client.post(f"{url}?token={token}")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == id).all():
        dbsession.delete(row)
     dbsession.delete(dbsession.query(UserSession).filter(UserSession.user_id == id).one())
     dbsession.delete(dbsession.query(User).filter(User.id == id).one())
     dbsession.flush()
+
+
+def test_without_token(client: TestClient, dbsession: Session):
+    response = client.post(f"{url}?token=")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

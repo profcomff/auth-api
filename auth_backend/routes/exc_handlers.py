@@ -1,5 +1,5 @@
 import starlette.requests
-from starlette.responses import PlainTextResponse, JSONResponse
+from starlette.responses import JSONResponse
 
 from auth_backend.exceptions import ObjectNotFound, IncorrectAuthType, AlreadyExists, AuthFailed, SessionExpired
 from .base import app
@@ -31,5 +31,5 @@ async def session_expired_handler(req: starlette.requests.Request, exc: SessionE
 
 
 @app.exception_handler(Exception)
-async def http_error_handler(req: starlette.requests.Request, exc : Exception):
+async def http_error_handler(req: starlette.requests.Request, exc: Exception):
     return JSONResponse(content={"error": "500"}, status_code=500)

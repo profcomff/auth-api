@@ -19,8 +19,9 @@ def test_invalid_email(client: TestClient):
 
 
 def test_main_scenario(client: TestClient, dbsession: Session):
+    time = datetime.datetime.utcnow()
     body = {
-        "email": f"user{datetime.datetime.utcnow()}@example.com",
+        "email": f"user{time}@example.com",
         "password": "string"
     }
     client.post("/email/registration", json=body)
@@ -34,6 +35,12 @@ def test_main_scenario(client: TestClient, dbsession: Session):
     response = client.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
     response = client.post(url, json=body)
+    assert response.status_code == status.HTTP_200_OK
+    body_with_uppercase = {
+        "email": f"User{time}@example.com",
+        "password": "string"
+    }
+    response = client.post(url, json=body_with_uppercase)
     assert response.status_code == status.HTTP_200_OK
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == id).all():
         dbsession.delete(row)

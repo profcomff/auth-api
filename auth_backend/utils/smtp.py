@@ -43,7 +43,7 @@ def send_change_password_confirmation(subject, to_addr, link):
             f"Subject: {subject}",
             "Content-Type: text/html; charset=utf-8;",
             "",
-            tmp
+            tmp,
         )
     )
 
