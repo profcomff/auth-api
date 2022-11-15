@@ -67,7 +67,7 @@ class Email(AuthMethodMeta):
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
         if secrets.get("email").lower() != schema.email.lower() or not Email.validate_password(
-            schema.password, secrets.get("hashed_password")
+            schema.password, secrets.get("hashed_password"), secrets.get("salt")
         ):
             raise AuthFailed(error="Incorrect login or password")
         db.session.add(user_session := UserSession(user_id=query.user.id, token=str(uuid4())))
@@ -82,7 +82,6 @@ class Email(AuthMethodMeta):
     ) -> None:
         salt = random_string()
         hashed_password = Email.hash_password(schema.password, salt)
-        hashed_password = f"{salt}${hashed_password}"
         db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="email", value=schema.email))
         db.session.add(
             AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="hashed_password", value=hashed_password)
@@ -155,10 +154,9 @@ class Email(AuthMethodMeta):
         return enc.hex()
 
     @staticmethod
-    def validate_password(password: str, hashed_password: str):
+    def validate_password(password: str, hashed_password: str, salt: str):
         """Проверяет, что хеш пароля совпадает с хешем из БД"""
-        salt, hashed = hashed_password.split("$")
-        return Email.hash_password(password, salt) == hashed
+        return Email.hash_password(password, salt) == hashed_password
 
     @staticmethod
     async def approve_email(token: str) -> object:
