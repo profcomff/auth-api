@@ -12,7 +12,8 @@ from auth_backend.models.db import AuthMethod
 from auth_backend.models.db import UserSession, User
 from auth_backend.settings import get_settings
 from auth_backend.utils.smtp import send_confirmation_email
-from .auth_method import AuthMethodMeta, Session, Base
+from .auth_method import AuthMethodMeta, Session
+from auth_backend.base import Base
 
 settings = get_settings()
 
@@ -75,6 +76,32 @@ class Email(AuthMethodMeta):
         )
 
     @staticmethod
+    async def _register_and_send_approve_link(schema: EmailRegister, confirmation_token: str, user: User) -> None:
+        salt = random_string()
+        hashed_password = Email.hash_password(schema.password, salt)
+        hashed_password = f"{salt}${hashed_password}"
+        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="email", value=schema.email))
+        db.session.add(
+            AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="hashed_password", value=hashed_password)
+        )
+        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="salt", value=salt))
+        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="confirmed", value=str(False)))
+        db.session.add(
+            AuthMethod(
+                user_id=user.id, auth_method=Email.get_name(), param="confirmation_token", value=confirmation_token
+            )
+        )
+        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="reset_token", value=None))
+        db.session.flush()
+        send_confirmation_email(
+            subject="Подтверждение регистрации Твой ФФ!",
+            to_addr=schema.email,
+            link=f"{settings.HOST}/email/approve?token={confirmation_token}",
+        )
+        return None
+
+
+    @staticmethod
     async def register(schema: EmailRegister) -> JSONResponse:
         confirmation_token: str = random_string()
         auth_method: AuthMethod = (
@@ -116,27 +143,7 @@ class Email(AuthMethodMeta):
         else:
             db.session.add(user := User())
             db.session.flush()
-        salt = random_string()
-        hashed_password = Email.hash_password(schema.password, salt)
-        hashed_password = f"{salt}${hashed_password}"
-        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="email", value=schema.email))
-        db.session.add(
-            AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="hashed_password", value=hashed_password)
-        )
-        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="salt", value=salt))
-        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="confirmed", value=str(False)))
-        db.session.add(
-            AuthMethod(
-                user_id=user.id, auth_method=Email.get_name(), param="confirmation_token", value=confirmation_token
-            )
-        )
-        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="reset_token", value=None))
-        db.session.flush()
-        send_confirmation_email(
-            subject="Подтверждение регистрации Твой ФФ!",
-            to_addr=schema.email,
-            link=f"{settings.HOST}/email/approve?token={confirmation_token}",
-        )
+        await Email._register_and_send_approve_link(schema, confirmation_token, user)
         return JSONResponse(status_code=201, content="Check email")
 
     @staticmethod

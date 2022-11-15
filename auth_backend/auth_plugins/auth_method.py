@@ -5,19 +5,8 @@ from abc import abstractmethod, ABCMeta
 
 from fastapi import APIRouter
 
-from pydantic import BaseModel
 from datetime import datetime
-
-
-class Base(BaseModel):
-    def __repr__(self) -> str:
-        attrs = []
-        for k, v in self.__class__.schema().items():
-            attrs.append(f"{k}={v}")
-        return "{}({})".format(self.__class__.__name__, ', '.join(attrs))
-
-    class Config:
-        orm_mode = True
+from auth_backend.base import Base
 
 
 class Session(Base):
