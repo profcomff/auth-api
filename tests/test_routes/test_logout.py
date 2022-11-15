@@ -28,7 +28,7 @@ def test_main_scenario(client: TestClient, dbsession: Session):
     assert response.status_code == status.HTTP_200_OK
     token = response.json()['token']
     response = client.post(f"{url}?token={token}", json=body)
-    assert response.ok
+    assert response.status_code == status.HTTP_200_OK
     expire_date = dbsession.query(UserSession).filter(UserSession.token == token).one()
     assert expire_date.expired
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == id).all():
