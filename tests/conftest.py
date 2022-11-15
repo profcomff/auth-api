@@ -21,5 +21,5 @@ def client():
 def dbsession():
     settings = get_settings()
     engine = create_engine(settings.DB_DSN)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    TestingSessionLocal = sessionmaker(autocommit=True, autoflush=False, bind=engine)
     return TestingSessionLocal()

@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from typing import Iterator
 
-from sqlalchemy.ext.hybrid import hybrid_method
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 
 from auth_backend.models.base import Base
 import sqlalchemy.orm
@@ -40,6 +40,6 @@ class UserSession(Base):
 
     user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="sessions")
 
-    @property
+    @hybrid_property
     def expired(self):
         return self.expires <= datetime.datetime.utcnow()

@@ -13,6 +13,11 @@ class IncorrectAuthType(Exception):
         super().__init__(f"Incorrect Authentication Type")
 
 
+class SessionExpired(Exception):
+    def __init__(self, token: str):
+        super().__init__(f"Session that matches {token} expired")
+
+
 class AuthFailed(Exception):
     def __init__(self, error: str):
         super().__init__(error)

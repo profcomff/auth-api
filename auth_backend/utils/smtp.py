@@ -5,9 +5,6 @@ settings = get_settings()
 
 
 def send_confirmation_email(subject, to_addr, link):
-    """
-    Send confirmation email
-    """
     from_addr = settings.EMAIL
 
     with open("auth_backend/templates/main_confirmation.html") as f:
@@ -33,9 +30,6 @@ def send_confirmation_email(subject, to_addr, link):
 
 
 def send_change_password_confirmation(subject, to_addr, link):
-    """
-    Send change password confirmation
-    """
     from_addr = settings.EMAIL
 
     with open("templates/reset_password.html") as f:

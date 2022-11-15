@@ -5,14 +5,14 @@ from uuid import uuid4
 
 from fastapi_sqlalchemy import db
 from pydantic import validator
-from starlette.responses import PlainTextResponse
+from starlette.responses import JSONResponse
 
-from auth_backend.exceptions import AlreadyExists, AuthFailed, ObjectNotFound
+from auth_backend.exceptions import AlreadyExists, AuthFailed, ObjectNotFound, SessionExpired
 from auth_backend.models.db import AuthMethod
 from auth_backend.models.db import UserSession, User
-from .auth_method import AuthMethodMeta, Session, Base
-from utils.smtp import send_confirmation_email
 from auth_backend.settings import get_settings
+from auth_backend.utils.smtp import send_confirmation_email
+from .auth_method import AuthMethodMeta, Session, Base
 
 settings = get_settings()
 
@@ -33,8 +33,8 @@ class EmailRegister(EmailLogin):
     token: str | None
 
 
-def get_salt() -> str:
-    return "".join([random.choice(string.ascii_letters) for _ in range(12)])
+def random_string(length: int = 12) -> str:
+    return "".join([random.choice(string.ascii_letters) for _ in range(length)])
 
 
 class Email(AuthMethodMeta):
@@ -50,12 +50,12 @@ class Email(AuthMethodMeta):
     async def login(schema: EmailLogin) -> Session:
         query = (
             db.session.query(AuthMethod)
-            .filter(
+                .filter(
                 AuthMethod.value == schema.email,
                 AuthMethod.param == "email",
                 AuthMethod.auth_method == Email.get_name(),
             )
-            .one_or_none()
+                .one_or_none()
         )
         if not query:
             raise AuthFailed(error="Incorrect login or password")
@@ -65,7 +65,7 @@ class Email(AuthMethodMeta):
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
         if secrets.get("email") != schema.email or not Email.validate_password(
-            schema.password, secrets.get("hashed_password")
+                schema.password, secrets.get("hashed_password")
         ):
             raise AuthFailed(error="Incorrect login or password")
         db.session.add(user_session := UserSession(user_id=query.user.id, token=str(uuid4())))
@@ -75,23 +75,23 @@ class Email(AuthMethodMeta):
         )
 
     @staticmethod
-    async def register(schema: EmailRegister) -> PlainTextResponse:
-        confirmation_token: str = str(uuid4())
-        query: AuthMethod = (
+    async def register(schema: EmailRegister) -> JSONResponse:
+        confirmation_token: str = random_string()
+        auth_method: AuthMethod = (
             db.session.query(AuthMethod)
-            .filter(
+                .filter(
                 AuthMethod.param == "email",
                 AuthMethod.value == schema.email,
                 AuthMethod.auth_method == Email.get_name(),
             )
-            .one_or_none()
+                .one_or_none()
         )
-        if query:
-            secrets = {row.param: row.value for row in query.user.get_method_secrets(Email.get_name())}
+        if auth_method:
+            secrets = {row.param: row.value for row in auth_method.user.get_method_secrets(Email.get_name())}
             if secrets.get("confirmed") == "true":
-                raise AlreadyExists(User, query.user_id)
+                raise AlreadyExists(User, auth_method.user_id)
             else:
-                for row in query.user.get_method_secrets(Email.get_name()):
+                for row in auth_method.user.get_method_secrets(Email.get_name()):
                     row.value = confirmation_token if row.param == "confirmation_token" else row.value
                 db.session.flush()
                 send_confirmation_email(
@@ -99,24 +99,24 @@ class Email(AuthMethodMeta):
                     to_addr=schema.email,
                     link=f"{settings.HOST}/email/approve?token={confirmation_token}",
                 )
-                return PlainTextResponse(status_code=200, content="Check email")
+                return JSONResponse(status_code=200, content="Check email")
         if schema.user_id and schema.token:
             user: User = db.session.query(User).get(schema.user_id)
             user_session: UserSession = (
                 db.session.query(UserSession)
-                .filter(UserSession.token == schema.token, UserSession.user_id == schema.user_id)
-                .one_or_none()
+                    .filter(UserSession.token == schema.token, UserSession.user_id == schema.user_id)
+                    .one_or_none()
             )
             if not user:
                 raise ObjectNotFound(User, schema.user_id)
             if not user_session:
                 raise AuthFailed(error="Token not found, log in system")
             if user_session.expired:
-                raise AuthFailed(error="Session expired, log in system again")
+                raise SessionExpired(user_session.token)
         else:
             db.session.add(user := User())
             db.session.flush()
-        salt = get_salt()
+        salt = random_string()
         hashed_password = Email.hash_password(schema.password, salt)
         hashed_password = f"{salt}${hashed_password}"
         db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="email", value=schema.email))
@@ -137,7 +137,7 @@ class Email(AuthMethodMeta):
             to_addr=schema.email,
             link=f"{settings.HOST}/email/approve?token={confirmation_token}",
         )
-        return PlainTextResponse(status_code=201, content="Check email")
+        return JSONResponse(status_code=201, content="Check email")
 
     @staticmethod
     def hash_password(password: str, salt: str):
@@ -152,22 +152,22 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     async def approve_email(token: str) -> object:
-        query = (
+        auth_method = (
             db.session.query(AuthMethod)
-            .filter(
+                .filter(
                 AuthMethod.value == token,
                 AuthMethod.param == "confirmation_token",
                 AuthMethod.auth_method == Email.get_name(),
             )
-            .one_or_none()
+                .one_or_none()
         )
-        if not query:
-            return PlainTextResponse(status_code=403, content="Incorrect link")
-        for row in query.user.get_method_secrets(Email.get_name()):
-            if row.param == "confirmed":
-                row.value = True
+        if not auth_method:
+            return JSONResponse(status_code=403, content={"error": "Incorrect link", "token": token})
+        confirmed = db.session.query(AuthMethod).filter(AuthMethod.auth_method == Email.get_name(), AuthMethod.param == "confirmed",
+                                            AuthMethod.user_id == auth_method.user_id).one()
+        confirmed.value = True
         db.session.flush()
-        return PlainTextResponse(status_code=200, content="Email approved")
+        return JSONResponse(status_code=200, content="Email approved")
 
     async def change_params(self):
         pass
