@@ -120,7 +120,7 @@ class Email(AuthMethodMeta):
         return user
 
     @staticmethod
-    async def register(user_inp: EmailRegister, request: Request) -> JSONResponse:
+    async def register(user_inp: EmailRegister, request: Request) -> ResponseModel | JSONResponse:
         confirmation_token: str = random_string()
         auth_method: AuthMethod = (
             db.session.query(AuthMethod)
@@ -137,9 +137,7 @@ class Email(AuthMethodMeta):
                 to_addr=user_inp.email,
                 link=f"{request.client.host}/email/approve?token={confirmation_token}",
             )
-            return JSONResponse(
-                status_code=200, content=ResponseModel(status="Success", message="Email confirmation link sent").dict()
-            )
+            return ResponseModel(status="Success", message="Email confirmation link sent")
         if user_inp.user_id and user_inp.token:
             user = await Email._get_user_by_token_and_id(user_inp.user_id, user_inp.token)
         else:
@@ -189,7 +187,7 @@ class Email(AuthMethodMeta):
         )
         confirmed.value = True
         db.session.flush()
-        return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Email approved").dict())
+        return ResponseModel(status="Success", message="Email approved")
 
     async def change_params(self):
         raise NotImplementedError()
