@@ -2,7 +2,7 @@ import hashlib
 import random
 import string
 from fastapi_sqlalchemy import db
-from fastapi import Request
+from fastapi import Request, HTTPException
 from pydantic import validator, constr
 from starlette.responses import JSONResponse
 
@@ -13,6 +13,7 @@ from auth_backend.settings import get_settings
 from auth_backend.utils.smtp import send_confirmation_email
 from .auth_method import AuthMethodMeta, Session
 from auth_backend.base import Base, ResponseModel
+from sqlalchemy import func
 
 settings = get_settings()
 
@@ -50,12 +51,12 @@ class Email(AuthMethodMeta):
     async def login(user_inp: EmailLogin) -> Session:
         query = (
             db.session.query(AuthMethod)
-                .filter(
-                AuthMethod.value.ilike(user_inp.email.lower()),
+            .filter(
+                func.lower(AuthMethod.value) == user_inp.email.lower(),
                 AuthMethod.param == "email",
                 AuthMethod.auth_method == Email.get_name(),
             )
-                .one_or_none()
+            .one_or_none()
         )
         if not query:
             raise AuthFailed(error="Incorrect login or password")
@@ -65,7 +66,7 @@ class Email(AuthMethodMeta):
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
         if secrets.get("email").lower() != user_inp.email.lower() or not Email.validate_password(
-                user_inp.password, secrets.get("hashed_password"), secrets.get("salt")
+            user_inp.password, secrets.get("hashed_password"), secrets.get("salt")
         ):
             raise AuthFailed(error="Incorrect login or password")
         db.session.add(user_session := UserSession(user_id=query.user.id, token=random_string()))
@@ -75,9 +76,7 @@ class Email(AuthMethodMeta):
         )
 
     @staticmethod
-    async def _add_to_db(
-            user_inp: EmailRegister, confirmation_token: str, user: User
-    ) -> None:
+    async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> None:
         salt = random_string()
         hashed_password = Email.hash_password(user_inp.password, salt)
         db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="email", value=user_inp.email))
@@ -96,7 +95,7 @@ class Email(AuthMethodMeta):
         return None
 
     @staticmethod
-    async def _resend_email_confirmation_link(user: User, confirmation_token: str, user_inp: EmailRegister, request: Request):
+    async def _change_confirmation_link(user: User, confirmation_token: str):
         secrets = {row.param: row.value for row in user.get_method_secrets(Email.get_name())}
         if secrets.get("confirmed") == "true":
             raise AlreadyExists(User, user.id)
@@ -105,52 +104,56 @@ class Email(AuthMethodMeta):
                 AuthMethod.param == "confirmation_token", AuthMethod.user_id == user.id
             ).one().value = confirmation_token
             db.session.flush()
-            send_confirmation_email(
-                subject="Повторное подтверждение регистрации Твой ФФ!",
-                to_addr=user_inp.email,
-                link=f"{request.client.host}/email/approve?token={confirmation_token}",
-            )
-            return JSONResponse(status_code=200, content=ResponseModel(status="Success",
-                                                                       message="Email confirmation link sent").dict())
+
+    @staticmethod
+    async def _get_user_by_token_and_id(id: int, token: str) -> User | None:
+        user: User = db.session.query(User).get(id)
+        user_session: UserSession = (
+            db.session.query(UserSession).filter(UserSession.token == token, UserSession.user_id == id).one_or_none()
+        )
+        if not user:
+            raise ObjectNotFound(User, id)
+        if not user_session:
+            raise AuthFailed(error="Token not found, log in system")
+        if user_session.expired:
+            raise SessionExpired(user_session.token)
+        return user
 
     @staticmethod
     async def register(user_inp: EmailRegister, request: Request) -> JSONResponse:
         confirmation_token: str = random_string()
         auth_method: AuthMethod = (
             db.session.query(AuthMethod)
-                .filter(
+            .filter(
                 AuthMethod.param == "email",
-                AuthMethod.value.ilike(user_inp.email.lower()),
+                func.lower(AuthMethod.value) == user_inp.email.lower(),
                 AuthMethod.auth_method == Email.get_name(),
             )
-                .one_or_none()
+            .one_or_none()
         )
         if auth_method:
-            return await Email._resend_email_confirmation_link(auth_method.user, confirmation_token, user_inp, request)
-        if user_inp.user_id and user_inp.token:
-            user: User = db.session.query(User).get(user_inp.user_id)
-            user_session: UserSession = (
-                db.session.query(UserSession)
-                    .filter(UserSession.token == user_inp.token, UserSession.user_id == user_inp.user_id)
-                    .one_or_none()
+            await Email._change_confirmation_link(auth_method.user, confirmation_token)
+            send_confirmation_email(
+                to_addr=user_inp.email,
+                link=f"{request.client.host}/email/approve?token={confirmation_token}",
             )
-            if not user:
-                raise ObjectNotFound(User, user_inp.user_id)
-            if not user_session:
-                raise AuthFailed(error="Token not found, log in system")
-            if user_session.expired:
-                raise SessionExpired(user_session.token)
+            return JSONResponse(
+                status_code=200, content=ResponseModel(status="Success", message="Email confirmation link sent").dict()
+            )
+        if user_inp.user_id and user_inp.token:
+            user = await Email._get_user_by_token_and_id(user_inp.user_id, user_inp.token)
         else:
-            db.session.add(user := User())
+            user = User()
+            db.session.add(user)
             db.session.flush()
         await Email._add_to_db(user_inp, confirmation_token, user)
         send_confirmation_email(
-            subject="Подтверждение регистрации Твой ФФ!",
             to_addr=user_inp.email,
             link=f"{request.client.host}/email/approve?token={confirmation_token}",
         )
-        return JSONResponse(status_code=201,
-                            content=ResponseModel(status="Success", message="Email confirmation link sent").dict())
+        return JSONResponse(
+            status_code=201, content=ResponseModel(status="Success", message="Email confirmation link sent").dict()
+        )
 
     @staticmethod
     def hash_password(password: str, salt: str):
@@ -166,27 +169,27 @@ class Email(AuthMethodMeta):
     async def approve_email(token: str) -> object:
         auth_method = (
             db.session.query(AuthMethod)
-                .filter(
+            .filter(
                 AuthMethod.value == token,
                 AuthMethod.param == "confirmation_token",
                 AuthMethod.auth_method == Email.get_name(),
             )
-                .one_or_none()
+            .one_or_none()
         )
         if not auth_method:
             return JSONResponse(status_code=403, content=ResponseModel(status="Error", message="Incorrect link").dict())
         confirmed = (
             db.session.query(AuthMethod)
-                .filter(
+            .filter(
                 AuthMethod.auth_method == Email.get_name(),
                 AuthMethod.param == "confirmed",
                 AuthMethod.user_id == auth_method.user_id,
             )
-                .one()
+            .one()
         )
         confirmed.value = True
         db.session.flush()
         return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Email approved").dict())
 
     async def change_params(self):
-        pass
+        raise NotImplementedError()

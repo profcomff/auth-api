@@ -4,7 +4,7 @@ from auth_backend.settings import get_settings
 settings = get_settings()
 
 
-def send_confirmation_email(subject, to_addr, link):
+def send_confirmation_email(to_addr, link):
     from_addr = settings.EMAIL
 
     with open("auth_backend/templates/main_confirmation.html") as f:
@@ -15,7 +15,7 @@ def send_confirmation_email(subject, to_addr, link):
         (
             f"From: {from_addr}",
             f"To: {to_addr}",
-            f"Subject: {subject}",
+            f"Subject: Подтверждение регистрации Твой ФФ!",
             "Content-Type: text/html; charset=utf-8;",
             "",
             tmp,
@@ -29,7 +29,7 @@ def send_confirmation_email(subject, to_addr, link):
     smtpObj.quit()
 
 
-def send_change_password_confirmation(subject, to_addr, link):
+def send_change_password_confirmation(to_addr, link):
     from_addr = settings.EMAIL
 
     with open("templates/reset_password.html") as f:
@@ -40,7 +40,7 @@ def send_change_password_confirmation(subject, to_addr, link):
         (
             f"From: {from_addr}",
             f"To: {to_addr}",
-            f"Subject: {subject}",
+            f"Subject: Изменение парроля Твой ФФ!",
             "Content-Type: text/html; charset=utf-8;",
             "",
             tmp,
