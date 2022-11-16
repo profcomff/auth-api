@@ -150,7 +150,7 @@ class Email(AuthMethodMeta):
             link=f"{request.client.host}/email/approve?token={confirmation_token}",
         )
         return JSONResponse(
-            status_code=201, content=ResponseModel(status="Success", message="Email confirmation link sent").dict()
+            status_code=201, content=ResponseModel(status="Success", message="Email confirmation link sent").json()
         )
 
     @staticmethod
@@ -175,7 +175,7 @@ class Email(AuthMethodMeta):
             .one_or_none()
         )
         if not auth_method:
-            return JSONResponse(status_code=403, content=ResponseModel(status="Error", message="Incorrect link").dict())
+            return JSONResponse(status_code=403, content=ResponseModel(status="Error", message="Incorrect link").json())
         confirmed = (
             db.session.query(AuthMethod)
             .filter(
