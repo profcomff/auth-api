@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     DB_DSN: PostgresDsn
 
     EMAIL: str | None
+    HOST: str
     EMAIL_PASS: str = None
     SMTP_HOST: str = 'smtp.gmail.com'
     SMTP_PORT: int = 587

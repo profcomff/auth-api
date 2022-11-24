@@ -1,19 +1,20 @@
 import hashlib
 import random
 import string
+
+from fastapi import Request
 from fastapi_sqlalchemy import db
-from fastapi import Request, HTTPException
 from pydantic import validator, constr
+from sqlalchemy import func
 from starlette.responses import JSONResponse
 
+from auth_backend.base import Base, ResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, ObjectNotFound, SessionExpired
 from auth_backend.models.db import AuthMethod
 from auth_backend.models.db import UserSession, User
 from auth_backend.settings import get_settings
 from auth_backend.utils.smtp import send_confirmation_email
 from .auth_method import AuthMethodMeta, Session
-from auth_backend.base import Base, ResponseModel
-from sqlalchemy import func
 
 settings = get_settings()
 
@@ -24,7 +25,11 @@ class EmailLogin(Base):
 
     @validator('email')
     def check_email(cls, v):
+        restricted: set[str] = {'"', '#', '&', "'", '(', ')', '*', ',', '/', ';', '<', '>', '?',
+                      '[', '\\', ']', '^', '`', '{', '|', '}', '~', '\n', '\r'}
         if "@" not in v:
+            raise ValueError()
+        if set(v) & restricted:
             raise ValueError()
         return v
 
@@ -51,12 +56,12 @@ class Email(AuthMethodMeta):
     async def login(user_inp: EmailLogin) -> Session:
         query = (
             db.session.query(AuthMethod)
-            .filter(
+                .filter(
                 func.lower(AuthMethod.value) == user_inp.email.lower(),
                 AuthMethod.param == "email",
                 AuthMethod.auth_method == Email.get_name(),
             )
-            .one_or_none()
+                .one_or_none()
         )
         if not query:
             raise AuthFailed(error="Incorrect login or password")
@@ -66,7 +71,7 @@ class Email(AuthMethodMeta):
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
         if secrets.get("email").lower() != user_inp.email.lower() or not Email.validate_password(
-            user_inp.password, secrets.get("hashed_password"), secrets.get("salt")
+                user_inp.password, secrets.get("hashed_password"), secrets.get("salt")
         ):
             raise AuthFailed(error="Incorrect login or password")
         db.session.add(user_session := UserSession(user_id=query.user.id, token=random_string()))
@@ -120,22 +125,22 @@ class Email(AuthMethodMeta):
         return user
 
     @staticmethod
-    async def register(user_inp: EmailRegister, request: Request) -> ResponseModel | JSONResponse:
+    async def register(user_inp: EmailRegister) -> ResponseModel | JSONResponse:
         confirmation_token: str = random_string()
         auth_method: AuthMethod = (
             db.session.query(AuthMethod)
-            .filter(
+                .filter(
                 AuthMethod.param == "email",
                 func.lower(AuthMethod.value) == user_inp.email.lower(),
                 AuthMethod.auth_method == Email.get_name(),
             )
-            .one_or_none()
+                .one_or_none()
         )
         if auth_method:
             await Email._change_confirmation_link(auth_method.user, confirmation_token)
             send_confirmation_email(
                 to_addr=user_inp.email,
-                link=f"{request.client.host}/email/approve?token={confirmation_token}",
+                link=f"{settings.HOST}/email/approve?token={confirmation_token}",
             )
             return ResponseModel(status="Success", message="Email confirmation link sent")
         if user_inp.user_id and user_inp.token:
@@ -147,7 +152,7 @@ class Email(AuthMethodMeta):
         await Email._add_to_db(user_inp, confirmation_token, user)
         send_confirmation_email(
             to_addr=user_inp.email,
-            link=f"{request.client.host}/email/approve?token={confirmation_token}",
+            link=f"{settings.HOST}/email/approve?token={confirmation_token}",
         )
         return JSONResponse(
             status_code=201, content=ResponseModel(status="Success", message="Email confirmation link sent").json()
@@ -167,23 +172,23 @@ class Email(AuthMethodMeta):
     async def approve_email(token: str) -> object:
         auth_method = (
             db.session.query(AuthMethod)
-            .filter(
+                .filter(
                 AuthMethod.value == token,
                 AuthMethod.param == "confirmation_token",
                 AuthMethod.auth_method == Email.get_name(),
             )
-            .one_or_none()
+                .one_or_none()
         )
         if not auth_method:
             return JSONResponse(status_code=403, content=ResponseModel(status="Error", message="Incorrect link").json())
         confirmed = (
             db.session.query(AuthMethod)
-            .filter(
+                .filter(
                 AuthMethod.auth_method == Email.get_name(),
                 AuthMethod.param == "confirmed",
                 AuthMethod.user_id == auth_method.user_id,
             )
-            .one()
+                .one()
         )
         confirmed.value = True
         db.session.flush()

@@ -15,3 +15,7 @@ class Base(BaseModel):
 class ResponseModel(Base):
     status: str
     message: str
+
+
+class Token(Base):
+    token: str

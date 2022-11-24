@@ -24,11 +24,15 @@ def test_invalid_email(client: TestClient):
         "password": "&%@#$@322îïíīįì3@##EFWed}efvef{}{}{}[èéêëēėę'"
     }
     body4 = {
-        "email": f"EmailFor+#&*|_ Sur{datetime.datetime.utcnow()}e@mail.gtg",
+        "email": f"EmailFor+ _Sur{datetime.datetime.utcnow()}e@mail.gtg",
         "password": "string2222"
     }
     body5 = {
         "email": f"Email For Sure {datetime.datetime.utcnow()} @ mail. gtg",
+        "password": "string"
+    }
+    body6 = {
+        "email": f"roman@dyakov.space\nContent-Type: text/html; charset=utf-8;\n\nАхаха,лох<!---",
         "password": "string"
     }
     response = client.post(url, json=body1)
@@ -41,7 +45,8 @@ def test_invalid_email(client: TestClient):
     assert response.status_code == status.HTTP_201_CREATED
     response = client.post(url, json=body5)
     assert response.status_code == status.HTTP_201_CREATED
-
+    response = client.post(url, json=body6)
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_main_scenario(client: TestClient, dbsession: Session):

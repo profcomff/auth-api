@@ -6,14 +6,13 @@ from abc import abstractmethod, ABCMeta
 from fastapi import APIRouter
 
 from datetime import datetime
-from auth_backend.base import Base
+from auth_backend.base import Base, Token
 
 
-class Session(Base):
+class Session(Token):
     expires: datetime
     id: int
     user_id: int
-    token: str
 
 
 AUTH_METHODS: dict[str, type[AuthMethodMeta]] = {}
