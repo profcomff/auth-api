@@ -140,7 +140,7 @@ class Email(AuthMethodMeta):
             await Email._change_confirmation_link(auth_method.user, confirmation_token)
             send_confirmation_email(
                 to_addr=user_inp.email,
-                link=f"{settings.HOST}/email/approve?token={confirmation_token}",
+                link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
             )
             return ResponseModel(status="Success", message="Email confirmation link sent")
         if user_inp.user_id and user_inp.token:
@@ -152,7 +152,7 @@ class Email(AuthMethodMeta):
         await Email._add_to_db(user_inp, confirmation_token, user)
         send_confirmation_email(
             to_addr=user_inp.email,
-            link=f"{settings.HOST}/email/approve?token={confirmation_token}",
+            link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
         )
         return JSONResponse(
             status_code=201, content=ResponseModel(status="Success", message="Email confirmation link sent").json()

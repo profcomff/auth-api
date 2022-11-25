@@ -87,7 +87,7 @@ jobs:
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
             --env SMTP_HOST='smtp.gmail.com' \
             --env SMTP_PORT='587' \
-            --env HOST='${{ secrets.HOST }}' \
+            --env APPLICATION_HOST='${{ secrets.HOST }}' \
             --name ${{ env.CONTAITER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
 
@@ -132,6 +132,6 @@ jobs:
             --env ENABLED_AUTH_METHODS='${{ secrets.ENABLED_AUTH_METHODS }}' \
             --env SMTP_HOST='smtp.gmail.com' \
             --env SMTP_PORT='587' \
-            --env HOST='${{ secrets.HOST }}' \
+            --env APPLICATION_HOST='${{ secrets.HOST }}' \
             --name ${{ env.CONTAITER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
