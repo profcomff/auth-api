@@ -4,7 +4,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.settings import get_settings
-from .logout import logout_router
+from .user_session import logout_router
 
 settings = get_settings()
 
@@ -15,6 +15,7 @@ app.add_middleware(
     DBSessionMiddleware,
     db_url=settings.DB_DSN,
     session_args={"autocommit": True},
+    engine_args={"pool_pre_ping": True}
 )
 
 app.add_middleware(
