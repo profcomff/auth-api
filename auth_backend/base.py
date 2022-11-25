@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
 
 
 class Base(BaseModel):
@@ -18,4 +18,4 @@ class ResponseModel(Base):
 
 
 class Token(Base):
-    token: str
+    token: constr(min_length=1)

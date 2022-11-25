@@ -31,4 +31,4 @@ async def check_token(user_id: int, token: Token) -> JSONResponse:
         return JSONResponse(status_code=404, content=ResponseModel(status="Error", message="Session not found").json())
     if session.expired:
         raise SessionExpired(token.token)
-    return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Session found and exists"))
+    return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Session found and exists").json())
