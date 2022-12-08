@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import re
 from abc import abstractmethod, ABCMeta
+from datetime import datetime
 
 from fastapi import APIRouter
+from pydantic import constr
 
-from datetime import datetime
-from auth_backend.base import Base, Token
+from auth_backend.base import Base
 
 
-class Session(Token):
+class Session(Base):
+    token: constr(min_length=1)
     expires: datetime
     id: int
     user_id: int

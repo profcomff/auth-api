@@ -30,6 +30,9 @@ def test_main_scenario(client: TestClient, dbsession: Session, user):
     response = client.get(f"{url}{user_id}?token={conf_token_1}&email=changed@mail.com")
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
+    response = client.get(f"{url}{user_id}?token={conf_token_2}&email=wrong@mail.com")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
     response = client.get(f"{url}{user_id}?token={conf_token_2}&email=changed@mail.com")
     assert response.status_code == status.HTTP_200_OK
 

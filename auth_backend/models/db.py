@@ -3,14 +3,40 @@ from __future__ import annotations
 import datetime
 from typing import Iterator
 
+import sqlalchemy.orm
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 
 from auth_backend.models.base import Base
-import sqlalchemy.orm
+
+
+class AuthMethods:
+    class Method:
+        pass
+
+    methods: dict[str, AuthMethods.Method]
+
+    def __init__(self, user: User):
+        self.methods = {}
+        for method in user.auth_methods:
+            if method.auth_method in self.methods.keys():
+                setattr(self.methods[method.auth_method], method.param, method.value)
+            else:
+                self.methods[method.auth_method] = AuthMethods.Method()
+
+    def __getattribute__(self, item) -> AuthMethods.Method:
+        if item in self.methods.keys():
+            return self.methods[item]
+        raise AttributeError()
 
 
 class User(Base):
+
+    def __init__(self):
+        super().__init__()
+        self.methods = AuthMethods(self)
+
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+    methods: AuthMethods
 
     auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
     sessions: list[UserSession] = sqlalchemy.orm.relationship("UserSession", foreign_keys="UserSession.user_id")

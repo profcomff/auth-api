@@ -66,10 +66,10 @@ def test_no_token(client: TestClient, dbsession: Session, user_id: str):
     reset_token = dbsession.query(AuthMethod).filter(AuthMethod.auth_method == "email", AuthMethod.param == "reset_token", AuthMethod.user_id == user_id).one()
     assert reset_token
 
-    response = client.post(f"{url}{user_id}", json={"reset_token": reset_token, "new_password": "changedstring"})
+    response = client.post(f"{url}{user_id}", json={"reset_token": reset_token, "password": "changedstring"})
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"{url}{user_id}", json={"reset_token": reset_token, "new_password": "changedstring2"})
+    response = client.post(f"{url}{user_id}", json={"reset_token": reset_token, "password": "changedstring2"})
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -87,10 +87,10 @@ def test_with_token(client: TestClient, dbsession: Session, user):
                                                      AuthMethod.param == "reset_token", AuthMethod.user_id == user_id).one()
     assert reset_token
 
-    response = client.post(f"{url}{user_id}", json={"reset_token": reset_token, "new_password": "changedstring"})
+    response = client.post(f"{url}{user_id}", json={"reset_token": reset_token, "password": "changedstring"})
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"{url}{user_id}", json={"reset_token": reset_token, "new_password": "changedstring2"})
+    response = client.post(f"{url}{user_id}", json={"reset_token": reset_token, "password": "changedstring2"})
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
