@@ -41,7 +41,6 @@ class EmailRegister(EmailLogin):
 
 
 class EmailChange(Base):
-    token: constr(min_length=1)
     email: constr(min_length=1)
 
     email_validator = validator("email", allow_reuse=True)(check_email)
@@ -205,20 +204,24 @@ class Email(AuthMethodMeta):
         return ResponseModel(status="Success", message="Email approved")
 
     @staticmethod
-    async def request_reset_email(scheme: EmailChange):
-        session: UserSession = db.session.query(UserSession).filter(UserSession.token == scheme.token).one_or_none()
+    async def request_reset_email(scheme: EmailChange, token: str = Header(default=None)):
+        if not token:
+            raise HTTPException(status_code=400, detail=ResponseModel(status="Error", message="Header missing").json())
+        session: UserSession = db.session.query(UserSession).filter(UserSession.token == token).one_or_none()
         if not session:
-            raise HTTPException(status_code=404, detail=ResponseModel(status="Error", message="Session not found").dict())
+            raise HTTPException(status_code=404, detail=ResponseModel(status="Error", message="Session not found").json())
+        if session.expired:
+            raise SessionExpired(token)
         try:
             if session.user.methods.email.confirmed == "false":
                 raise AuthFailed(
                     error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
                 )
             if session.user.methods.email.email == scheme.email:
-                raise HTTPException(status_code=401, detail=ResponseModel(status="Error", message="Email incorrect").dict())
+                raise HTTPException(status_code=401, detail=ResponseModel(status="Error", message="Email incorrect").json())
         except AttributeError:
             raise HTTPException(status_code=401, detail=ResponseModel(status="Error",
-                                                                      message="Auth method restricted for this user"))
+                                                                      message="Auth method restricted for this user").json())
         if hasattr(session.user.methods.email, "tmp_email_confirmation_token"):
             db.session.query(AuthMethod).filter(AuthMethod.user_id == session.user_id,
                                                 AuthMethod.auth_method == Email.get_name(),
