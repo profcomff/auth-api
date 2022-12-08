@@ -83,24 +83,24 @@ def test_incorrect_data(client: TestClient, dbsession: Session):
 def test_check_token(client: TestClient, user, dbsession: Session):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
 
-    response = client.post(f"/{user_id}/token", json={"token": login["token"] + "2"})
+    response = client.post(f"/me", headers={"token": login["token"] + "2"})
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    response = client.post(f"/{user_id}/token", json={"token": login["token"]})
+    response = client.post(f"/me", headers={"token": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"/logout?token={login['token']}")
+    response = client.post(f"/logout", headers={"token": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"/{user_id}/token", json={"token": login["token"]})
+    response = client.post(f"/me", headers={"token": login["token"]})
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 def test_invalid_check_tokens(client: TestClient, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
-    response = client.post(f"/{user_id}/token", json={"token": ""})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response = client.post(f"/me", headers={"token": ""})
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    response = client.post(f"/{user_id}/token")
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response = client.post(f"/me")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 

@@ -68,7 +68,7 @@ def test_main_scenario(client: TestClient, dbsession: Session):
     token = dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id,
                                                AuthMethod.param == "confirmation_token",
                                                AuthMethod.auth_method == "email").one()
-    response = client.get(f"/email/approve?token={token.value}")
+    client.get(f"/email/approve?token={token.value}")
     response = client.post(url, json=body2)
     assert response.status_code == status.HTTP_409_CONFLICT
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():

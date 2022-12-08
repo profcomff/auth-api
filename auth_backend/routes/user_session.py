@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, HTTPException
 from fastapi_sqlalchemy import db
 from starlette.responses import JSONResponse
 
@@ -13,7 +13,9 @@ logout_router = APIRouter(prefix="", tags=["Logout"])
 
 
 @logout_router.post("/logout", response_model=str)
-async def logout(token: str = Header()) -> JSONResponse:
+async def logout(token: str = Header(default=None)) -> JSONResponse:
+    if not token:
+        raise HTTPException(status_code=400, detail=ResponseModel(status="Error", message="Header missing").json())
     session = db.session.query(UserSession).filter(UserSession.token == token).one_or_none()
     if not session:
         raise AuthFailed(error="Session not found")
@@ -21,11 +23,13 @@ async def logout(token: str = Header()) -> JSONResponse:
         raise SessionExpired(session.token)
     session.expires = datetime.utcnow()
     db.session.flush()
-    return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Logout successful").dict())
+    return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Logout successful").json())
 
 
 @logout_router.post("/me", response_model=ResponseModel)
-async def me(token: str = Header()) -> JSONResponse:
+async def me(token: str = Header(default=None)) -> JSONResponse:
+    if not token:
+        raise HTTPException(status_code=400, detail=ResponseModel(status="Error", message="Header missing").json())
     session = db.session.query(UserSession).filter(UserSession.token == token).one_or_none()
     if not session:
         return JSONResponse(status_code=404, content=ResponseModel(status="Error", message="Session not found").json())
