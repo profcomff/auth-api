@@ -46,6 +46,11 @@ class EmailChange(Base):
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
+class ResetPassword(Base):
+    password: constr(min_length=1) | None
+    new_password: constr(min_length=1)
+
+
 def random_string(length: int = 12) -> str:
     return "".join([random.choice(string.ascii_letters) for _ in range(length)])
 
@@ -58,6 +63,8 @@ class Email(AuthMethodMeta):
         self.router.add_api_route("/approve", self.approve_email, methods=["GET"])
         self.router.add_api_route("/reset/email/request", self.request_reset_email, methods=["POST"])
         self.router.add_api_route("/reset/email/{user_id}", self.reset_email, methods=["GET"])
+        self.router.add_api_route("/reset/password/{user_id}/request", self.request_reset_password, methods=["POST"])
+        self.router.add_api_route("/reset/password", self.reset_password, methods=["GET"])
         self.router.prefix = self.prefix
         self.tags = ["Email"]
 
@@ -264,9 +271,9 @@ class Email(AuthMethodMeta):
         return ResponseModel(status="Success", message="Email successfully changed")
 
     @staticmethod
-    async def request_reset_password():
+    async def request_reset_password(user_id: int, schema: ResetPassword, token: str = Header(default=None)):
         pass
 
     @staticmethod
-    async def reset_password():
+    async def reset_password(token: constr(min_length=1), password: constr(min_length=1)):
         pass
