@@ -6,8 +6,11 @@ from datetime import datetime
 
 from fastapi import APIRouter
 from pydantic import constr
+from sqlalchemy.orm import relationship
+from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from auth_backend.base import Base
+from auth_backend.models.db import User
 
 
 class Session(Base):
@@ -24,6 +27,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
+    fields: list[str] = []
 
     @classmethod
     def get_name(cls) -> str:
@@ -36,6 +40,30 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     def __init_subclass__(cls, **kwargs):
         AUTH_METHODS[cls.__name__] = cls
+        setattr(
+            User,
+            f"{cls.__name__}__{cls.get_name()}",
+            relationship(
+                "AuthMethod",
+                foreign_keys="AuthMethod.user_id",
+                back_populates="user",
+                primaryjoin=f"and_(User.id==AuthMethod.user_id, AuthMethod.auth_method=='{cls.get_name()}')",
+            ),
+        )
+        for row in cls.fields:
+            setattr(
+                User,
+                row,
+                relationship(
+                    "AuthMethod",
+                    foreign_keys="AuthMethod.user_id",
+                    back_populates="user",
+                    uselist=False,
+                    # collection_class=attribute_mapped_collection("keyword"),
+                    primaryjoin=f"and_(User.id==AuthMethod.user_id,"
+                                f" AuthMethod.auth_method=='{cls.get_name()}',AuthMethod.param=='{row}')",
+                ),
+            )
 
     @staticmethod
     @abstractmethod

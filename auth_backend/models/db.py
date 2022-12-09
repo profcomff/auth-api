@@ -9,19 +9,6 @@ from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from auth_backend.models.base import Base
 
 
-class AuthMethods:
-    class Method:
-        pass
-
-    def __init__(self, user: User):
-        for method in user.auth_methods:
-            if hasattr(self, method.auth_method):
-                setattr(getattr(self, method.auth_method), method.param, method.value)
-            else:
-                setattr(self, method.auth_method, AuthMethods.Method())
-                setattr(getattr(self, method.auth_method), method.param, method.value)
-
-
 class User(Base):
 
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
@@ -29,15 +16,14 @@ class User(Base):
     auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
     sessions: list[UserSession] = sqlalchemy.orm.relationship("UserSession", foreign_keys="UserSession.user_id")
 
+    def __init__(self):
+        super(User, self).__init__()
+
     @hybrid_method
     def get_method_secrets(self, method_name: str) -> Iterator[AuthMethod]:
         for row in self.auth_methods:
             if row.auth_method == method_name:
                 yield row
-
-    @hybrid_property
-    def methods(self) -> AuthMethods:
-        return AuthMethods(self)
 
 
 class AuthMethod(Base):
