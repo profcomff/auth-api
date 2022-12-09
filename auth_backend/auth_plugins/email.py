@@ -149,9 +149,7 @@ class Email(AuthMethodMeta):
         if user.confirmed.value == "true":
             raise AlreadyExists(User, user.id)
         else:
-            db.session.query(AuthMethod).filter(
-                AuthMethod.param == "confirmation_token", AuthMethod.user_id == user.id
-            ).one().value = confirmation_token
+            user.confirmation_token.value = confirmation_token
             db.session.flush()
 
     @staticmethod
