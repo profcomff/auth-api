@@ -59,7 +59,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
                     foreign_keys="AuthMethod.user_id",
                     back_populates="user",
                     uselist=False,
-                    # collection_class=attribute_mapped_collection("keyword"),
                     primaryjoin=f"and_(User.id==AuthMethod.user_id,"
                                 f" AuthMethod.auth_method=='{cls.get_name()}',AuthMethod.param=='{row}')",
                 ),

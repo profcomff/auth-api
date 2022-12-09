@@ -16,6 +16,17 @@ class User(Base):
     auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
     sessions: list[UserSession] = sqlalchemy.orm.relationship("UserSession", foreign_keys="UserSession.user_id")
 
+    # Type hints
+    email: AuthMethod
+    hashed_password: AuthMethod
+    salt: AuthMethod
+    tmp_email: AuthMethod
+    confirmation_token: AuthMethod
+    tmp_email_confirmation_token: AuthMethod
+    reset_token: AuthMethod
+    confirmed: AuthMethod
+
+
     def __init__(self):
         super(User, self).__init__()
 
