@@ -6,7 +6,6 @@ from fastapi import HTTPException, Header
 from fastapi_sqlalchemy import db
 from pydantic import validator, constr
 from sqlalchemy import func
-from starlette.responses import JSONResponse
 
 from auth_backend.base import Base, ResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, ObjectNotFound, SessionExpired
@@ -74,9 +73,14 @@ class EmailChange(Base):
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
+class RequestResetPassword(Base):
+    password: str | None
+    new_password: str | None
+
+
 class ResetPassword(Base):
-    password: constr(min_length=1) | None
     new_password: constr(min_length=1)
+
 
 
 def random_string(length: int = 12) -> str:
@@ -85,16 +89,25 @@ def random_string(length: int = 12) -> str:
 
 class Email(AuthMethodMeta):
     prefix = "/email"
-    fields = ["email", "hashed_password", "salt", "confirmed", "confirmation_token",
-              "tmp_email_confirmation_token", "tmp_email", "reset_token"]
+    fields = [
+        "email",
+        "hashed_password",
+        "salt",
+        "confirmed",
+        "confirmation_token",
+        "tmp_email_confirmation_token",
+        "tmp_email",
+        "reset_token",
+    ]
 
     def __init__(self):
         super().__init__()
+
         self.router.add_api_route("/approve", self.approve_email, methods=["GET"])
         self.router.add_api_route("/reset/email/request", self.request_reset_email, methods=["POST"])
         self.router.add_api_route("/reset/email/{user_id}", self.reset_email, methods=["GET"])
         self.router.add_api_route("/reset/password/{user_id}/request", self.request_reset_password, methods=["POST"])
-        self.router.add_api_route("/reset/password", self.reset_password, methods=["GET"])
+        self.router.add_api_route("/reset/password/{user_id}", self.reset_password, methods=["POST"])
         self.router.prefix = self.prefix
         self.tags = ["Email"]
 
@@ -102,12 +115,12 @@ class Email(AuthMethodMeta):
     async def login(user_inp: EmailLogin) -> Session:
         query = (
             db.session.query(AuthMethod)
-                .filter(
+            .filter(
                 func.lower(AuthMethod.value) == user_inp.email.lower(),
                 AuthMethod.param == "email",
                 AuthMethod.auth_method == Email.get_name(),
             )
-                .one_or_none()
+            .one_or_none()
         )
         if not query:
             raise AuthFailed(error="Incorrect login or password")
@@ -116,7 +129,7 @@ class Email(AuthMethodMeta):
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
         if query.user.email.value.lower() != user_inp.email.lower() or not Email.validate_password(
-                user_inp.password, query.user.hashed_password.value, query.user.salt.value
+            user_inp.password, query.user.hashed_password.value, query.user.salt.value
         ):
             raise AuthFailed(error="Incorrect login or password")
         db.session.add(user_session := UserSession(user_id=query.user.id, token=random_string()))
@@ -140,12 +153,10 @@ class Email(AuthMethodMeta):
                 user_id=user.id, auth_method=Email.get_name(), param="confirmation_token", value=confirmation_token
             )
         )
-        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="reset_token", value=None))
         db.session.flush()
-        return None
 
     @staticmethod
-    async def _change_confirmation_link(user: User, confirmation_token: str):
+    async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
         if user.confirmed.value == "true":
             raise AlreadyExists(User, user.id)
         else:
@@ -153,7 +164,7 @@ class Email(AuthMethodMeta):
             db.session.flush()
 
     @staticmethod
-    async def _get_user_by_token_and_id(id: int, token: str) -> User | None:
+    async def _get_user_by_token_and_id(id: int, token: str) -> User:
         user: User = db.session.query(User).get(id)
         user_session: UserSession = (
             db.session.query(UserSession).filter(UserSession.token == token, UserSession.user_id == id).one_or_none()
@@ -167,16 +178,16 @@ class Email(AuthMethodMeta):
         return user
 
     @staticmethod
-    async def register(user_inp: EmailRegister, token: str = Header(default=None)) -> ResponseModel | JSONResponse:
+    async def register(user_inp: EmailRegister, token: str = Header(default=None)) -> ResponseModel:
         confirmation_token: str = random_string()
         auth_method: AuthMethod = (
             db.session.query(AuthMethod)
-                .filter(
+            .filter(
                 AuthMethod.param == "email",
                 func.lower(AuthMethod.value) == user_inp.email.lower(),
                 AuthMethod.auth_method == Email.get_name(),
             )
-                .one_or_none()
+            .one_or_none()
         )
         if auth_method:
             await Email._change_confirmation_link(auth_method.user, confirmation_token)
@@ -185,8 +196,8 @@ class Email(AuthMethodMeta):
                 link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
             )
             return ResponseModel(status="Success", message="Email confirmation link sent")
-        if user_inp.user_id and user_inp.token:
-            user = await Email._get_user_by_token_and_id(user_inp.user_id, user_inp.token)
+        if user_inp.user_id and token:
+            user = await Email._get_user_by_token_and_id(user_inp.user_id, token)
         else:
             user = User()
             db.session.add(user)
@@ -196,33 +207,33 @@ class Email(AuthMethodMeta):
             to_addr=user_inp.email,
             link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
         )
-        return JSONResponse(
-            status_code=201, content=ResponseModel(status="Success", message="Email confirmation link sent").json()
+        raise HTTPException(
+            status_code=201, detail=ResponseModel(status="Success", message="Email confirmation link sent").json()
         )
 
     @staticmethod
-    def hash_password(password: str, salt: str):
+    def hash_password(password: str, salt: str) -> str:
         enc = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100_000)
         return enc.hex()
 
     @staticmethod
-    def validate_password(password: str, hashed_password: str, salt: str):
+    def validate_password(password: str, hashed_password: str, salt: str) -> bool:
         """Проверяет, что хеш пароля совпадает с хешем из БД"""
         return Email.hash_password(password, salt) == hashed_password
 
     @staticmethod
-    async def approve_email(token: str) -> object:
+    async def approve_email(token: str) -> ResponseModel:
         auth_method = (
             db.session.query(AuthMethod)
-                .filter(
+            .filter(
                 AuthMethod.value == token,
                 AuthMethod.param == "confirmation_token",
                 AuthMethod.auth_method == Email.get_name(),
             )
-                .one_or_none()
+            .one_or_none()
         )
         if not auth_method:
-            return JSONResponse(status_code=403, content=ResponseModel(status="Error", message="Incorrect link").json())
+            raise HTTPException(status_code=403, detail=ResponseModel(status="Error", message="Incorrect link").json())
         auth_method.user.confirmed.value = True
         db.session.flush()
         return ResponseModel(status="Success", message="Email approved")
@@ -249,18 +260,6 @@ class Email(AuthMethodMeta):
             )
         if session.user.email.value == scheme.email:
             raise HTTPException(status_code=401, detail=ResponseModel(status="Error", message="Email incorrect").json())
-        if hasattr(session.user, "tmp_email_confirmation_token"):
-            db.session.query(AuthMethod).filter(
-                AuthMethod.user_id == session.user_id,
-                AuthMethod.auth_method == Email.get_name(),
-                AuthMethod.param == "tmp_email_confirmation_token",
-            ).delete()
-        if hasattr(session.user, "tmp_email"):
-            db.session.query(AuthMethod).filter(
-                AuthMethod.user_id == session.user_id,
-                AuthMethod.auth_method == Email.get_name(),
-                AuthMethod.param == "tmp_email",
-            ).delete()
         tmp_email = AuthMethod(
             user_id=session.user_id, auth_method=Email.get_name(), param="tmp_email", value=scheme.email
         )
@@ -298,23 +297,23 @@ class Email(AuthMethodMeta):
         return ResponseModel(status="Success", message="Email successfully changed")
 
     @staticmethod
-    async def request_reset_password(user_id: int, schema: ResetPassword, token: str = Header(default=None)):
+    async def request_reset_password(user_id: int, schema: RequestResetPassword, token: str = Header(default=None)):
         salt = random_string()
-        if token:
+        if token and schema.new_password and schema.password:
             session: UserSession = db.session.query(UserSession).filter(UserSession.token == token).one_or_none()
             if not session:
                 raise HTTPException(
-                    status_code=404, detail=ResponseModel(status="Error", message="Session not found").json()
+                    status_code=403, detail=ResponseModel(status="Error", message="Session not found").json()
                 )
             if session.expired:
                 raise SessionExpired(token)
-            if not hasattr(session.user.methods, "email"):
+            if not session.user.email:
                 raise HTTPException(
                     status_code=401,
                     detail=ResponseModel(status="Error", message="Auth method restricted for this user").json(),
                 )
             if not Email.validate_password(
-                    schema.password, session.user.methods.email.hashed_password, session.user.methods.email.salt
+                schema.password, session.user.hashed_password.value, session.user.salt.value
             ):
                 raise AuthFailed(error="Incorrect password")
             if user_id != session.user_id:
@@ -324,23 +323,47 @@ class Email(AuthMethodMeta):
             session.user.hashed_password.value = Email.hash_password(schema.new_password, salt)
             session.user.salt.value = salt
             db.session.flush()
-            send_changes_password_notification(session.user.methods.email.email)
+            send_changes_password_notification(session.user.email.value)
             return ResponseModel(status="Success", message="Password has been successfully changed")
-        else:
+        elif not token and not schema.password and not schema.new_password:
             user: User = db.session.query(User).get(user_id)
             if not user:
                 raise ObjectNotFound(User, user_id)
-            if not hasattr(user.methods, "email"):
+            if not user.email:
                 raise HTTPException(
                     status_code=401,
                     detail=ResponseModel(status="Error", message="Auth method restricted for this user").json(),
                 )
-            user.reset_token.value = random_string()
+            if user.confirmed.value.lower() == "false":
+                raise AuthFailed(
+                    error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
+                )
+            db.session.add(AuthMethod(user_id=user_id, auth_method=Email.get_name(),
+                                      param="reset_token", value=random_string()))
             db.session.flush()
-            send_change_password_confirmation(user.email.value,
-                                              f"{settings.FRONTEND_HOST}/email/reset?token={user.reset_token.value}")
+            send_change_password_confirmation(
+                user.email.value, f"{settings.FRONTEND_HOST}/email/reset?token={user.reset_token.value}"
+            )
             return ResponseModel(status="Success", message="Reset link has been successfully mailed")
+        raise HTTPException(status_code=422, detail=ResponseModel(status="Error", message="Unprocessable entity").json())
 
     @staticmethod
-    async def reset_password(token: constr(min_length=1), password: constr(min_length=1)):
-        pass
+    async def reset_password(
+        user_id: int, schema: ResetPassword, reset_token: str = Header(default=None)
+    ) -> ResponseModel:
+        if not reset_token:
+            raise HTTPException(status_code=400, detail=ResponseModel(status="Error", message="Header missing").json())
+        user: User = db.session.query(User).get(user_id)
+        if not user:
+            raise ObjectNotFound(User, user_id)
+        if not user.reset_token or user.reset_token.value != reset_token:
+            raise HTTPException(
+                status_code=403,
+                detail=ResponseModel(status="Error", message="Incorrect reset_token").json(),
+            )
+        salt = random_string()
+        user.hashed_password.value = Email.hash_password(schema.new_password, salt)
+        user.salt.value = salt
+        db.session.delete(user.reset_token)
+        db.session.flush()
+        return ResponseModel(status="Success", message="Password has been successfully changed")

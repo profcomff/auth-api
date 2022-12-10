@@ -60,7 +60,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
                     back_populates="user",
                     uselist=False,
                     primaryjoin=f"and_(User.id==AuthMethod.user_id,"
-                                f" AuthMethod.auth_method=='{cls.get_name()}',AuthMethod.param=='{row}')",
+                    f" AuthMethod.auth_method=='{cls.get_name()}',AuthMethod.param=='{row}')",
                 ),
             )
 

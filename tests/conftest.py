@@ -16,6 +16,8 @@ from auth_backend.settings import get_settings
 @pytest.fixture(scope='session')
 def client():
     auth_backend.auth_plugins.email.send_confirmation_email = Mock(return_value=None)
+    auth_backend.auth_plugins.email.send_change_password_confirmation = Mock(return_value=None)
+    auth_backend.auth_plugins.email.send_changes_password_notification = Mock(return_value=None)
     client = TestClient(app)
     yield client
 
