@@ -1,7 +1,7 @@
 import starlette.requests
 from starlette.responses import JSONResponse
 
-from auth_backend.exceptions import ObjectNotFound, IncorrectAuthType, AlreadyExists, AuthFailed, SessionExpired
+from auth_backend.exceptions import ObjectNotFound, IncorrectUserAuthType, AlreadyExists, AuthFailed, SessionExpired
 from .base import app
 from auth_backend.base import ResponseModel
 
@@ -11,8 +11,8 @@ async def not_found_handler(req: starlette.requests.Request, exc: ObjectNotFound
     return JSONResponse(content=ResponseModel(status="Error", message=f"{exc}").json(), status_code=404)
 
 
-@app.exception_handler(IncorrectAuthType)
-async def incorrect_auth_type_handler(req: starlette.requests.Request, exc: IncorrectAuthType):
+@app.exception_handler(IncorrectUserAuthType)
+async def incorrect_auth_type_handler(req: starlette.requests.Request, exc: IncorrectUserAuthType):
     return JSONResponse(content=ResponseModel(status="Error", message=f"{exc}").json(), status_code=403)
 
 

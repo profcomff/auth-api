@@ -33,13 +33,11 @@ def dbsession():
 @pytest.fixture()
 def user_id(client: TestClient, dbsession):
     time = datetime.datetime.utcnow()
-    body = {
-        "email": f"user{time}@example.com",
-        "password": "string"
-    }
+    body = {"email": f"user{time}@example.com", "password": "string"}
     client.post("/email/registration", json=body)
-    db_user: AuthMethod = dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'],
-                                                             AuthMethod.param == 'email').one()
+    db_user: AuthMethod = (
+        dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
+    )
     yield db_user.user_id
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
         dbsession.delete(row)
@@ -51,18 +49,22 @@ def user_id(client: TestClient, dbsession):
 def user(client: TestClient, dbsession):
     url = "/email/login"
     time = datetime.datetime.utcnow()
-    body = {
-        "email": f"user{time}@example.com",
-        "password": "string"
-    }
+    body = {"email": f"user{time}@example.com", "password": "string"}
     client.post("/email/registration", json=body)
-    db_user: AuthMethod = dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'],
-                                                             AuthMethod.param == 'email').one()
+    db_user: AuthMethod = (
+        dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
+    )
     response = client.post(url, json=body)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
-    token = dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id,
-                                               AuthMethod.param == "confirmation_token",
-                                               AuthMethod.auth_method == "email").one()
+    token = (
+        dbsession.query(AuthMethod)
+        .filter(
+            AuthMethod.user_id == db_user.user_id,
+            AuthMethod.param == "confirmation_token",
+            AuthMethod.auth_method == "email",
+        )
+        .one()
+    )
     response = client.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
     response = client.post(url, json=body)

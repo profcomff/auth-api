@@ -9,17 +9,29 @@ url = "/email/reset/email/"
 
 def test_main_scenario(client: TestClient, dbsession: Session, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
-    conf_token_1 = dbsession.query(AuthMethod).filter(AuthMethod.user_id == user_id,
-                                                      AuthMethod.param == "confirmation_token").one().value
+    conf_token_1 = (
+        dbsession.query(AuthMethod)
+        .filter(AuthMethod.user_id == user_id, AuthMethod.param == "confirmation_token")
+        .one()
+        .value
+    )
     response = client.post(f"{url}request", json={"email": "changed@mail.com"}, headers={"token": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
-    conf_token_2 = dbsession.query(AuthMethod).filter(AuthMethod.user_id == user_id,
-                                                      AuthMethod.param == "confirmation_token").one().value
+    conf_token_2 = (
+        dbsession.query(AuthMethod)
+        .filter(AuthMethod.user_id == user_id, AuthMethod.param == "confirmation_token")
+        .one()
+        .value
+    )
     assert conf_token_2 == conf_token_1
 
-    tmp_token = dbsession.query(AuthMethod).filter(AuthMethod.user_id == user_id,
-                                                   AuthMethod.param == "tmp_email_confirmation_token").one().value
+    tmp_token = (
+        dbsession.query(AuthMethod)
+        .filter(AuthMethod.user_id == user_id, AuthMethod.param == "tmp_email_confirmation_token")
+        .one()
+        .value
+    )
 
     assert not dbsession.query(UserSession).filter(UserSession.token == login["token"]).one().expired
 
@@ -49,7 +61,7 @@ def test_invalid_jsons(client: TestClient, dbsession: Session, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
 
     response = client.post(f"{url}request", json={"email": "changed@mail.com"}, headers={"token": ""})
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = client.post(f"{url}request", json={"email": ""}, headers={"token": login["token"]})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
