@@ -9,6 +9,17 @@ from auth_backend.models.base import Base
 
 
 class ParamDict:
+
+    # Type hints
+    email: AuthMethod
+    hashed_password: AuthMethod
+    salt: AuthMethod
+    confirmed: AuthMethod
+    confirmation_token: AuthMethod
+    tmp_email: AuthMethod
+    reset_token: AuthMethod
+    tmp_email_confirmation_token: AuthMethod
+
     def __new__(cls, methods: list[AuthMethod], *args, **kwargs):
         obj = super(ParamDict, cls).__new__(cls)
         for row in methods:
