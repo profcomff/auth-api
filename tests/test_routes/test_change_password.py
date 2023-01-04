@@ -85,7 +85,7 @@ def test_no_token(client: TestClient, dbsession: Session, user_id: str):
 
     response = client.post(f"{url}{user_id}/request", json={})
     assert response.status_code == status.HTTP_200_OK
-    reset_token = (
+    reset_token: AuthMethod = (
         dbsession.query(AuthMethod)
         .filter(AuthMethod.auth_method == "email", AuthMethod.param == "reset_token", AuthMethod.user_id == user_id)
         .one()
@@ -100,6 +100,12 @@ def test_no_token(client: TestClient, dbsession: Session, user_id: str):
     response = client.post(
         f"{url}{user_id}", headers={"reset-token": reset_token.value}, json={"new_password": "changedstring2"}
     )
+    assert response.status_code == status.HTTP_200_OK
+
+    response = client.post("/email/login", json={"email": reset_token.user.auth_methods.email.value, "password": "string"})
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    response = client.post("/email/login", json={"email": reset_token.user.auth_methods.email.value, "password": "changedstring2"})
     assert response.status_code == status.HTTP_200_OK
 
 
@@ -131,3 +137,8 @@ def test_with_token(client: TestClient, dbsession: Session, user):
         .one_or_none()
     )
     assert not reset_token
+    response = client.post("/email/login", json={"email": body["email"], "password": body["password"]})
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    response = client.post("/email/login", json={"email": body["email"], "password": "changed"})
+    assert response.status_code == status.HTTP_200_OK
