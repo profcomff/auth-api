@@ -7,3 +7,4 @@ alembic
 SQLAlchemy
 gunicorn
 email-validator
+retrying

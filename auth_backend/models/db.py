@@ -1,25 +1,50 @@
 from __future__ import annotations
 
 import datetime
-from typing import Iterator
 
-from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
+import sqlalchemy.orm
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from auth_backend.models.base import Base
-import sqlalchemy.orm
+
+
+class ParamDict:
+
+    # Type hints
+    email: AuthMethod
+    hashed_password: AuthMethod
+    salt: AuthMethod
+    confirmed: AuthMethod
+    confirmation_token: AuthMethod
+    tmp_email: AuthMethod
+    reset_token: AuthMethod
+    tmp_email_confirmation_token: AuthMethod
+
+    def __new__(cls, methods: list[AuthMethod], *args, **kwargs):
+        obj = super(ParamDict, cls).__new__(cls)
+        for row in methods:
+            if attr := getattr(obj, row.param, None):
+                if not isinstance(attr, AuthMethod):
+                    raise AttributeError
+            setattr(obj, row.param, row)
+        return obj
 
 
 class User(Base):
+
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
 
-    auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
+    _auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
     sessions: list[UserSession] = sqlalchemy.orm.relationship("UserSession", foreign_keys="UserSession.user_id")
 
-    @hybrid_method
-    def get_method_secrets(self, method_name: str) -> Iterator[AuthMethod]:
-        for row in self.auth_methods:
-            if row.auth_method == method_name:
-                yield row
+    @hybrid_property
+    def auth_methods(self) -> ParamDict:
+        """
+        Эта функция возвращает экземпляр класса ParamDict, который создает внутри себя поля, соотвествуюшие:
+        user.auth_methods.<param> = Соответствущему объекту AuthMethod
+        :return: ParamDict
+        """
+        return ParamDict.__new__(ParamDict, self._auth_methods)
 
 
 class AuthMethod(Base):
@@ -29,7 +54,7 @@ class AuthMethod(Base):
     param = sqlalchemy.Column(sqlalchemy.String)
     value = sqlalchemy.Column(sqlalchemy.String)
 
-    user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="auth_methods")
+    user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="_auth_methods")
 
 
 class UserSession(Base):

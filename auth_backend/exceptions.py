@@ -8,9 +8,9 @@ class AlreadyExists(Exception):
         super().__init__(f"Object {obj.__name__}, {obj_id=} already exists")
 
 
-class IncorrectAuthType(Exception):
+class IncorrectUserAuthType(Exception):
     def __init__(self):
-        super().__init__(f"Incorrect Authentication Type")
+        super().__init__(f"Incorrect Authentication Type for this user")
 
 
 class SessionExpired(Exception):
