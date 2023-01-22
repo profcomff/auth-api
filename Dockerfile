@@ -1,11 +1,11 @@
-FROM python:3.10
-WORKDIR /app
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11
+ENV APP_NAME=auth_backend
+ENV APP_MODULE=${APP_NAME}.routes.base:app
 
 COPY ./requirements.txt /app/
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install -U -r /app/requirements.txt
 
-ADD gunicorn_conf.py alembic.ini /app/
-ADD migrations /app/migrations
-ADD auth_backend /app/auth_backend
+COPY ./alembic.ini /alembic.ini
+COPY ./migrations /migrations/
 
-CMD [ "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-c", "/app/gunicorn_conf.py", "auth_backend.routes.base:app" ]
+COPY ./${APP_NAME} /app/${APP_NAME}

@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import re
 from abc import abstractmethod, ABCMeta
+from datetime import datetime
 
 from fastapi import APIRouter
+from pydantic import constr
 
-from datetime import datetime
-from auth_backend.base import Base, Token
+from auth_backend.base import Base
 
 
-class Session(Token):
+class Session(Base):
+    token: constr(min_length=1)
     expires: datetime
     id: int
     user_id: int
@@ -22,6 +24,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
+    fields: list[str] = []
 
     @classmethod
     def get_name(cls) -> str:
@@ -29,18 +32,18 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     def __init__(self):
         self.router = APIRouter()
-        self.router.add_api_route("/registration", self.register, methods=["POST"])
-        self.router.add_api_route("/login", self.login, methods=["POST"], response_model=Session)
+        self.router.add_api_route("/registration", self._register, methods=["POST"])
+        self.router.add_api_route("/login", self._login, methods=["POST"], response_model=Session)
 
     def __init_subclass__(cls, **kwargs):
         AUTH_METHODS[cls.__name__] = cls
 
     @staticmethod
     @abstractmethod
-    async def register(**kwargs) -> object:
+    async def _register(**kwargs) -> object:
         raise NotImplementedError()
 
     @staticmethod
     @abstractmethod
-    async def login(**kwargs) -> Session:
+    async def _login(**kwargs) -> Session:
         raise NotImplementedError()

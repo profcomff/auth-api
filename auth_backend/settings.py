@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     ENABLED_AUTH_METHODS: list[str] | None
 
+    MAX_RETRIES: int = 10
+    STOP_MAX_DELAY: int = 10000
+    WAIT_MIN: int = 1000
+    WAIT_MAX: int = 2000
+
     CORS_ALLOW_ORIGINS: list[str] = ['*']
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list[str] = ['*']
