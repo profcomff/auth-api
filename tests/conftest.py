@@ -18,6 +18,7 @@ def client():
     auth_backend.auth_plugins.email.send_confirmation_email = Mock(return_value=None)
     auth_backend.auth_plugins.email.send_change_password_confirmation = Mock(return_value=None)
     auth_backend.auth_plugins.email.send_changes_password_notification = Mock(return_value=None)
+    auth_backend.auth_plugins.email.send_reset_email = Mock(return_value=None)
     client = TestClient(app)
     yield client
 
@@ -26,7 +27,7 @@ def client():
 def dbsession():
     settings = get_settings()
     engine = create_engine(settings.DB_DSN)
-    TestingSessionLocal = sessionmaker(autocommit=True, autoflush=False, bind=engine)
+    TestingSessionLocal = sessionmaker(bind=engine)
     return TestingSessionLocal()
 
 
@@ -42,7 +43,7 @@ def user_id(client: TestClient, dbsession):
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
-    dbsession.flush()
+    dbsession.commit()
 
 
 @pytest.fixture()
@@ -73,4 +74,4 @@ def user(client: TestClient, dbsession):
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
-    dbsession.flush()
+    dbsession.commit()

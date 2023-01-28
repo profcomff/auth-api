@@ -63,7 +63,7 @@ def test_main_scenario(client: TestClient, dbsession: Session):
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
-    dbsession.flush()
+    dbsession.commit()
 
 
 def test_repeated_registration_case(client: TestClient, dbsession: Session):
@@ -105,4 +105,4 @@ def test_repeated_registration_case(client: TestClient, dbsession: Session):
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == user_id).all():
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == user_id).one())
-    dbsession.flush()
+    dbsession.commit()

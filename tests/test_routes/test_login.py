@@ -67,7 +67,7 @@ def test_incorrect_data(client: TestClient, dbsession: Session):
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == id).all():
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == id).one())
-    dbsession.flush()
+    dbsession.commit()
 
 
 def test_check_token(client: TestClient, user, dbsession: Session):

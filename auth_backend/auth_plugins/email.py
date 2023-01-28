@@ -16,6 +16,7 @@ from auth_backend.utils.smtp import (
     send_confirmation_email,
     send_change_password_confirmation,
     send_changes_password_notification,
+    send_reset_email,
 )
 from .auth_method import AuthMethodMeta, Session
 from fastapi.background import BackgroundTasks
@@ -133,7 +134,7 @@ class Email(AuthMethodMeta):
         ):
             raise AuthFailed(error="Incorrect login or password")
         db.session.add(user_session := UserSession(user_id=query.user.id, token=random_string()))
-        db.session.flush()
+        db.session.commit()
         return Session(
             user_id=user_session.user_id, token=user_session.token, id=user_session.id, expires=user_session.expires
         )
@@ -155,13 +156,14 @@ class Email(AuthMethodMeta):
         )
         db.session.flush()
 
+
     @staticmethod
     async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
         if user.auth_methods.confirmed.value == "true":
             raise AlreadyExists(User, user.id)
         else:
             user.auth_methods.confirmation_token.value = confirmation_token
-            db.session.flush()
+
 
     @staticmethod
     async def _get_user_by_token_and_id(id: int, token: str) -> User:
@@ -198,6 +200,7 @@ class Email(AuthMethodMeta):
                 to_addr=user_inp.email,
                 link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
             )
+            db.session.commit()
             return ResponseModel(status="Success", message="Email confirmation link sent")
         if user_inp.user_id and token:
             user = await Email._get_user_by_token_and_id(user_inp.user_id, token)
@@ -211,6 +214,7 @@ class Email(AuthMethodMeta):
             to_addr=user_inp.email,
             link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
         )
+        db.session.commit()
         raise HTTPException(
             status_code=201, detail=ResponseModel(status="Success", message="Email confirmation link sent").json()
         )
@@ -238,8 +242,8 @@ class Email(AuthMethodMeta):
         )
         if not auth_method:
             raise HTTPException(status_code=403, detail=ResponseModel(status="Error", message="Incorrect link").json())
-        auth_method.user.auth_methods.confirmed.value = True
-        db.session.flush()
+        auth_method.user.auth_methods.confirmed.value = "true"
+        db.session.commit()
         return ResponseModel(status="Success", message="Email approved")
 
     @staticmethod
@@ -269,12 +273,12 @@ class Email(AuthMethodMeta):
             user_id=session.user_id, auth_method=Email.get_name(), param="tmp_email_confirmation_token", value=token
         )
         db.session.add_all([tmp_email, tmp_email_confirmation_token])
-        db.session.flush()
         background_tasks.add_task(
-            send_confirmation_email,
+            send_reset_email,
             to_addr=scheme.email,
             link=f"{settings.APPLICATION_HOST}/email/reset/email/{session.user_id}?token={token}&email={scheme.email}",
         )
+        db.session.commit()
         return ResponseModel(status="Success", message="Email confirmation link sent")
 
     @staticmethod
@@ -295,7 +299,7 @@ class Email(AuthMethodMeta):
         user.auth_methods.email.value = user.auth_methods.tmp_email.value
         db.session.delete(user.auth_methods.tmp_email_confirmation_token)
         db.session.delete(user.auth_methods.tmp_email)
-        db.session.flush()
+        db.session.commit()
         return ResponseModel(status="Success", message="Email successfully changed")
 
     @staticmethod
@@ -326,8 +330,8 @@ class Email(AuthMethodMeta):
                 )
             session.user.auth_methods.hashed_password.value = Email._hash_password(schema.new_password, salt)
             session.user.auth_methods.salt.value = salt
-            db.session.flush()
             background_tasks.add_task(send_changes_password_notification, session.user.auth_methods.email.value)
+            db.session.commit()
             return ResponseModel(status="Success", message="Password has been successfully changed")
         elif not token and not schema.password and not schema.new_password:
             user: User = db.session.query(User).get(user_id)
@@ -345,7 +349,7 @@ class Email(AuthMethodMeta):
             db.session.add(
                 AuthMethod(user_id=user_id, auth_method=Email.get_name(), param="reset_token", value=random_string())
             )
-            db.session.flush()
+            db.session.commit()
             background_tasks.add_task(
                 send_change_password_confirmation,
                 user.auth_methods.email.value,
@@ -372,5 +376,5 @@ class Email(AuthMethodMeta):
         user.auth_methods.hashed_password.value = Email._hash_password(schema.new_password, salt)
         user.auth_methods.salt.value = salt
         db.session.delete(user.auth_methods.reset_token)
-        db.session.flush()
+        db.session.commit()
         return ResponseModel(status="Success", message="Password has been successfully changed")

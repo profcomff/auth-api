@@ -3,6 +3,8 @@ from __future__ import annotations
 import datetime
 
 import sqlalchemy.orm
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, Integer, ForeignKey, DateTime
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from auth_backend.models.base import Base
@@ -32,10 +34,10 @@ class ParamDict:
 
 class User(Base):
 
-    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    _auth_methods: list[AuthMethod] = sqlalchemy.orm.relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
-    sessions: list[UserSession] = sqlalchemy.orm.relationship("UserSession", foreign_keys="UserSession.user_id")
+    _auth_methods: Mapped[list["AuthMethod"]] = relationship("AuthMethod", foreign_keys="AuthMethod.user_id")
+    sessions: Mapped[list["UserSession"]] = relationship("UserSession", foreign_keys="UserSession.user_id")
 
     @hybrid_property
     def auth_methods(self) -> ParamDict:
@@ -48,22 +50,22 @@ class User(Base):
 
 
 class AuthMethod(Base):
-    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"))
-    auth_method = sqlalchemy.Column(sqlalchemy.String)
-    param = sqlalchemy.Column(sqlalchemy.String)
-    value = sqlalchemy.Column(sqlalchemy.String)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"))
+    auth_method: Mapped[str] = mapped_column(String)
+    param: Mapped[str] = mapped_column(String)
+    value: Mapped[str] = mapped_column(String)
 
-    user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="_auth_methods")
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], back_populates="_auth_methods")
 
 
 class UserSession(Base):
-    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-    user_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey("user.id"))
-    expires = sqlalchemy.Column(sqlalchemy.DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7))
-    token = sqlalchemy.Column(sqlalchemy.String, unique=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, sqlalchemy.ForeignKey("user.id"))
+    expires: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7))
+    token: Mapped[str] = mapped_column(String, unique=True)
 
-    user: User = sqlalchemy.orm.relationship("User", foreign_keys=[user_id], back_populates="sessions")
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], back_populates="sessions")
 
     @hybrid_property
     def expired(self):
