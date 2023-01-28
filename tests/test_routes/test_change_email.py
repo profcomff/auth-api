@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from starlette import status
@@ -15,7 +17,8 @@ def test_main_scenario(client: TestClient, dbsession: Session, user):
         .one()
         .value
     )
-    response = client.post(f"{url}request", json={"email": "changed@mail.com"}, headers={"token": login["token"]})
+    tmp_email = f"changed{datetime.datetime.utcnow()}@mail.com"
+    response = client.post(f"{url}request", json={"email": tmp_email}, headers={"token": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
     conf_token_2 = (
@@ -38,7 +41,7 @@ def test_main_scenario(client: TestClient, dbsession: Session, user):
     response = client.post(f"/email/login", json=body)
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"/email/login", json={"email": "changed@mail.com", "password": body["password"]})
+    response = client.post(f"/email/login", json={"email": tmp_email, "password": body["password"]})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     response = client.get(f"{url}{user_id}?token={conf_token_1}&email=changed@mail.com")
@@ -47,13 +50,13 @@ def test_main_scenario(client: TestClient, dbsession: Session, user):
     response = client.get(f"{url}{user_id}?token={tmp_token}&email=wrong@mail.com")
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    response = client.get(f"{url}{user_id}?token={tmp_token}&email=changed@mail.com")
+    response = client.get(f"{url}{user_id}?token={tmp_token}&email={tmp_email}")
     assert response.status_code == status.HTTP_200_OK
 
     response = client.post(f"/email/login", json=body)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    response = client.post(f"/email/login", json={"email": "changed@mail.com", "password": body["password"]})
+    response = client.post(f"/email/login", json={"email": tmp_email, "password": body["password"]})
     assert response.status_code == status.HTTP_200_OK
 
 

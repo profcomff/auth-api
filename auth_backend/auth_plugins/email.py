@@ -133,6 +133,7 @@ class Email(AuthMethodMeta):
         ):
             raise AuthFailed(error="Incorrect login or password")
         db.session.add(user_session := UserSession(user_id=query.user.id, token=random_string()))
+        db.session.commit()
         db.session.flush()
         return Session(
             user_id=user_session.user_id, token=user_session.token, id=user_session.id, expires=user_session.expires
@@ -153,7 +154,9 @@ class Email(AuthMethodMeta):
                 user_id=user.id, auth_method=Email.get_name(), param="confirmation_token", value=confirmation_token
             )
         )
+        db.session.commit()
         db.session.flush()
+
 
     @staticmethod
     async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
@@ -161,6 +164,7 @@ class Email(AuthMethodMeta):
             raise AlreadyExists(User, user.id)
         else:
             user.auth_methods.confirmation_token.value = confirmation_token
+            db.session.commit()
             db.session.flush()
 
     @staticmethod
@@ -204,6 +208,7 @@ class Email(AuthMethodMeta):
         else:
             user = User()
             db.session.add(user)
+            db.session.commit()
             db.session.flush()
         await Email._add_to_db(user_inp, confirmation_token, user)
         background_tasks.add_task(
@@ -238,7 +243,8 @@ class Email(AuthMethodMeta):
         )
         if not auth_method:
             raise HTTPException(status_code=403, detail=ResponseModel(status="Error", message="Incorrect link").json())
-        auth_method.user.auth_methods.confirmed.value = True
+        auth_method.user.auth_methods.confirmed.value = "true"
+        db.session.commit()
         db.session.flush()
         return ResponseModel(status="Success", message="Email approved")
 
@@ -269,6 +275,7 @@ class Email(AuthMethodMeta):
             user_id=session.user_id, auth_method=Email.get_name(), param="tmp_email_confirmation_token", value=token
         )
         db.session.add_all([tmp_email, tmp_email_confirmation_token])
+        db.session.commit()
         db.session.flush()
         background_tasks.add_task(
             send_confirmation_email,
@@ -295,6 +302,7 @@ class Email(AuthMethodMeta):
         user.auth_methods.email.value = user.auth_methods.tmp_email.value
         db.session.delete(user.auth_methods.tmp_email_confirmation_token)
         db.session.delete(user.auth_methods.tmp_email)
+        db.session.commit()
         db.session.flush()
         return ResponseModel(status="Success", message="Email successfully changed")
 
@@ -326,6 +334,7 @@ class Email(AuthMethodMeta):
                 )
             session.user.auth_methods.hashed_password.value = Email._hash_password(schema.new_password, salt)
             session.user.auth_methods.salt.value = salt
+            db.session.commit()
             db.session.flush()
             background_tasks.add_task(send_changes_password_notification, session.user.auth_methods.email.value)
             return ResponseModel(status="Success", message="Password has been successfully changed")
@@ -345,6 +354,7 @@ class Email(AuthMethodMeta):
             db.session.add(
                 AuthMethod(user_id=user_id, auth_method=Email.get_name(), param="reset_token", value=random_string())
             )
+            db.session.commit()
             db.session.flush()
             background_tasks.add_task(
                 send_change_password_confirmation,
@@ -372,5 +382,6 @@ class Email(AuthMethodMeta):
         user.auth_methods.hashed_password.value = Email._hash_password(schema.new_password, salt)
         user.auth_methods.salt.value = salt
         db.session.delete(user.auth_methods.reset_token)
+        db.session.commit()
         db.session.flush()
         return ResponseModel(status="Success", message="Password has been successfully changed")

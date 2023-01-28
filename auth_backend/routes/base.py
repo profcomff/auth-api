@@ -5,6 +5,7 @@ from starlette.middleware.cors import CORSMiddleware
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.settings import get_settings
 from .user_session import logout_router
+# from sqlalchemy import create_engine
 
 settings = get_settings()
 
@@ -12,7 +13,7 @@ app = FastAPI()
 
 
 app.add_middleware(
-    DBSessionMiddleware, db_url=settings.DB_DSN, session_args={"autocommit": True}, engine_args={"pool_pre_ping": True}
+    DBSessionMiddleware, db_url=settings.DB_DSN,  engine_args={"pool_pre_ping": True}
 )
 
 app.add_middleware(

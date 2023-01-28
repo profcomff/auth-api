@@ -21,6 +21,7 @@ async def logout(token: str = Header(min_length=1)) -> JSONResponse:
     if session.expired:
         raise SessionExpired(session.token)
     session.expires = datetime.utcnow()
+    db.session.commit()
     db.session.flush()
     return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Logout successful").json())
 
