@@ -41,7 +41,7 @@ def test_main_scenario(client: TestClient, dbsession: Session):
         dbsession.delete(row)
     dbsession.delete(dbsession.query(UserSession).filter(UserSession.user_id == id).one())
     dbsession.delete(dbsession.query(User).filter(User.id == id).one())
-    dbsession.flush()
+    dbsession.commit()
 
 
 def test_without_token(client: TestClient, dbsession: Session):

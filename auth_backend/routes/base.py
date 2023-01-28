@@ -5,7 +5,6 @@ from starlette.middleware.cors import CORSMiddleware
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.settings import get_settings
 from .user_session import logout_router
-# from sqlalchemy import create_engine
 
 settings = get_settings()
 
