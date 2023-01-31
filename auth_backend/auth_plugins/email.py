@@ -156,14 +156,12 @@ class Email(AuthMethodMeta):
         )
         db.session.flush()
 
-
     @staticmethod
     async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
         if user.auth_methods.confirmed.value == "true":
             raise AlreadyExists(User, user.id)
         else:
             user.auth_methods.confirmation_token.value = confirmation_token
-
 
     @staticmethod
     async def _get_user_by_token_and_id(id: int, token: str) -> User:

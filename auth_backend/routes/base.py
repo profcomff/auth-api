@@ -11,9 +11,7 @@ settings = get_settings()
 app = FastAPI()
 
 
-app.add_middleware(
-    DBSessionMiddleware, db_url=settings.DB_DSN,  engine_args={"pool_pre_ping": True}
-)
+app.add_middleware(DBSessionMiddleware, db_url=settings.DB_DSN, engine_args={"pool_pre_ping": True})
 
 app.add_middleware(
     CORSMiddleware,
