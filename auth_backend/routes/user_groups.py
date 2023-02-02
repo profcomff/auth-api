@@ -1,8 +1,10 @@
 from fastapi import APIRouter
 from fastapi_sqlalchemy import db
+from starlette.exceptions import HTTPException
 
 from auth_backend.models.db import Group, UserGroup
-from .models.models import GroupGet, GroupPost, GroupsGet, GroupPatch, UserGroupGet, GroupUserListGet
+from .models.models import UserGroupGet, GroupUserListGet
+from ..base import ResponseModel
 
 user_groups = APIRouter(prefix="/group/{id}/user")
 
@@ -20,6 +22,11 @@ async def group_user_list(id: int) -> GroupUserListGet:
 
 @user_groups.delete("{user_id}")
 async def delete_user_from_group(id: int, user_id: int):
-    pass
+    user = db.session.query(UserGroup).filter(UserGroup.user_id == user_id, UserGroup.group_id == id).one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail=ResponseModel(status="Error", message=f"User {user_id=} in group {id=} not found").json())
+    db.session.delete(user)
+    db.session.commit()
+
 
 
