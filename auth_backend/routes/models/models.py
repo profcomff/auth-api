@@ -17,7 +17,7 @@ class GroupGet(Base):
 
 class GroupPost(Base):
     name: str
-    parent_id: int
+    parent_id: int | None
 
 
 class GroupsGet(Base):

@@ -9,6 +9,7 @@ from starlette import status
 
 import auth_backend.auth_plugins.email
 from auth_backend.models import AuthMethod, User
+from auth_backend.models.db import Group
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 
@@ -75,3 +76,24 @@ def user(client: TestClient, dbsession):
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
     dbsession.commit()
+
+
+@pytest.fixture()
+def group(dbsession, parent_id: int):
+    _ids: list[int] = []
+
+    def _group(client: TestClient):
+        time = datetime.datetime.utcnow()
+        body = {"name": f"group{time}", "parent_id": parent_id}
+        response = client.post(url="/group", json=body)
+        nonlocal _ids
+        _ids.append(_id := response.json()["id"])
+        return _id
+    yield _group
+    for row in _ids:
+        Group.delete(row, session=dbsession)
+    dbsession.commit()
+
+
+
+
