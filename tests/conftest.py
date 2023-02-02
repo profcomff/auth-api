@@ -94,6 +94,22 @@ def group(dbsession, parent_id: int):
         Group.delete(row, session=dbsession)
     dbsession.commit()
 
+@pytest.fixture()
+def user(dbsession):
+    _users = []
+    def _user(client):
+        dbsession.add(res := User())
+        dbsession.flush()
+        nonlocal _users
+        _users.append(res.id)
+        dbsession.commit()
+        return res.id
+    yield _user
+    for row in _users:
+        dbsession.delete(row)
+    dbsession.commit()
+
+
 
 
 
