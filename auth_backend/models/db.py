@@ -39,12 +39,7 @@ class User(BaseDbModel):
         foreign_keys="AuthMethod.user_id",
         primaryjoin="and_(User.id==AuthMethod.user_id, not_(AuthMethod.is_deleted))",
     )
-    sessions: Mapped[list[UserSession]] = relationship("UserSession", foreign_keys="UserSession.user_id")
-    active_sessions: Mapped[list[UserSession]] = relationship(
-        "UserSession",
-        foreign_keys="UserSession.user_id",
-        primaryjoin=f"and_(User.id==UserSession.user_id, UserSession.expires>func.now())",
-    )
+    sessions: Mapped[list[UserSession]] = relationship("UserSession", foreign_keys="UserSession.user_id", back_populates="user")
     groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary="user_group",
@@ -52,6 +47,10 @@ class User(BaseDbModel):
         primaryjoin="and_(User.id==UserGroup.user_id, not_(UserGroup.is_deleted))",
         secondaryjoin="and_(Group.id==UserGroup.group_id, not_(Group.is_deleted))",
     )
+
+    @hybrid_property
+    def active_sessions(self) -> list:
+        return [row for row in self.sessions if not row.expired]
 
     @hybrid_property
     def auth_methods(self) -> ParamDict:

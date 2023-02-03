@@ -44,6 +44,6 @@ async def delete_group(id: int) -> None:
     return None
 
 
-@groups.get("/{id}", response_model=GroupsGet)
+@groups.get("", response_model=GroupsGet)
 async def get_groups() -> GroupsGet:
-    return GroupsGet.from_orm(Group.get_all(session=db.session).all())
+    return GroupsGet(items=Group.get_all(session=db.session).all())
