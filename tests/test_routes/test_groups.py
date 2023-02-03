@@ -3,6 +3,7 @@ import datetime
 import pytest
 import sqlalchemy.exc
 
+from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.db import Group
 
 
@@ -33,9 +34,13 @@ def test_create(client, dbsession):
     dbsession.commit()
 
 
-def test_get(client, dbsession, group):
-    group = group(client, None)
-    child = group(client, group)
+def test_get(client, dbsession):
+    time1 = datetime.datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None}
+    group = client.post(url="/group", json=body).json()["id"]
+    time2 = datetime.datetime.utcnow()
+    body = {"name": f"group{time2}", "parent_id": group}
+    child = client.post(url="/group", json=body).json()["id"]
     response = client.get(f"/group/{group}")
     dbgroup = Group.get(group, session=dbsession)
     assert dbgroup.id == group
@@ -45,40 +50,58 @@ def test_get(client, dbsession, group):
     response_child = client.get(f"/group/{child}")
     dbchild = Group.get(child, session=dbsession)
     assert dbchild.id == response_child.json()["id"]
-    assert dbchild.name == response.json()["name"]
-    assert dbchild.parent_id == group == response.json()["parent_id"]
+    assert dbchild.name == response_child.json()["name"]
+    assert dbchild.parent_id == group == response_child.json()["parent_id"]
     parent = dbchild.parent
     child_orm = dbgroup.child
-    assert parent == group
-    assert child_orm == dbchild
+    assert parent.id == dbgroup.id
+    assert child_orm[0].id == dbchild.id
+
+    for row in dbsession.query(Group).get(child), dbsession.query(Group).get(group):
+        dbsession.delete(row)
+    dbsession.commit()
 
 
-def test_patch(client, dbsession, group):
-    _group = group(client, None)
+def test_patch(client, dbsession):
+    time1 = datetime.datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None}
+    group = client.post(url="/group", json=body).json()["id"]
     response_old = client.get(f"/group/{group}")
-    db_old = Group.get(group, session=dbsession)
-    response_patch = client.patch(f"/group/{group}", json={"name": "new_name"})
+    # db_old = Group.get(group, session=dbsession)
+    time2 = datetime.datetime.utcnow()
+    response_patch = client.patch(f"/group/{group}", json={"name": f"new_name{time2}"})
     response_new = client.get(f"/group/{group}")
     db_new = Group.get(group, session=dbsession)
-    assert response_patch.json()["id"] == response_new.json()["id"] == response_patch.json()["id"] == db_new.id == db_old.id
+    assert response_patch.json()["id"] == response_new.json()["id"] == response_patch.json()["id"] == db_new.id
     assert response_patch.json()["name"] == response_new.json()["name"] == db_new.name
     assert response_patch.json()["parent_id"] == response_new.json()["parent_id"] == response_patch.json()["parent_id"] == db_new.parent_id
-    assert response_old.json()["name"] == db_old.name != response_patch.json()["name"]
+    assert response_old.json()["name"]  != response_patch.json()["name"]
+    dbsession.delete(dbsession.query(Group).get(group))
+    dbsession.commit()
 
 
-def test_delete(client, dbsession, group):
-    _group1 = group(client, None)
-    _group2 = group(client, _group1)
-    _group3 = group(client, _group2)
+def test_delete(client, dbsession):
+    time1 = datetime.datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None}
+    _group1 = client.post(url="/group", json=body).json()["id"]
+    time2 = datetime.datetime.utcnow()
+    body = {"name": f"group{time2}", "parent_id": _group1}
+    _group2 = client.post(url="/group", json=body).json()["id"]
+    time3 = datetime.datetime.utcnow()
+    body = {"name": f"group{time3}", "parent_id": _group2}
+    _group3 = client.post(url="/group", json=body).json()["id"]
     db1 = Group.get(_group1, session=dbsession)
     db2 = Group.get(_group2, session=dbsession)
     db3 = Group.get(_group3, session=dbsession)
     assert db1.parent is None
     assert db3.parent == db2
     assert db2.parent == db1
-    assert db1.child == db2
-    assert db2.child == db3
-    assert db3.child is None
+    assert db2 in db1.child
+    assert db3 in db2.child
+    assert db3.child == []
+    del db1
+    del db2
+    del db3
     response = client.get(f"/group/{_group3}")
     assert response.json()["parent_id"] == _group2
     response = client.get(f"/group/{_group2}")
@@ -87,11 +110,17 @@ def test_delete(client, dbsession, group):
     response = client.get(f"/group/{_group3}")
     assert response.json()["parent_id"] == _group1
     db1 = Group.get(_group1, session=dbsession)
-    with pytest.raises(sqlalchemy.exc.NoResultFound):
+    with pytest.raises(ObjectNotFound):
         db2 = Group.get(_group2, session=dbsession)
     db3 = Group.get(_group3, session=dbsession)
     assert db3.parent == db1
-    assert db1.child == db3
+    assert db3 in db1.child
+
+    for row in dbsession.query(Group).get(_group1), dbsession.query(Group).get(_group2), dbsession.query(Group).get(_group3):
+        dbsession.delete(row)
+    dbsession.commit()
+
+
 
 
 

@@ -3,7 +3,7 @@ from fastapi_sqlalchemy import db
 
 from auth_backend.models.db import Group
 from .models.models import GroupGet, GroupPost, GroupsGet, GroupPatch
-from auth_backend.exceptions import ObjectNotFound
+from auth_backend.exceptions import ObjectNotFound, AlreadyExists
 
 groups = APIRouter(prefix="/group")
 
@@ -24,7 +24,12 @@ async def create_group(group_inp: GroupPost) -> GroupGet:
 
 @groups.patch("/{id}", response_model=GroupGet)
 async def patch_group(id: int, group_inp: GroupPatch) -> GroupGet:
-    return GroupGet.from_orm(Group.update(id, session=db.session, **group_inp.dict()))
+    if (exists_check :=
+    Group.get_all(session=db.session).filter(Group.name == group_inp.name, Group.id != id).one_or_none()):
+        raise AlreadyExists(Group, exists_check.id)
+    patched = Group.update(id, session=db.session, **group_inp.dict(exclude_unset=True))
+    db.session.commit()
+    return GroupGet.from_orm(patched)
 
 
 @groups.delete("/{id}", response_model=None)
@@ -33,7 +38,10 @@ async def delete_group(id: int) -> None:
     if childs := group.child:
         for child in childs:
             child.parent = group.parent
-    return Group.delete(id, session=db.session)
+        db.session.flush()
+    Group.delete(id, session=db.session)
+    db.session.commit()
+    return None
 
 
 @groups.get("/{id}", response_model=GroupsGet)

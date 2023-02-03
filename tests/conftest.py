@@ -9,7 +9,7 @@ from starlette import status
 
 import auth_backend.auth_plugins.email
 from auth_backend.models import AuthMethod, User
-from auth_backend.models.db import Group, UserSession
+from auth_backend.models.db import Group, UserSession, UserGroup
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 
@@ -86,6 +86,16 @@ def user(client: TestClient, dbsession):
     dbsession.commit()
 
 
+@pytest.fixture(scope="module")
+def parent_id(client, dbsession):
+    time = datetime.datetime.utcnow()
+    body = {"name": f"group{time}", "parent_id": None}
+    response = client.post(url="/group", json=body)
+    yield response.json()["id"]
+    dbsession.query(Group).get(response.json()["id"])
+    dbsession.commit()
+
+
 @pytest.fixture()
 def group(dbsession, parent_id):
     _ids: list[int] = []
@@ -109,14 +119,26 @@ def user_factory(dbsession):
         dbsession.add(res := User())
         dbsession.flush()
         nonlocal _users
-        _users.append(res.id)
+        _users.append(res)
         dbsession.commit()
         return res.id
     yield _user
-    for row in _users:
-        dbsession.delete(row)
-    dbsession.commit()
 
+    for row in dbsession.query(UserGroup).all():
+        dbsession.delete(row)
+    dbsession.flush()
+
+    dbsession.query(Group).delete()
+    dbsession.flush()
+
+    dbsession.query(AuthMethod).delete()
+    dbsession.flush()
+
+    dbsession.query(UserSession).delete()
+    dbsession.flush()
+
+    dbsession.query(User).delete()
+    dbsession.commit()
 
 
 

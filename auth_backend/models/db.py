@@ -49,7 +49,8 @@ class User(BaseDbModel):
         "Group",
         secondary="user_group",
         back_populates="users",
-        secondaryjoin="and_(User.id==UserGroup.user_id, not_(AuthMethod.is_deleted))",
+        primaryjoin="and_(User.id==UserGroup.user_id, not_(UserGroup.is_deleted))",
+        secondaryjoin="and_(Group.id==UserGroup.group_id, not_(Group.is_deleted))",
     )
 
     @hybrid_property
@@ -78,7 +79,8 @@ class Group(BaseDbModel):
         "User",
         secondary="user_group",
         back_populates="groups",
-        secondaryjoin="and_(Group.id==UserGroup.group_id, not_(User.is_deleted))",
+        primaryjoin="and_(Group.id==UserGroup.group_id, not_(UserGroup.is_deleted))",
+        secondaryjoin="and_(User.id==UserGroup.user_id, not_(User.is_deleted))",
     )
 
 
