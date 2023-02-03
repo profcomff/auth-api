@@ -1,13 +1,13 @@
-import pytest
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.testclient import TestClient
+
 from auth_backend.models.db import UserGroup, Group, User
 
 
-def test_add_user(client: TestClient, dbsession: Session, group, user):
+def test_add_user(client: TestClient, dbsession: Session, group, user_factory):
     group = group(client, None)
-    user1 = user(client)
+    user1 = user_factory(client)
     response = client.post(f"/group/{group}/user/{user1}")
     assert response.status_code == status.HTTP_200_OK
     usergroup = dbsession.query(UserGroup).filter(UserGroup.user_id == response.json()["user_id"], UserGroup.group_id == response.json()["group_id"]).one_or_none()
@@ -18,11 +18,11 @@ def test_add_user(client: TestClient, dbsession: Session, group, user):
     assert gr in user.groups
 
 
-def test_get_user_list(client, dbsession, group, user):
+def test_get_user_list(client, dbsession, group, user_factory):
     group = group(client, None)
-    user1 = user(client)
-    user2 = user(client)
-    user3 = user(client)
+    user1 = user_factory(client)
+    user2 = user_factory(client)
+    user3 = user_factory(client)
     response1 = client.post(f"/group/{group}/user/{user1}")
     response2 = client.post(f"/group/{group}/user/{user2}")
     response3 = client.post(f"/group/{group}/user/{user3}")
@@ -40,10 +40,10 @@ def test_get_user_list(client, dbsession, group, user):
     assert us3 in gr.users
 
 
-def test_del_user_from_group(client, dbsession, group, user):
-    user1 = user(client)
-    user2 = user(client)
-    user3 = user(client)
+def test_del_user_from_group(client, dbsession, group, user_factory):
+    user1 = user_factory(client)
+    user2 = user_factory(client)
+    user3 = user_factory(client)
     response1 = client.post(f"/group/{group}/user/{user1}")
     response2 = client.post(f"/group/{group}/user/{user2}")
     response3 = client.post(f"/group/{group}/user/{user3}")

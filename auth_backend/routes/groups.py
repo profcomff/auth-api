@@ -15,9 +15,11 @@ async def get_group(id: int) -> GroupGet:
 
 @groups.post("", response_model=GroupGet)
 async def create_group(group_inp: GroupPost) -> GroupGet:
-    if not db.session.query(Group).get(group_inp.parent_id):
+    if group_inp.parent_id and not db.session.query(Group).get(group_inp.parent_id):
         raise ObjectNotFound(Group, group_inp.parent_id)
-    return GroupGet.from_orm(Group.create(session=db.session, **group_inp.dict()))
+    group = Group.create(session=db.session, **group_inp.dict())
+    db.session.commit()
+    return GroupGet.from_orm(group)
 
 
 @groups.patch("/{id}", response_model=GroupGet)

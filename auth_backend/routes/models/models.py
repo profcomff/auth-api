@@ -11,8 +11,8 @@ class UserInfo(Base):
 class GroupGet(Base):
     id: int
     name: str
-    parent_id: int
-    created_at: datetime.datetime
+    parent_id: int | None
+    create_ts: datetime.datetime
 
 
 class GroupPost(Base):

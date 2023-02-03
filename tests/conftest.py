@@ -9,7 +9,7 @@ from starlette import status
 
 import auth_backend.auth_plugins.email
 from auth_backend.models import AuthMethod, User
-from auth_backend.models.db import Group
+from auth_backend.models.db import Group, UserSession
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 
@@ -43,6 +43,10 @@ def user_id(client: TestClient, dbsession):
     yield db_user.user_id
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
         dbsession.delete(row)
+    dbsession.flush()
+    for row in dbsession.query(UserSession).filter(UserSession.user_id == db_user.user_id).all():
+        dbsession.delete(row)
+    dbsession.flush()
     dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
     dbsession.commit()
 
@@ -72,6 +76,10 @@ def user(client: TestClient, dbsession):
     response = client.post(url, json=body)
     assert response.status_code == status.HTTP_200_OK
     yield {"user_id": db_user.user_id, "body": body, "login_json": response.json()}
+    session = dbsession.query(UserSession).filter(UserSession.user_id == db_user.user_id).all()
+    for row in session:
+        dbsession.delete(row)
+    dbsession.commit()
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
@@ -79,7 +87,7 @@ def user(client: TestClient, dbsession):
 
 
 @pytest.fixture()
-def group(dbsession, parent_id: int):
+def group(dbsession, parent_id):
     _ids: list[int] = []
 
     def _group(client: TestClient):
@@ -95,7 +103,7 @@ def group(dbsession, parent_id: int):
     dbsession.commit()
 
 @pytest.fixture()
-def user(dbsession):
+def user_factory(dbsession):
     _users = []
     def _user(client):
         dbsession.add(res := User())

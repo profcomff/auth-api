@@ -3,8 +3,7 @@ import datetime
 from starlette import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from auth_backend.models.db import AuthMethod, User
-
+from auth_backend.models.db import AuthMethod, User, UserSession
 
 url = "/email/login"
 
@@ -66,6 +65,10 @@ def test_incorrect_data(client: TestClient, dbsession: Session):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == id).all():
         dbsession.delete(row)
+    dbsession.flush()
+    for row in dbsession.query(UserSession).filter(UserSession.user_id==id).all():
+        dbsession.delete(row)
+    dbsession.flush()
     dbsession.delete(dbsession.query(User).filter(User.id == id).one())
     dbsession.commit()
 

@@ -37,19 +37,19 @@ class User(BaseDbModel):
     _auth_methods: Mapped[list[AuthMethod]] = relationship(
         "AuthMethod",
         foreign_keys="AuthMethod.user_id",
-        primaryjoin="and_(User.id==AuthMethod.user_id, not_(AuthMethod.id_deleted))",
+        primaryjoin="and_(User.id==AuthMethod.user_id, not_(AuthMethod.is_deleted))",
     )
     sessions: Mapped[list[UserSession]] = relationship("UserSession", foreign_keys="UserSession.user_id")
     active_sessions: Mapped[list[UserSession]] = relationship(
         "UserSession",
         foreign_keys="UserSession.user_id",
-        primaryjoin=f"and_(User.id==UserSession.user_id, UserSession.expires>{datetime.datetime.utcnow()})",
+        primaryjoin=f"and_(User.id==UserSession.user_id, UserSession.expires>func.now())",
     )
     groups: Mapped[list[Group]] = relationship(
         "Group",
-        secondary="UserGroup",
+        secondary="user_group",
         back_populates="users",
-        secondaryjoin="and_(User.id==UserGroup.user_id, not_(AuthMethod.id_deleted))",
+        secondaryjoin="and_(User.id==UserGroup.user_id, not_(AuthMethod.is_deleted))",
     )
 
     @hybrid_property
@@ -69,19 +69,16 @@ class Group(BaseDbModel):
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    parent: Mapped[Group] = relationship(
-        "Group", remote_side=[id], primaryjoin="and_(Group.parent_id==Group.id, not_(Group.id_deleted))"
-    )
     child: Mapped[list[Group]] = relationship(
         "Group",
         backref=backref("parent", remote_side=[id]),
-        primaryjoin="and_(Group.id==Group.parent_id, not_(Group.id_deleted))",
+        primaryjoin="and_(Group.id==Group.parent_id, not_(Group.is_deleted))",
     )
     users: Mapped[list[User]] = relationship(
         "User",
-        secondary="UserGroup",
+        secondary="user_group",
         back_populates="groups",
-        secondaryjoin="and_(Group.id==UserGroup.group_id, not_(User.id_deleted))",
+        secondaryjoin="and_(Group.id==UserGroup.group_id, not_(User.is_deleted))",
     )
 
 
@@ -102,7 +99,7 @@ class AuthMethod(BaseDbModel):
         "User",
         foreign_keys=[user_id],
         back_populates="_auth_methods",
-        primaryjoin="and_(AuthMethod.user_id==User.id, not_(User.id_deleted))",
+        primaryjoin="and_(AuthMethod.user_id==User.id, not_(User.is_deleted))",
     )
 
 
@@ -117,7 +114,7 @@ class UserSession(BaseDbModel):
         "User",
         foreign_keys=[user_id],
         back_populates="sessions",
-        primaryjoin="and_(UserSession.user_id==User.id, not_(User.is_deleted)",
+        primaryjoin="and_(UserSession.user_id==User.id, not_(User.is_deleted))",
     )
 
     @hybrid_property
