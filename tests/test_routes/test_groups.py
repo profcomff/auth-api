@@ -80,8 +80,13 @@ def test_patch(client, dbsession):
     db_new = Group.get(group, session=dbsession)
     assert response_patch.json()["id"] == response_new.json()["id"] == response_patch.json()["id"] == db_new.id
     assert response_patch.json()["name"] == response_new.json()["name"] == db_new.name
-    assert response_patch.json()["parent_id"] == response_new.json()["parent_id"] == response_patch.json()["parent_id"] == db_new.parent_id
-    assert response_old.json()["name"]  != response_patch.json()["name"]
+    assert (
+        response_patch.json()["parent_id"]
+        == response_new.json()["parent_id"]
+        == response_patch.json()["parent_id"]
+        == db_new.parent_id
+    )
+    assert response_old.json()["name"] != response_patch.json()["name"]
     dbsession.delete(dbsession.query(Group).get(group))
     dbsession.commit()
 
@@ -97,7 +102,6 @@ def test_cycle_patch(client, dbsession):
     assert response.status_code == 400
     dbsession.query(Group).delete()
     dbsession.commit()
-
 
 
 def test_delete(client, dbsession):
@@ -139,16 +143,10 @@ def test_delete(client, dbsession):
     assert db3.parent == db1
     assert db3 in db1.childs
 
-    for row in dbsession.query(Group).get(_group1), dbsession.query(Group).get(_group2), dbsession.query(Group).get(_group3):
+    for row in (
+        dbsession.query(Group).get(_group1),
+        dbsession.query(Group).get(_group2),
+        dbsession.query(Group).get(_group3),
+    ):
         dbsession.delete(row)
     dbsession.commit()
-
-
-
-
-
-
-
-
-
-

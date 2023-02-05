@@ -102,10 +102,14 @@ def test_no_token(client: TestClient, dbsession: Session, user_id: str):
     )
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post("/email/login", json={"email": reset_token.user.auth_methods.email.value, "password": "string"})
+    response = client.post(
+        "/email/login", json={"email": reset_token.user.auth_methods.email.value, "password": "string"}
+    )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    response = client.post("/email/login", json={"email": reset_token.user.auth_methods.email.value, "password": "changedstring2"})
+    response = client.post(
+        "/email/login", json={"email": reset_token.user.auth_methods.email.value, "password": "changedstring2"}
+    )
     assert response.status_code == status.HTTP_200_OK
 
 

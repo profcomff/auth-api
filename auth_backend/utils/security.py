@@ -20,9 +20,7 @@ class UnionAuth(SecurityBase):
 
     def _except(self):
         if self.auto_error:
-            raise HTTPException(
-                status_code=HTTP_403_FORBIDDEN, detail="Not authenticated"
-            )
+            raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authenticated")
         else:
             return {}
 
@@ -33,8 +31,9 @@ class UnionAuth(SecurityBase):
         token = request.headers.get("Authorization")
         if not token:
             return self._except()
-        user_session: UserSession = UserSession.get_all(session=db.session).filter(UserSession.token == token).one_or_none()
+        user_session: UserSession = (
+            UserSession.get_all(session=db.session).filter(UserSession.token == token).one_or_none()
+        )
         if not user_session:
             self._except()
-        return {"id": user_session.user_id,
-                "email": user_session.user.auth_methods.email.value}
+        return {"id": user_session.user_id, "email": user_session.user.auth_methods.email.value}

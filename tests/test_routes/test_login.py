@@ -66,7 +66,7 @@ def test_incorrect_data(client: TestClient, dbsession: Session):
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == id).all():
         dbsession.delete(row)
     dbsession.flush()
-    for row in dbsession.query(UserSession).filter(UserSession.user_id==id).all():
+    for row in dbsession.query(UserSession).filter(UserSession.user_id == id).all():
         dbsession.delete(row)
     dbsession.flush()
     dbsession.delete(dbsession.query(User).filter(User.id == id).one())

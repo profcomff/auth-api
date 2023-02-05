@@ -14,7 +14,11 @@ def test_add_user(client: TestClient, dbsession: Session, user_factory):
     user1 = user_factory(client)
     response = client.post(f"/group/{group}/user", json={"user_id": user1})
     assert response.status_code == status.HTTP_200_OK
-    usergroup = dbsession.query(UserGroup).filter(UserGroup.user_id == response.json()["user_id"], UserGroup.group_id == response.json()["group_id"]).one_or_none()
+    usergroup = (
+        dbsession.query(UserGroup)
+        .filter(UserGroup.user_id == response.json()["user_id"], UserGroup.group_id == response.json()["group_id"])
+        .one_or_none()
+    )
     assert usergroup
     gr = Group.get(group, session=dbsession)
     user = User.get(usergroup.user_id, session=dbsession)
@@ -81,8 +85,3 @@ def test_del_user_from_group(client, dbsession, user_factory):
     assert us1 in gr.users
     assert us2 not in gr.users
     assert us3 in gr.users
-
-
-
-
-

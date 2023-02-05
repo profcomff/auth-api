@@ -109,14 +109,17 @@ def group(dbsession, parent_id):
         nonlocal _ids
         _ids.append(_id := response.json()["id"])
         return _id
+
     yield _group
     for row in _ids:
         Group.delete(row, session=dbsession)
     dbsession.commit()
 
+
 @pytest.fixture()
 def user_factory(dbsession):
     _users = []
+
     def _user(client):
         dbsession.add(res := User())
         dbsession.flush()
@@ -124,6 +127,7 @@ def user_factory(dbsession):
         _users.append(res)
         dbsession.commit()
         return res.id
+
     yield _user
 
     for row in dbsession.query(UserGroup).all():
@@ -141,7 +145,3 @@ def user_factory(dbsession):
 
     dbsession.query(User).delete()
     dbsession.commit()
-
-
-
-
