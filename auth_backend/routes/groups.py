@@ -21,6 +21,8 @@ async def get_group(id: int) -> GroupGet:
 async def create_group(group_inp: GroupPost, _: dict[str, str] = Depends(auth)) -> GroupGet:
     if group_inp.parent_id and not db.session.query(Group).get(group_inp.parent_id):
         raise ObjectNotFound(Group, group_inp.parent_id)
+    if Group.get_all(session=db.session).filter(Group.name == group_inp.name).one_or_none():
+        raise HTTPException(status_code=409, detail=ResponseModel(status="Error", message="Name already exists"))
     group = Group.create(session=db.session, **group_inp.dict())
     db.session.commit()
     return GroupGet.from_orm(group)
@@ -36,7 +38,7 @@ async def patch_group(id: int, group_inp: GroupPatch, _: dict[str, str] = Depend
         raise AlreadyExists(Group, exists_check.id)
     group = Group.get(id, session=db.session)
     if group_inp.parent_id in (row.id for row in group.childs):
-        raise HTTPException(status_code=400, detail=ResponseModel(status="Error", message="Cycle detected"))
+        raise HTTPException(status_code=400, detail=ResponseModel(status="Error", message="Cycle detected").json())
     patched = Group.update(id, session=db.session, **group_inp.dict(exclude_unset=True))
     db.session.commit()
     return GroupGet.from_orm(patched)

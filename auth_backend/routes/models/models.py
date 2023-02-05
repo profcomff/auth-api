@@ -1,5 +1,7 @@
 import datetime
 
+from pydantic import Field
+
 from auth_backend.base import Base
 
 
@@ -13,15 +15,15 @@ class UserInfoWithGroups(UserInfo):
 
 
 class GroupGet(Base):
-    id: int
+    id: int = Field(..., gt=0)
     name: str
-    parent_id: int | None
+    parent_id: int | None = Field(None, gt=0)
     create_ts: datetime.datetime
 
 
 class GroupPost(Base):
     name: str
-    parent_id: int | None
+    parent_id: int | None = Field(None, gt=0)
 
 
 class GroupsGet(Base):
@@ -30,16 +32,16 @@ class GroupsGet(Base):
 
 class GroupPatch(Base):
     name: str | None
-    parent_id: int | None
+    parent_id: int | None = Field(None, gt=0)
 
 
 class UserGroupGet(Base):
-    group_id: int
-    user_id: int
+    group_id: int = Field(..., gt=0)
+    user_id: int = Field(..., gt=0)
 
 
 class UserGroupPost(Base):
-    user_id: int
+    user_id: int = Field(..., gt=0)
 
 
 class GroupUserListGet(Base):

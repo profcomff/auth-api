@@ -1,7 +1,6 @@
 import datetime
 
 import pytest
-import sqlalchemy.exc
 
 from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.db import Group
@@ -11,6 +10,7 @@ def test_create(client, dbsession):
     time = datetime.datetime.utcnow()
     body = {"name": f"group{time}"}
     response_parent = client.post(url="/group", json=body)
+    assert response_parent.status_code == 200
     group = Group.get(response_parent.json()["id"], session=dbsession)
     assert group.id == response_parent.json()["id"]
     assert group.parent_id == response_parent.json()["parent_id"]
@@ -19,6 +19,7 @@ def test_create(client, dbsession):
     time = datetime.datetime.utcnow()
     body = {"name": f"group{time}", "parent_id": response_parent.json()["id"]}
     response = client.post(url="/group", json=body)
+    assert response.status_code == 200
     group = Group.get(response.json()["id"], session=dbsession)
     assert group.id == response.json()["id"]
     assert group.parent_id == response.json()["parent_id"]
@@ -42,12 +43,14 @@ def test_get(client, dbsession):
     body = {"name": f"group{time2}", "parent_id": group}
     child = client.post(url="/group", json=body).json()["id"]
     response = client.get(f"/group/{group}")
+    assert response.status_code == 200
     dbgroup = Group.get(group, session=dbsession)
     assert dbgroup.id == group
     assert dbgroup.name == response.json()["name"]
     assert dbgroup.parent_id == response.json()["parent_id"]
     assert dbgroup.id == response.json()["id"]
     response_child = client.get(f"/group/{child}")
+    assert response_child.status_code == 200
     dbchild = Group.get(child, session=dbsession)
     assert dbchild.id == response_child.json()["id"]
     assert dbchild.name == response_child.json()["name"]
@@ -67,10 +70,13 @@ def test_patch(client, dbsession):
     body = {"name": f"group{time1}", "parent_id": None}
     group = client.post(url="/group", json=body).json()["id"]
     response_old = client.get(f"/group/{group}")
+    assert response_old.status_code == 200
     # db_old = Group.get(group, session=dbsession)
     time2 = datetime.datetime.utcnow()
     response_patch = client.patch(f"/group/{group}", json={"name": f"new_name{time2}"})
+    assert response_patch.status_code == 200
     response_new = client.get(f"/group/{group}")
+    assert response_new.status_code == 200
     db_new = Group.get(group, session=dbsession)
     assert response_patch.json()["id"] == response_new.json()["id"] == response_patch.json()["id"] == db_new.id
     assert response_patch.json()["name"] == response_new.json()["name"] == db_new.name
@@ -78,6 +84,20 @@ def test_patch(client, dbsession):
     assert response_old.json()["name"]  != response_patch.json()["name"]
     dbsession.delete(dbsession.query(Group).get(group))
     dbsession.commit()
+
+
+def test_cycle_patch(client, dbsession):
+    time1 = datetime.datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None}
+    time2 = datetime.datetime.utcnow()
+    group = client.post(url="/group", json=body).json()["id"]
+    body2 = {"name": f"group{time2}", "parent_id": group}
+    group2 = client.post(url="/group", json=body2).json()["id"]
+    response = client.patch(f"/group/{group}", json={"parent_id": group2})
+    assert response.status_code == 400
+    dbsession.query(Group).delete()
+    dbsession.commit()
+
 
 
 def test_delete(client, dbsession):
@@ -103,11 +123,14 @@ def test_delete(client, dbsession):
     del db2
     del db3
     response = client.get(f"/group/{_group3}")
+    assert response.status_code == 200
     assert response.json()["parent_id"] == _group2
     response = client.get(f"/group/{_group2}")
+    assert response.status_code == 200
     assert response.json()["parent_id"] == _group1
     client.delete(f"/group/{_group2}")
     response = client.get(f"/group/{_group3}")
+    assert response.status_code == 200
     assert response.json()["parent_id"] == _group1
     db1 = Group.get(_group1, session=dbsession)
     with pytest.raises(ObjectNotFound):

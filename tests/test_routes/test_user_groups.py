@@ -32,6 +32,9 @@ def test_get_user_list(client, dbsession, group, user_factory):
     response1 = client.post(f"/group/{group}/user", json={"user_id": user1})
     response2 = client.post(f"/group/{group}/user", json={"user_id": user2})
     response3 = client.post(f"/group/{group}/user", json={"user_id": user3})
+    assert response1.status_code == 200
+    assert response2.status_code == 200
+    assert response3.status_code == 200
     gr = Group.get(group, session=dbsession)
     response = client.get(f"/group/{group}/user")
     assert response1.json()["user_id"] in [row["id"] for row in response.json()["items"]]
@@ -56,13 +59,19 @@ def test_del_user_from_group(client, dbsession, user_factory):
     response1 = client.post(f"/group/{group}/user", json={"user_id": user1})
     response2 = client.post(f"/group/{group}/user", json={"user_id": user2})
     response3 = client.post(f"/group/{group}/user", json={"user_id": user3})
+    assert response1.status_code == 200
+    assert response2.status_code == 200
+    assert response3.status_code == 200
     gr = Group.get(group, session=dbsession)
     response = client.get(f"/group/{group}/user")
+    assert response.status_code == 200
     assert response1.json()["user_id"] in [row["id"] for row in response.json()["items"]]
     assert response2.json()["user_id"] in [row["id"] for row in response.json()["items"]]
     assert response3.json()["user_id"] in [row["id"] for row in response.json()["items"]]
     response = client.delete(f"/group/{group}/user/{response2.json()['user_id']}")
+    assert response.status_code == 200
     response = client.get(f"/group/{group}/user")
+    assert response.status_code == 200
     assert response1.json()["user_id"] in [row["id"] for row in response.json()["items"]]
     assert response2.json()["user_id"] not in [row["id"] for row in response.json()["items"]]
     assert response3.json()["user_id"] in [row["id"] for row in response.json()["items"]]
