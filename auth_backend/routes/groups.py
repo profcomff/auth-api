@@ -9,7 +9,7 @@ from ..utils.security import UnionAuth
 
 auth = UnionAuth()
 
-groups = APIRouter(prefix="/group")
+groups = APIRouter(prefix="/group", tags=["Groups"])
 
 
 @groups.get("/{id}", response_model=GroupGet)

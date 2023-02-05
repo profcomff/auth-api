@@ -40,10 +40,10 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    async def _register(**kwargs) -> object:
+    async def _register(*args, **kwargs) -> object:
         raise NotImplementedError()
 
     @staticmethod
     @abstractmethod
-    async def _login(**kwargs) -> Session:
+    async def _login(*args, **kwargs) -> Session:
         raise NotImplementedError()

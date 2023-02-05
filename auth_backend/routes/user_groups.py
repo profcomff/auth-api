@@ -8,7 +8,7 @@ from ..base import ResponseModel
 from ..utils.security import UnionAuth
 
 auth = UnionAuth()
-user_groups = APIRouter(prefix="/group/{id}/user")
+user_groups = APIRouter(prefix="/group/{id}/user", tags=["User Groups"])
 
 
 @user_groups.post("", response_model=UserGroupGet)
