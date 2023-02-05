@@ -8,3 +8,4 @@ SQLAlchemy
 gunicorn
 email-validator
 retrying
+aiohttp

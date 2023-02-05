@@ -53,7 +53,7 @@ def test_get(client, dbsession):
     assert dbchild.name == response_child.json()["name"]
     assert dbchild.parent_id == group == response_child.json()["parent_id"]
     parent = dbchild.parent
-    child_orm = dbgroup.child
+    child_orm = dbgroup.childs
     assert parent.id == dbgroup.id
     assert child_orm[0].id == dbchild.id
 
@@ -96,9 +96,9 @@ def test_delete(client, dbsession):
     assert db1.parent is None
     assert db3.parent == db2
     assert db2.parent == db1
-    assert db2 in db1.child
-    assert db3 in db2.child
-    assert db3.child == []
+    assert db2 in db1.childs
+    assert db3 in db2.childs
+    assert db3.childs == []
     del db1
     del db2
     del db3
@@ -114,7 +114,7 @@ def test_delete(client, dbsession):
         db2 = Group.get(_group2, session=dbsession)
     db3 = Group.get(_group3, session=dbsession)
     assert db3.parent == db1
-    assert db3 in db1.child
+    assert db3 in db1.childs
 
     for row in dbsession.query(Group).get(_group1), dbsession.query(Group).get(_group2), dbsession.query(Group).get(_group3):
         dbsession.delete(row)

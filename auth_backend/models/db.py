@@ -39,7 +39,9 @@ class User(BaseDbModel):
         foreign_keys="AuthMethod.user_id",
         primaryjoin="and_(User.id==AuthMethod.user_id, not_(AuthMethod.is_deleted))",
     )
-    sessions: Mapped[list[UserSession]] = relationship("UserSession", foreign_keys="UserSession.user_id", back_populates="user")
+    sessions: Mapped[list[UserSession]] = relationship(
+        "UserSession", foreign_keys="UserSession.user_id", back_populates="user"
+    )
     groups: Mapped[list[Group]] = relationship(
         "Group",
         secondary="user_group",
@@ -69,7 +71,7 @@ class Group(BaseDbModel):
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    child: Mapped[list[Group]] = relationship(
+    childs: Mapped[list[Group]] = relationship(
         "Group",
         backref=backref("parent", remote_side=[id]),
         primaryjoin="and_(Group.id==Group.parent_id, not_(Group.is_deleted))",

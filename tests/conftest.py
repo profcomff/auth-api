@@ -12,14 +12,16 @@ from auth_backend.models import AuthMethod, User
 from auth_backend.models.db import Group, UserSession, UserGroup
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
+import auth_backend.utils.security
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def client():
     auth_backend.auth_plugins.email.send_confirmation_email = Mock(return_value=None)
     auth_backend.auth_plugins.email.send_change_password_confirmation = Mock(return_value=None)
     auth_backend.auth_plugins.email.send_changes_password_notification = Mock(return_value=None)
     auth_backend.auth_plugins.email.send_reset_email = Mock(return_value=None)
+    auth_backend.utils.security.UnionAuth.__call__ = Mock(return_value={"id": 0, "email": ""})
     client = TestClient(app)
     yield client
 

@@ -8,6 +8,10 @@ class UserInfo(Base):
     email: str | None
 
 
+class UserInfoWithGroups(UserInfo):
+    groups: list[int]
+
+
 class GroupGet(Base):
     id: int
     name: str
@@ -31,6 +35,10 @@ class GroupPatch(Base):
 
 class UserGroupGet(Base):
     group_id: int
+    user_id: int
+
+
+class UserGroupPost(Base):
     user_id: int
 
 
