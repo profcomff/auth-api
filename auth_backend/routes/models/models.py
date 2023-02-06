@@ -1,8 +1,15 @@
+from __future__ import annotations
 import datetime
 
 from pydantic import Field
 
 from auth_backend.base import Base
+
+
+class GroupGet(Base):
+    id: int = Field(..., gt=0)
+    name: str
+    parent_id: int | None = Field(None, gt=0)
 
 
 class UserInfo(Base):
@@ -11,14 +18,15 @@ class UserInfo(Base):
 
 
 class UserInfoWithGroups(UserInfo):
-    groups: list[int]
+    groups: list[GroupGet]
 
 
-class GroupGet(Base):
-    id: int = Field(..., gt=0)
-    name: str
-    parent_id: int | None = Field(None, gt=0)
-    create_ts: datetime.datetime
+class UserInfoWithIndirectGroups(UserInfo):
+    indirect_groups: list[GroupGet]
+
+
+class GroupGetWithChilds(GroupGet):
+    childs: list[GroupGet]
 
 
 class GroupPost(Base):
@@ -45,4 +53,4 @@ class UserGroupPost(Base):
 
 
 class GroupUserListGet(Base):
-    items: list[UserInfo]
+    items: list[UserInfoWithGroups]

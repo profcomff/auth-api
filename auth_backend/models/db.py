@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from typing import Iterator
 
 import sqlalchemy.orm
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean
@@ -83,6 +84,13 @@ class Group(BaseDbModel):
         primaryjoin="and_(Group.id==UserGroup.group_id, not_(UserGroup.is_deleted))",
         secondaryjoin="and_(User.id==UserGroup.user_id, not_(User.is_deleted))",
     )
+
+    @hybrid_property
+    def parents(self) -> Iterator[Group]:
+        parent = self
+        while parent := parent.parent:
+            yield parent
+
 
 
 class UserGroup(BaseDbModel):

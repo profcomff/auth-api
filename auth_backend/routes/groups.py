@@ -1,8 +1,10 @@
+from typing import Literal, Union
+
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi_sqlalchemy import db
 
 from auth_backend.models.db import Group
-from .models.models import GroupGet, GroupPost, GroupsGet, GroupPatch
+from .models.models import GroupGet, GroupPost, GroupsGet, GroupPatch, GroupGetWithChilds
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists
 from ..base import ResponseModel
 from ..utils.security import UnionAuth
@@ -12,9 +14,14 @@ auth = UnionAuth()
 groups = APIRouter(prefix="/group", tags=["Groups"])
 
 
-@groups.get("/{id}", response_model=GroupGet)
-async def get_group(id: int) -> GroupGet:
-    return GroupGet.from_orm(Group.get(id, session=db.session))
+@groups.get("/{id}", response_model=Union[GroupGetWithChilds, GroupGet])
+async def get_group(id: int, info: Literal["", "with_childs"] = "") -> GroupGet:
+    group = Group.get(id, session=db.session)
+    match info:
+        case "":
+            return GroupGet.from_orm(group)
+        case "with_childs":
+            return GroupGetWithChilds(**GroupGet.from_orm(group).dict(), childs=group.childs)
 
 
 @groups.post("", response_model=GroupGet)
@@ -22,7 +29,7 @@ async def create_group(group_inp: GroupPost, _: dict[str, str] = Depends(auth)) 
     if group_inp.parent_id and not db.session.query(Group).get(group_inp.parent_id):
         raise ObjectNotFound(Group, group_inp.parent_id)
     if Group.get_all(session=db.session).filter(Group.name == group_inp.name).one_or_none():
-        raise HTTPException(status_code=409, detail=ResponseModel(status="Error", message="Name already exists"))
+        raise HTTPException(status_code=409, detail=ResponseModel(status="Error", message="Name already exists").json())
     group = Group.create(session=db.session, **group_inp.dict())
     db.session.commit()
     return GroupGet.from_orm(group)
