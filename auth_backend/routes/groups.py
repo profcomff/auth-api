@@ -21,7 +21,7 @@ async def get_group(id: int, info: Literal["", "with_childs"] = "") -> GroupGet:
         case "":
             return GroupGet.from_orm(group)
         case "with_childs":
-            return GroupGetWithChilds(**GroupGet.from_orm(group).dict(), childs=group.childs)
+            return GroupGetWithChilds.from_orm(group)
 
 
 @groups.post("", response_model=GroupGet)
