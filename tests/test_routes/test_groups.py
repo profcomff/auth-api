@@ -65,6 +65,27 @@ def test_get(client, dbsession):
     dbsession.commit()
 
 
+def test_with_childs(client, dbsession):
+    time1 = datetime.datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None}
+    group = client.post(url="/group", json=body).json()["id"]
+    time2 = datetime.datetime.utcnow()
+    body = {"name": f"group{time2}", "parent_id": group}
+    child = client.post(url="/group", json=body).json()["id"]
+    response = client.get(f"/group/{group}", params={"info": "with_childs"})
+    assert response.status_code == 200
+    assert child in [row["id"] for row in response.json()["childs"]]
+
+    response = client.get(f"/group/{child}", params={"info": "with_childs"})
+    assert response.status_code == 200
+    assert group not in [row["id"] for row in response.json()["childs"]]
+
+    for row in dbsession.query(Group).get(child), dbsession.query(Group).get(group):
+        dbsession.delete(row)
+    dbsession.commit()
+
+
+
 def test_patch(client, dbsession):
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None}
