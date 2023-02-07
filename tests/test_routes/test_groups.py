@@ -56,7 +56,7 @@ def test_get(client, dbsession):
     assert dbchild.name == response_child.json()["name"]
     assert dbchild.parent_id == group == response_child.json()["parent_id"]
     parent = dbchild.parent
-    child_orm = dbgroup.childs
+    child_orm = dbgroup.child
     assert parent.id == dbgroup.id
     assert child_orm[0].id == dbchild.id
 
@@ -72,18 +72,17 @@ def test_with_childs(client, dbsession):
     time2 = datetime.datetime.utcnow()
     body = {"name": f"group{time2}", "parent_id": group}
     child = client.post(url="/group", json=body).json()["id"]
-    response = client.get(f"/group/{group}", params={"info": "with_childs"})
+    response = client.get(f"/group/{group}", params={"info": "child"})
     assert response.status_code == 200
-    assert child in [row["id"] for row in response.json()["childs"]]
+    assert child in [row["id"] for row in response.json()["child"]]
 
-    response = client.get(f"/group/{child}", params={"info": "with_childs"})
+    response = client.get(f"/group/{child}", params={"info": "child"})
     assert response.status_code == 200
-    assert group not in [row["id"] for row in response.json()["childs"]]
+    assert group not in [row["id"] for row in response.json()["child"]]
 
     for row in dbsession.query(Group).get(child), dbsession.query(Group).get(group):
         dbsession.delete(row)
     dbsession.commit()
-
 
 
 def test_patch(client, dbsession):
@@ -143,9 +142,9 @@ def test_delete(client, dbsession):
     assert db1.parent is None
     assert db3.parent == db2
     assert db2.parent == db1
-    assert db2 in db1.childs
-    assert db3 in db2.childs
-    assert db3.childs == []
+    assert db2 in db1.child
+    assert db3 in db2.child
+    assert db3.child == []
     del db1
     del db2
     del db3
@@ -164,7 +163,7 @@ def test_delete(client, dbsession):
         db2 = Group.get(_group2, session=dbsession)
     db3 = Group.get(_group3, session=dbsession)
     assert db3.parent == db1
-    assert db3 in db1.childs
+    assert db3 in db1.child
 
     for row in (
         dbsession.query(Group).get(_group1),

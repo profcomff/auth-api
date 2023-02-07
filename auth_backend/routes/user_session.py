@@ -29,7 +29,7 @@ async def logout(token: str = Header(min_length=1)) -> JSONResponse:
 @logout_router.post("/me", response_model_exclude_unset=True, response_model=UserGet)
 async def me(
     token: str = Header(min_length=1), info: list[Literal["groups", "indirect_groups", ""]] = Query(default=[])
-) -> UserGet:
+) -> dict[str, str | int]:
     if not token:
         raise HTTPException(status_code=400, detail=ResponseModel(status="Error", message="Header missing").json())
     session: UserSession = db.session.query(UserSession).filter(UserSession.token == token).one_or_none()

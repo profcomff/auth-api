@@ -72,7 +72,7 @@ class Group(BaseDbModel):
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    childs: Mapped[list[Group]] = relationship(
+    child: Mapped[list[Group]] = relationship(
         "Group",
         backref=backref("parent", remote_side=[id]),
         primaryjoin="and_(Group.id==Group.parent_id, not_(Group.is_deleted))",

@@ -6,10 +6,18 @@ from pydantic import Field
 from auth_backend.base import Base
 
 
-class GroupGet(Base):
+class Group(Base):
     id: int = Field(..., gt=0)
     name: str
     parent_id: int | None = Field(None, gt=0)
+
+
+class GroupChilds(Base):
+    child: list[Group] | None
+
+
+class GroupGet(Group, GroupChilds):
+    pass
 
 
 class UserInfo(Base):
@@ -18,19 +26,15 @@ class UserInfo(Base):
 
 
 class UserGroups(Base):
-    groups: list[GroupGet] | None
+    groups: list[Group] | None
 
 
 class UserIndirectGroups(Base):
-    indirect_groups: list[GroupGet] | None
+    indirect_groups: list[Group] | None
 
 
 class UserGet(UserInfo, UserGroups, UserIndirectGroups):
     pass
-
-
-class GroupGetWithChilds(GroupGet):
-    childs: list[GroupGet]
 
 
 class GroupPost(Base):
@@ -39,7 +43,7 @@ class GroupPost(Base):
 
 
 class GroupsGet(Base):
-    items: list[GroupGet]
+    items: list[Group]
 
 
 class GroupPatch(Base):
