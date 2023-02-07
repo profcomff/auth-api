@@ -1,11 +1,11 @@
-from typing import Literal, Union
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi_sqlalchemy import db
 
-from auth_backend.models.db import Group as DbGroup
-from .models.models import Group, GroupPost, GroupsGet, GroupPatch, GroupChilds, GroupGet
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists
+from auth_backend.models.db import Group as DbGroup
+from .models.models import Group, GroupPost, GroupsGet, GroupPatch, GroupGet
 from ..base import ResponseModel
 from ..utils.security import UnionAuth
 
