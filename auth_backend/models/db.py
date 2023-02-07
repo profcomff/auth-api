@@ -92,7 +92,6 @@ class Group(BaseDbModel):
             yield parent
 
 
-
 class UserGroup(BaseDbModel):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"))
     group_id: Mapped[int] = mapped_column(Integer, ForeignKey("group.id"))

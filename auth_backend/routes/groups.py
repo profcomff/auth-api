@@ -15,7 +15,7 @@ groups = APIRouter(prefix="/group", tags=["Groups"])
 
 
 @groups.get("/{id}", response_model=Union[GroupGetWithChilds, GroupGet])
-async def get_group(id: int, info: Literal["", "with_childs"] = "") -> GroupGet:
+async def get_group(id: int, info: Literal["", "with_childs"] = "") -> GroupGetWithChilds | GroupGet:
     group = Group.get(id, session=db.session)
     match info:
         case "":
@@ -54,9 +54,9 @@ async def patch_group(id: int, group_inp: GroupPatch, _: dict[str, str] = Depend
 @groups.delete("/{id}", response_model=None)
 async def delete_group(id: int, _: dict[str, str] = Depends(auth)) -> None:
     group: Group = Group.get(id, session=db.session)
-    if childs := group.childs:
-        for child in childs:
-            child.parent = group.parent
+    if child := group.childs:
+        for children in child:
+            children.parent = group.parent
         db.session.flush()
     Group.delete(id, session=db.session)
     db.session.commit()

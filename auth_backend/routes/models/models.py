@@ -17,12 +17,16 @@ class UserInfo(Base):
     email: str | None
 
 
-class UserInfoWithGroups(UserInfo):
-    groups: list[GroupGet]
+class UserGroups(Base):
+    groups: list[GroupGet] | None
 
 
-class UserInfoWithIndirectGroups(UserInfo):
-    indirect_groups: list[GroupGet]
+class UserIndirectGroups(Base):
+    indirect_groups: list[GroupGet] | None
+
+
+class UserGet(UserInfo, UserGroups, UserIndirectGroups):
+    pass
 
 
 class GroupGetWithChilds(GroupGet):
@@ -53,4 +57,4 @@ class UserGroupPost(Base):
 
 
 class GroupUserListGet(Base):
-    items: list[UserInfoWithGroups]
+    items: list[UserInfo]
