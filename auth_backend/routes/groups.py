@@ -53,7 +53,7 @@ async def patch_group(id: int, group_inp: GroupPatch, _: dict[str, str] = Depend
 
 @groups.delete("/{id}", response_model=None)
 async def delete_group(id: int, _: dict[str, str] = Depends(auth)) -> None:
-    group: Group = DbGroup.get(id, session=db.session)
+    group: DbGroup = DbGroup.get(id, session=db.session)
     if child := group.child:
         for children in child:
             children.parent = group.parent
