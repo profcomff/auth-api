@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi_sqlalchemy import db
 
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists
@@ -15,7 +15,7 @@ groups = APIRouter(prefix="/group", tags=["Groups"])
 
 
 @groups.get("/{id}", response_model=GroupGet, response_model_exclude_unset=True)
-async def get_group(id: int, info: Literal["", "child"] = "") -> dict[str, str | int]:
+async def get_group(id: int, info: list[Literal["child"]] = Query(default=[])) -> dict[str, str | int]:
     group = DbGroup.get(id, session=db.session)
     result = {}
     result = result | Group.from_orm(group).dict()

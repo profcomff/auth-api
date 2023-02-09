@@ -72,11 +72,11 @@ def test_with_childs(client, dbsession):
     time2 = datetime.datetime.utcnow()
     body = {"name": f"group{time2}", "parent_id": group}
     child = client.post(url="/group", json=body).json()["id"]
-    response = client.get(f"/group/{group}", params={"info": "child"})
+    response = client.get(f"/group/{group}", params={"info": ["child"]})
     assert response.status_code == 200
     assert child in [row["id"] for row in response.json()["child"]]
 
-    response = client.get(f"/group/{child}", params={"info": "child"})
+    response = client.get(f"/group/{child}", params={"info": ["child"]})
     assert response.status_code == 200
     assert group not in [row["id"] for row in response.json()["child"]]
 
