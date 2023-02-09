@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import BaseSettings, PostgresDsn
+from pydantic import BaseSettings, PostgresDsn, conint
 
 
 class Settings(BaseSettings):
@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     SMTP_HOST: str = 'smtp.gmail.com'
     SMTP_PORT: int = 587
     ENABLED_AUTH_METHODS: list[str] | None
+    TOKEN_LENGTH: conint(gt=8) = 64  # type: ignore
 
     MAX_RETRIES: int = 10
     STOP_MAX_DELAY: int = 10000

@@ -133,7 +133,7 @@ class Email(AuthMethodMeta):
             user_inp.password, query.user.auth_methods.hashed_password.value, query.user.auth_methods.salt.value
         ):
             raise AuthFailed(error="Incorrect login or password")
-        db.session.add(user_session := UserSession(user_id=query.user.id, token=random_string()))
+        db.session.add(user_session := UserSession(user_id=query.user.id, token=random_string(length=settings.TOKEN_LENGTH)))
         db.session.commit()
         return Session(
             user_id=user_session.user_id, token=user_session.token, id=user_session.id, expires=user_session.expires
