@@ -3,8 +3,7 @@ import datetime
 from starlette import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from auth_backend.models.db import AuthMethod, User
-
+from auth_backend.models.db import AuthMethod, User, UserSession
 
 url = "/email/login"
 
@@ -66,6 +65,10 @@ def test_incorrect_data(client: TestClient, dbsession: Session):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == id).all():
         dbsession.delete(row)
+    dbsession.flush()
+    for row in dbsession.query(UserSession).filter(UserSession.user_id == id).all():
+        dbsession.delete(row)
+    dbsession.flush()
     dbsession.delete(dbsession.query(User).filter(User.id == id).one())
     dbsession.commit()
 
@@ -93,3 +96,29 @@ def test_invalid_check_tokens(client: TestClient, user):
 
     response = client.post(f"/me")
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+def test_check_me_groups(client: TestClient, user):
+    user_id, body_user, login = user["user_id"], user["body"], user["login_json"]
+    time1 = datetime.datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None}
+    _group1 = client.post(url="/group", json=body).json()["id"]
+    time2 = datetime.datetime.utcnow()
+    body = {"name": f"group{time2}", "parent_id": _group1}
+    _group2 = client.post(url="/group", json=body).json()["id"]
+    time3 = datetime.datetime.utcnow()
+    body = {"name": f"group{time3}", "parent_id": _group2}
+    _group3 = client.post(url="/group", json=body).json()["id"]
+    response = client.post(f"/group/{_group3}/user", json={"user_id": user_id})
+    assert response.status_code == status.HTTP_200_OK
+    response = client.post(f"/me", headers={"token": login["token"]}, params={"info": "groups"})
+    assert response.status_code == status.HTTP_200_OK
+    assert _group3 in [row["id"] for row in response.json()["groups"]]
+    assert _group2 not in [row["id"] for row in response.json()["groups"]]
+    assert _group1 not in [row["id"] for row in response.json()["groups"]]
+    response = client.post(f"/me", headers={"token": login["token"]}, params={"info": "indirect_groups"})
+    assert response.status_code == status.HTTP_200_OK
+    assert _group3 in [row["id"] for row in response.json()["indirect_groups"]]
+    assert _group2 in [row["id"] for row in response.json()["indirect_groups"]]
+    assert _group1 in [row["id"] for row in response.json()["indirect_groups"]]
+
