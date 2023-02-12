@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     EMAIL: str | None
     APPLICATION_HOST: str = "localhost"
-    EMAIL_PASS: str
+    EMAIL_PASS: str | None
     SMTP_HOST: str = 'smtp.gmail.com'
     SMTP_PORT: int = 587
     ENABLED_AUTH_METHODS: list[str] | None
