@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi_sqlalchemy import db
 
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists
-from auth_backend.models.db import Group as DbGroup
+from auth_backend.models.db import Group as DbGroup, UserSession
 from .models.models import Group, GroupPost, GroupsGet, GroupPatch, GroupGet
 from ..base import ResponseModel
 from ..utils.security import UnionAuth
@@ -25,10 +25,10 @@ async def get_group(id: int, info: list[Literal["child"]] = Query(default=[])) -
 
 
 @groups.post("", response_model=Group)
-async def create_group(group_inp: GroupPost, _: dict[str, str] = Depends(auth)) -> Group:
+async def create_group(group_inp: GroupPost, _: UserSession = Depends(auth)) -> Group:
     if group_inp.parent_id and not db.session.query(DbGroup).get(group_inp.parent_id):
         raise ObjectNotFound(Group, group_inp.parent_id)
-    if DbGroup.get_all(session=db.session).filter(DbGroup.name == group_inp.name).one_or_none():
+    if DbGroup.query(session=db.session).filter(DbGroup.name == group_inp.name).one_or_none():
         raise HTTPException(status_code=409, detail=ResponseModel(status="Error", message="Name already exists").json())
     group = DbGroup.create(session=db.session, **group_inp.dict())
     db.session.commit()
@@ -38,7 +38,7 @@ async def create_group(group_inp: GroupPost, _: dict[str, str] = Depends(auth)) 
 @groups.patch("/{id}", response_model=Group)
 async def patch_group(id: int, group_inp: GroupPatch, _: dict[str, str] = Depends(auth)) -> Group:
     if (
-        exists_check := DbGroup.get_all(session=db.session)
+        exists_check := DbGroup.query(session=db.session)
         .filter(DbGroup.name == group_inp.name, DbGroup.id != id)
         .one_or_none()
     ):
@@ -65,4 +65,4 @@ async def delete_group(id: int, _: dict[str, str] = Depends(auth)) -> None:
 
 @groups.get("", response_model=GroupsGet)
 async def get_groups() -> GroupsGet:
-    return GroupsGet(items=DbGroup.get_all(session=db.session).all())
+    return GroupsGet(items=DbGroup.query(session=db.session).all())

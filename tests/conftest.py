@@ -1,5 +1,5 @@
 import datetime
-from unittest.mock import Mock
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -7,23 +7,66 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from starlette import status
 
-import auth_backend.auth_plugins.email
 from auth_backend.models import AuthMethod, User
 from auth_backend.models.db import Group, UserSession, UserGroup
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
-import auth_backend.utils.security
 
 
-@pytest.fixture(scope="session")
+def return_nothing():
+    return None
+
+
+def return_dict():
+    return {"id": 0, "email": None}
+
+
+@pytest.fixture
 def client():
-    auth_backend.auth_plugins.email.send_confirmation_email = Mock(return_value=None)
-    auth_backend.auth_plugins.email.send_change_password_confirmation = Mock(return_value=None)
-    auth_backend.auth_plugins.email.send_changes_password_notification = Mock(return_value=None)
-    auth_backend.auth_plugins.email.send_reset_email = Mock(return_value=None)
-    auth_backend.utils.security.UnionAuth.__call__ = Mock(return_value={"id": 0, "email": ""})
+    patcher1 = patch("auth_backend.auth_plugins.email.send_confirmation_email")
+    patcher2 = patch("auth_backend.auth_plugins.email.send_change_password_confirmation")
+    patcher3 = patch("auth_backend.auth_plugins.email.send_changes_password_notification")
+    patcher4 = patch("auth_backend.auth_plugins.email.send_reset_email")
+    patcher5 = patch("auth_backend.utils.security.UnionAuth.__call__")
+    patcher1.start()
+    patcher2.start()
+    patcher3.start()
+    patcher4.start()
+    patcher5.start()
+    patcher1.return_value = None
+    patcher2.return_value = None
+    patcher3.return_value = None
+    patcher4.return_value = None
+    patcher5.return_value = {"id": 0, "email": None}
     client = TestClient(app)
     yield client
+    patcher1.stop()
+    patcher2.stop()
+    patcher3.stop()
+    patcher4.stop()
+    patcher5.stop()
+
+
+@pytest.fixture
+def client_auth():
+    patcher1 = patch("auth_backend.auth_plugins.email.send_confirmation_email")
+    patcher2 = patch("auth_backend.auth_plugins.email.send_change_password_confirmation")
+    patcher3 = patch("auth_backend.auth_plugins.email.send_changes_password_notification")
+    patcher4 = patch("auth_backend.auth_plugins.email.send_reset_email")
+    patcher1.start()
+    patcher2.start()
+    patcher3.start()
+    patcher4.start()
+    patcher1.return_value = None
+    patcher2.return_value = None
+    patcher3.return_value = None
+    patcher4.return_value = None
+    client = TestClient(app)
+    yield client
+    patcher1.stop()
+    patcher2.stop()
+    patcher3.stop()
+    patcher4.stop()
 
 
 @pytest.fixture(scope='session')
@@ -35,10 +78,10 @@ def dbsession():
 
 
 @pytest.fixture()
-def user_id(client: TestClient, dbsession):
+def user_id(client_auth: TestClient, dbsession):
     time = datetime.datetime.utcnow()
     body = {"email": f"user{time}@example.com", "password": "string"}
-    client.post("/email/registration", json=body)
+    client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
     )
@@ -54,15 +97,15 @@ def user_id(client: TestClient, dbsession):
 
 
 @pytest.fixture()
-def user(client: TestClient, dbsession):
+def user(client_auth: TestClient, dbsession):
     url = "/email/login"
     time = datetime.datetime.utcnow()
     body = {"email": f"user{time}@example.com", "password": "string"}
-    client.post("/email/registration", json=body)
+    client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
     )
-    response = client.post(url, json=body)
+    response = client_auth.post(url, json=body)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     token = (
         dbsession.query(AuthMethod)
@@ -73,9 +116,9 @@ def user(client: TestClient, dbsession):
         )
         .one()
     )
-    response = client.get(f"/email/approve?token={token.value}")
+    response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
-    response = client.post(url, json=body)
+    response = client_auth.post(url, json=body)
     assert response.status_code == status.HTTP_200_OK
     yield {"user_id": db_user.user_id, "body": body, "login_json": response.json()}
     session = dbsession.query(UserSession).filter(UserSession.user_id == db_user.user_id).all()
@@ -88,7 +131,7 @@ def user(client: TestClient, dbsession):
     dbsession.commit()
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def parent_id(client, dbsession):
     time = datetime.datetime.utcnow()
     body = {"name": f"group{time}", "parent_id": None}

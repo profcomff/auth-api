@@ -9,7 +9,7 @@ from auth_backend.models.db import AuthMethod, UserSession
 url = "/email/reset/email/"
 
 
-def test_main_scenario(client: TestClient, dbsession: Session, user):
+def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
     conf_token_1 = (
         dbsession.query(AuthMethod)
@@ -18,7 +18,7 @@ def test_main_scenario(client: TestClient, dbsession: Session, user):
         .value
     )
     tmp_email = f"changed{datetime.datetime.utcnow()}@mail.com"
-    response = client.post(f"{url}request", json={"email": tmp_email}, headers={"token": login["token"]})
+    response = client_auth.post(f"{url}request", json={"email": tmp_email}, headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
     conf_token_2 = (
@@ -38,45 +38,47 @@ def test_main_scenario(client: TestClient, dbsession: Session, user):
 
     assert not dbsession.query(UserSession).filter(UserSession.token == login["token"]).one().expired
 
-    response = client.post(f"/email/login", json=body)
+    response = client_auth.post(f"/email/login", json=body)
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"/email/login", json={"email": tmp_email, "password": body["password"]})
+    response = client_auth.post(f"/email/login", json={"email": tmp_email, "password": body["password"]})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    response = client.get(f"{url}{user_id}?token={conf_token_1}&email=changed@mail.com")
+    response = client_auth.get(f"{url}{user_id}?token={conf_token_1}&email=changed@mail.com")
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    response = client.get(f"{url}{user_id}?token={tmp_token}&email=wrong@mail.com")
+    response = client_auth.get(f"{url}{user_id}?token={tmp_token}&email=wrong@mail.com")
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    response = client.get(f"{url}{user_id}?token={tmp_token}&email={tmp_email}")
+    response = client_auth.get(f"{url}{user_id}?token={tmp_token}&email={tmp_email}")
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"/email/login", json=body)
+    response = client_auth.post(f"/email/login", json=body)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    response = client.post(f"/email/login", json={"email": tmp_email, "password": body["password"]})
+    response = client_auth.post(f"/email/login", json={"email": tmp_email, "password": body["password"]})
     assert response.status_code == status.HTTP_200_OK
 
 
-def test_invalid_jsons(client: TestClient, dbsession: Session, user):
+def test_invalid_jsons(client_auth: TestClient, dbsession: Session, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
 
-    response = client.post(f"{url}request", json={"email": "changed@mail.com"}, headers={"token": ""})
+    response = client_auth.post(f"{url}request", json={"email": "changed@mail.com"}, headers={"Authorization": ""})
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    response = client_auth.post(f"{url}request", json={"email": ""}, headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    response = client.post(f"{url}request", json={"email": ""}, headers={"token": login["token"]})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    response = client.post(f"{url}request", json={"email": ""}, headers={"token": ""})
+    response = client_auth.post(f"{url}request", json={"email": ""}, headers={"Authorization": ""})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_expired_token(client: TestClient, dbsession: Session, user):
+def test_expired_token(client_auth: TestClient, dbsession: Session, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
-    response = client.post("/logout", headers={"token": login["token"]})
+    response = client_auth.post("/logout", headers={"Authorization": login['token']})
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"{url}request", json={"email": "changed@mail.com"}, headers={"token": login["token"]})
+    response = client_auth.post(
+        f"{url}request", json={"email": "changed@mail.com"}, headers={"Authorization": login["token"]}
+    )
     assert response.status_code == status.HTTP_403_FORBIDDEN
