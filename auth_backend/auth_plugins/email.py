@@ -416,6 +416,6 @@ class Email(AuthMethodMeta):
         salt = random_string()
         auth_method.user.auth_methods.hashed_password.value = Email._hash_password(schema.new_password, salt)
         auth_method.user.auth_methods.salt.value = salt
-        auth_method.user.auth_methods.reset_token.value = True
+        auth_method.user.auth_methods.reset_token.is_deleted = True
         db.session.commit()
         return ResponseModel(status="Success", message="Password has been successfully changed")
