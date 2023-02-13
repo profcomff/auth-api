@@ -13,14 +13,6 @@ from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 
 
-def return_nothing():
-    return None
-
-
-def return_dict():
-    return {"id": 0, "email": None}
-
-
 @pytest.fixture
 def client():
     patcher1 = patch("auth_backend.auth_plugins.email.send_confirmation_email")
