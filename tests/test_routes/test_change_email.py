@@ -59,7 +59,6 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
     response = client_auth.post(f"/email/login", json={"email": tmp_email, "password": body["password"]})
     assert response.status_code == status.HTTP_200_OK
 
-
 def test_invalid_jsons(client_auth: TestClient, dbsession: Session, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
 

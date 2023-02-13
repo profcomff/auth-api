@@ -11,6 +11,11 @@ def test_create(client, dbsession):
     body = {"name": f"group{time}"}
     response_parent = client.post(url="/group", json=body)
     assert response_parent.status_code == 200
+    parent_id = dbsession.query(Group).order_by(Group.id.desc()).first().id + 100
+    res = client.post(url="/group", json={"name": f"group{time}", "parent_id": parent_id})
+    assert res.status_code == 404
+    response_parent2 = client.post(url="/group", json=body)
+    assert response_parent2.status_code == 409
     group = Group.get(response_parent.json()["id"], session=dbsession)
     assert group.id == response_parent.json()["id"]
     assert group.parent_id == response_parent.json()["parent_id"]
@@ -59,6 +64,22 @@ def test_get(client, dbsession):
     child_orm = dbgroup.child
     assert parent.id == dbgroup.id
     assert child_orm[0].id == dbchild.id
+
+    for row in dbsession.query(Group).get(child), dbsession.query(Group).get(group):
+        dbsession.delete(row)
+    dbsession.commit()
+
+
+def test_get_all(client, dbsession):
+    time1 = datetime.datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None}
+    group = client.post(url="/group", json=body).json()["id"]
+    time2 = datetime.datetime.utcnow()
+    body = {"name": f"group{time2}", "parent_id": group}
+    child = client.post(url="/group", json=body).json()["id"]
+    response = client.get("/group").json()["items"]
+    assert group in [row["id"] for row in response]
+    assert child in [row["id"] for row in response]
 
     for row in dbsession.query(Group).get(child), dbsession.query(Group).get(group):
         dbsession.delete(row)

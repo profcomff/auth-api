@@ -5,9 +5,9 @@ from fastapi_sqlalchemy import db
 
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists
 from auth_backend.models.db import Group as DbGroup, UserSession
-from .models.models import Group, GroupPost, GroupsGet, GroupPatch, GroupGet
-from ..base import ResponseModel
-from ..utils.security import UnionAuth
+from auth_backend.routes.models.models import Group, GroupPost, GroupsGet, GroupPatch, GroupGet
+from auth_backend.base import ResponseModel
+from auth_backend.utils.security import UnionAuth
 
 auth = UnionAuth()
 
@@ -36,7 +36,7 @@ async def create_group(group_inp: GroupPost, _: UserSession = Depends(auth)) -> 
 
 
 @groups.patch("/{id}", response_model=Group)
-async def patch_group(id: int, group_inp: GroupPatch, _: dict[str, str] = Depends(auth)) -> Group:
+async def patch_group(id: int, group_inp: GroupPatch, _: UserSession = Depends(auth)) -> Group:
     if (
         exists_check := DbGroup.query(session=db.session)
         .filter(DbGroup.name == group_inp.name, DbGroup.id != id)
@@ -52,11 +52,11 @@ async def patch_group(id: int, group_inp: GroupPatch, _: dict[str, str] = Depend
 
 
 @groups.delete("/{id}", response_model=None)
-async def delete_group(id: int, _: dict[str, str] = Depends(auth)) -> None:
+async def delete_group(id: int, _: UserSession = Depends(auth)) -> None:
     group: DbGroup = DbGroup.get(id, session=db.session)
     if child := group.child:
         for children in child:
-            children.parent = group.parent
+            children.parent_id = group.parent_id
         db.session.flush()
     DbGroup.delete(id, session=db.session)
     db.session.commit()

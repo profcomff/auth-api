@@ -4,8 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from starlette import status
 
-from auth_backend.models.db import AuthMethod, User
-
+from auth_backend.models.db import AuthMethod, User, UserSession
 
 url = "/email/registration"
 
@@ -105,4 +104,35 @@ def test_repeated_registration_case(client: TestClient, dbsession: Session):
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == user_id).all():
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == user_id).one())
+    dbsession.commit()
+
+
+def test_user_exists(client_auth: TestClient, dbsession: Session):
+    user = User.create(session=dbsession)
+    session = UserSession.create(session=dbsession, user_id=user.id, token="1234")
+    dbsession.commit()
+    time = datetime.datetime.utcnow()
+    email = f"user{time}@example.com"
+    response = client_auth.post(
+        url, headers={"Authorization": "1234"}, json={"user_id": user.id, "email": email, "password": "string"}
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    db_user: AuthMethod = (
+        dbsession.query(AuthMethod).filter(AuthMethod.value == email, AuthMethod.param == 'email').one()
+    )
+    token = (
+        dbsession.query(AuthMethod)
+        .filter(
+            AuthMethod.user_id == db_user.user_id,
+            AuthMethod.param == "confirmation_token",
+            AuthMethod.auth_method == "email",
+        )
+        .one()
+    )
+    response = client_auth.get(f"/email/approve?token={token.value}")
+    assert response.status_code == 200
+    dbsession.delete(session)
+    for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
+        dbsession.delete(row)
+    dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
     dbsession.commit()

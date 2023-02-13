@@ -3,9 +3,9 @@ from fastapi_sqlalchemy import db
 from starlette.exceptions import HTTPException
 
 from auth_backend.models.db import Group, UserGroup
-from .models.models import UserGroupGet, GroupUserListGet, UserGroupPost
-from ..base import ResponseModel
-from ..utils.security import UnionAuth
+from auth_backend.routes.models.models import UserGroupGet, GroupUserListGet, UserGroupPost
+from auth_backend.base import ResponseModel
+from auth_backend.utils.security import UnionAuth
 
 auth = UnionAuth()
 user_groups = APIRouter(prefix="/group/{id}/user", tags=["User Groups"])

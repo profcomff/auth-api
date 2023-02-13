@@ -8,8 +8,8 @@ from starlette.responses import JSONResponse
 from auth_backend.base import ResponseModel
 from auth_backend.exceptions import SessionExpired
 from auth_backend.models.db import UserSession, Group
-from .models.models import UserGroups, UserIndirectGroups, UserInfo, UserGet
-from ..utils.security import UnionAuth
+from auth_backend.routes.models.models import UserGroups, UserIndirectGroups, UserInfo, UserGet
+from auth_backend.utils.security import UnionAuth
 
 auth = UnionAuth()
 

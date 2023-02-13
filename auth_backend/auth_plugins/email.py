@@ -113,21 +113,33 @@ class Email(AuthMethodMeta):
     def __init__(self):
         super().__init__()
 
-        self.router.add_api_route("/approve", self._approve_email, methods=["GET"])
-        self.router.add_api_route("/reset/email/request", self._request_reset_email, methods=["POST"])
-        self.router.add_api_route("/reset/email/{user_id}", self._reset_email, methods=["GET"])
-        self.router.add_api_route("/reset/password/request", self._request_reset_password, methods=["POST"])
-        self.router.add_api_route("/reset/password", self._reset_password, methods=["POST"])
+        self.router.add_api_route("/approve", self._approve_email, methods=["GET"], response_model=ResponseModel)
+        self.router.add_api_route(
+            "/reset/email/request", self._request_reset_email, methods=["POST"], response_model=ResponseModel
+        )
+        self.router.add_api_route(
+            "/reset/email/{user_id}", self._reset_email, methods=["GET"], response_model=ResponseModel
+        )
+        self.router.add_api_route(
+            "/reset/password/request", self._request_reset_password, methods=["POST"], response_model=ResponseModel
+        )
+        self.router.add_api_route(
+            "/reset/password", self._reset_password, methods=["POST"], response_model=ResponseModel
+        )
         self.router.prefix = self.prefix
         self.tags = ["Email"]
 
     @staticmethod
     async def _login(user_inp: EmailLogin) -> Session:
-        query = AuthMethod.query(session=db.session).filter(
+        query = (
+            AuthMethod.query(session=db.session)
+            .filter(
                 func.lower(AuthMethod.value) == user_inp.email.lower(),
                 AuthMethod.param == "email",
                 AuthMethod.auth_method == Email.get_name(),
-            ).one_or_none()
+            )
+            .one_or_none()
+        )
         if not query:
             raise AuthFailed(error="Incorrect login or password")
         if query.user.auth_methods.confirmed.value.lower() == "false":
@@ -171,13 +183,10 @@ class Email(AuthMethodMeta):
             user.auth_methods.confirmation_token.value = confirmation_token
 
     @staticmethod
-    async def _get_user_by_token_and_id(id: int, token: str) -> User:
+    async def _get_user_by_token_and_id(id: int, user_session: UserSession) -> User:
         user: User = User.get(session=db.session, id=id)
-        user_session: UserSession = UserSession.query(session=db.session).filter(UserSession.token == token, UserSession.user_id == id).one_or_none()
         if not user:
             raise ObjectNotFound(User, id)
-        if not user_session:
-            raise AuthFailed(error="Token not found, log in system")
         if user_session.expired:
             raise SessionExpired(user_session.token)
         return user
@@ -187,12 +196,15 @@ class Email(AuthMethodMeta):
         user_inp: EmailRegister, background_tasks: BackgroundTasks, user_session: UserSession = Depends(auth)
     ) -> ResponseModel:
         confirmation_token: str = random_string()
-
-        auth_method: AuthMethod = AuthMethod.query(session=db.session).filter(
+        auth_method: AuthMethod = (
+            AuthMethod.query(session=db.session)
+            .filter(
                 AuthMethod.param == "email",
                 func.lower(AuthMethod.value) == user_inp.email.lower(),
                 AuthMethod.auth_method == Email.get_name(),
-            ).one_or_none()
+            )
+            .one_or_none()
+        )
         if auth_method:
             await Email._change_confirmation_link(auth_method.user, confirmation_token)
             background_tasks.add_task(
@@ -203,7 +215,7 @@ class Email(AuthMethodMeta):
             db.session.commit()
             return ResponseModel(status="Success", message="Email confirmation link sent")
         if user_inp.user_id and user_session:
-            user = await Email._get_user_by_token_and_id(user_inp.user_id, user_session.token)
+            user = await Email._get_user_by_token_and_id(user_inp.user_id, user_session)
         else:
             user: User = User()  # type: ignore
             db.session.add(user)
@@ -231,11 +243,15 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     async def _approve_email(token: str) -> ResponseModel:
-        auth_method = AuthMethod.query(session=db.session).filter(
+        auth_method = (
+            AuthMethod.query(session=db.session)
+            .filter(
                 AuthMethod.value == token,
                 AuthMethod.param == "confirmation_token",
                 AuthMethod.auth_method == Email.get_name(),
-            ).one_or_none()
+            )
+            .one_or_none()
+        )
         if not auth_method:
             raise HTTPException(status_code=403, detail=ResponseModel(status="Error", message="Incorrect link").json())
         auth_method.user.auth_methods.confirmed.value = "true"
@@ -245,12 +261,12 @@ class Email(AuthMethodMeta):
     @staticmethod
     async def _request_reset_email(
         scheme: EmailChange, background_tasks: BackgroundTasks, user_session: UserSession = Depends(auth)
-    ):
+    ) -> ResponseModel:
         if not user_session:
             raise HTTPException(status_code=401, detail="Unauthorized")
         if user_session.expired:
             raise SessionExpired(user_session.token)
-        if not hasattr(user_session.user.auth_methods, "email"):
+        if not user_session.user.auth_methods.email:
             raise IncorrectUserAuthType()
         if user_session.user.auth_methods.confirmed.value == "false":
             raise AuthFailed(
@@ -278,7 +294,7 @@ class Email(AuthMethodMeta):
         return ResponseModel(status="Success", message="Email confirmation link sent")
 
     @staticmethod
-    async def _reset_email(user_id: int, token: str, email: str):
+    async def _reset_email(user_id: int, token: str, email: str) -> ResponseModel:
         user: User = User.get(id=user_id, session=db.session)
         if user.auth_methods.confirmed.value == "false":
             raise AuthFailed(
@@ -286,11 +302,11 @@ class Email(AuthMethodMeta):
             )
         if email != user.auth_methods.tmp_email.value:
             raise HTTPException(
-                status_code=403, detail=ResponseModel(status="Error", message="Incorrect new email").dict()
+                status_code=403, detail=ResponseModel(status="Error", message="Incorrect new email").json()
             )
         if token != user.auth_methods.tmp_email_confirmation_token.value:
             raise HTTPException(
-                status_code=403, detail=ResponseModel(status="Error", message="Incorrect confirmation token").dict()
+                status_code=403, detail=ResponseModel(status="Error", message="Incorrect confirmation token").json()
             )
         user.auth_methods.email.value = user.auth_methods.tmp_email.value
         user.auth_methods.tmp_email_confirmation_token.is_deleted = True
@@ -301,7 +317,7 @@ class Email(AuthMethodMeta):
     @staticmethod
     async def _request_reset_password(
         schema: RequestResetPassword, background_tasks: BackgroundTasks, user_session: UserSession = Depends(auth)
-    ):
+    ) -> ResponseModel:
         salt = random_string()
         if user_session and schema.new_password and schema.password:
             if user_session.expired:
