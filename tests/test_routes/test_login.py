@@ -73,52 +73,53 @@ def test_incorrect_data(client: TestClient, dbsession: Session):
     dbsession.commit()
 
 
-def test_check_token(client: TestClient, user, dbsession: Session):
+def test_check_token(client_auth: TestClient, user, dbsession: Session):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
 
-    response = client.post(f"/me", headers={"token": login["token"] + "2"})
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    response = client_auth.get(f"/me", headers={"Authorization": login["token"] + "2"})
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    response = client.post(f"/me", headers={"token": login["token"]})
+    response = client_auth.get(f"/me", headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"/logout", headers={"token": login["token"]})
+    response = client_auth.post(f"/logout", headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
-    response = client.post(f"/me", headers={"token": login["token"]})
+    response = client_auth.get(f"/me", headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 def test_invalid_check_tokens(client: TestClient, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
-    response = client.post(f"/me", headers={"token": ""})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response = client.get(f"/me", headers={"Authorization": ""})
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    response = client.post(f"/me")
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    response = client.get(f"/me")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-def test_check_me_groups(client: TestClient, user):
+def test_check_me_groups(client_auth: TestClient, user):
     user_id, body_user, login = user["user_id"], user["body"], user["login_json"]
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None}
-    _group1 = client.post(url="/group", json=body).json()["id"]
+    _group1 = client_auth.post(url="/group", json=body, headers={"Authorization": login["token"]}).json()["id"]
     time2 = datetime.datetime.utcnow()
     body = {"name": f"group{time2}", "parent_id": _group1}
-    _group2 = client.post(url="/group", json=body).json()["id"]
+    _group2 = client_auth.post(url="/group", json=body, headers={"Authorization": login["token"]}).json()["id"]
     time3 = datetime.datetime.utcnow()
     body = {"name": f"group{time3}", "parent_id": _group2}
-    _group3 = client.post(url="/group", json=body).json()["id"]
-    response = client.post(f"/group/{_group3}/user", json={"user_id": user_id})
+    _group3 = client_auth.post(url="/group", json=body, headers={"Authorization": login["token"]}).json()["id"]
+    response = client_auth.post(
+        f"/group/{_group3}/user", json={"user_id": user_id}, headers={"Authorization": login["token"]}
+    )
     assert response.status_code == status.HTTP_200_OK
-    response = client.post(f"/me", headers={"token": login["token"]}, params={"info": "groups"})
+    response = client_auth.get(f"/me", headers={"Authorization": login["token"]}, params={"info": "groups"})
     assert response.status_code == status.HTTP_200_OK
     assert _group3 in [row["id"] for row in response.json()["groups"]]
     assert _group2 not in [row["id"] for row in response.json()["groups"]]
     assert _group1 not in [row["id"] for row in response.json()["groups"]]
-    response = client.post(f"/me", headers={"token": login["token"]}, params={"info": "indirect_groups"})
+    response = client_auth.get(f"/me", headers={"Authorization": login["token"]}, params={"info": "indirect_groups"})
     assert response.status_code == status.HTTP_200_OK
     assert _group3 in [row["id"] for row in response.json()["indirect_groups"]]
     assert _group2 in [row["id"] for row in response.json()["indirect_groups"]]
     assert _group1 in [row["id"] for row in response.json()["indirect_groups"]]
-

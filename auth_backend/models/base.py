@@ -39,7 +39,7 @@ class BaseDbModel(Base):
         return obj
 
     @classmethod
-    def get_all(cls, *, with_deleted: bool = False, session: Session) -> Query:
+    def query(cls, *, with_deleted: bool = False, session: Session) -> Query:
         """Get all objects with soft deletes"""
         objs = session.query(cls)
         if not with_deleted and hasattr(cls, "is_deleted"):
