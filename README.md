@@ -46,4 +46,35 @@
 
     1. Восстановление без сессии
 
-    Надо дернуть ручку /email/password/reset/request, передать туда email. На почту приходит письмо со ссылкой на фронт, где можно поменять пароль, там     есть reset_token в ссылке. Далее 
+    Надо дернуть ручку /email/password/reset/request, передать туда email. На почту приходит письмо со ссылкой на фронт, где можно поменять пароль, там     есть reset_token в ссылке. Далее этот токен надо отправить в ручку /email/password/reset, туда отправляется email, reset_token в хедере, new_password в json. 
+    2. Восстановление с сессией
+    
+    Надо дернуть ручку /email/password/reset/request, передать туда email, token, password, new_password. Пароль просто поменяется, придет письмо об этом.
+    
+    3. Ручка /email/password/reset/request может кидать:
+            1. SessionExpired - 403, если переданная сессия закончилась
+            2. 401, Auth method restricted for this user
+            3. AuthFailed - 401, Incorrect password  || Registration wasn't completed.
+            4. 403, Incorrect user session, если переданная сессия не принадлежит юзеру.
+            5. Успешно - 200, Возвращает ResponseModel
+            6. 404, Email not found
+            
+    4. Ручка /email/password/reset может кидать:
+            1. 404, Email not found
+            2. 403, Incorrect reset token
+            3. Успешно - 200, возвращает ResponseModel
+5. Смена почты 
+
+Чтобы поменять почту, надо дернууть ручку /email/reset/email/request, туда передается новая почта и токен. На новую почту приходит письмо, в котором лежит ссылка на подтверждение новой почты. Ссылка на ручку /email/reset/email.
+
+        1. Ручка /email/reset/email/request:
+                1. 401, Unauthorized, если сессия не передана
+                2. SessionExpired - 403
+                3. IncorrectUserAuthType - 403, у юзера нет такого способа входа
+                4. AuthFailed - 401, Registration wasn't completed
+                5. 401, Email incorrect
+                6. Успешно - 200
+         2. Ручка /email/reset/email
+                1. AuthFailed - 401
+                2. 403, Incorrect new email || Incorrect confirmation token
+                3. Успешно - 200
