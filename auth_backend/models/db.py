@@ -88,8 +88,9 @@ class Group(BaseDbModel):
     )
 
     scopes: Mapped[set[Scope]] = relationship("Scope", back_populates="groups",
+                                               secondary="group_scope",
                                                primaryjoin="and_(Group.id==GroupScope.group_id, not_(GroupScope.is_deleted))",
-                                               secondaryjoin="and_(Scope.id==GroupScope.scope_id), not_(Scope.is_deleted)"
+                                               secondaryjoin="and_(Scope.id==GroupScope.scope_id, not_(Scope.is_deleted))"
                                                )
 
     @hybrid_property
@@ -143,8 +144,9 @@ class UserSession(BaseDbModel):
         primaryjoin="and_(UserSession.user_id==User.id, not_(User.is_deleted))",
     )
     scopes: Mapped[list[Scope]] = relationship("Scope", back_populates="user_sessions",
+                                                secondary="user_session_scope",
                                                 primaryjoin="and_(UserSession.id==UserSessionScope.user_session_id, not_(UserSessionScope.is_deleted))",
-        secondaryjoin="and_(Scope.id==UserSessionScope.scope_id), not_(Scope.is_deleted)")
+        secondaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(Scope.is_deleted))")
 
 
     @hybrid_property
@@ -158,10 +160,12 @@ class Scope(BaseDbModel):
     comment: Mapped[str] = mapped_column(String, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     groups: Mapped[list[Group]] = relationship(Group, back_populates="scopes",
+                                               secondary="group_scope",
         primaryjoin="and_(Scope.id==GroupScope.scope_id, not_(GroupScope.is_deleted))",
         secondaryjoin="and_(Group.id==GroupScope.group_id, not_(Group.is_deleted))",
                                                )
     user_sessions: Mapped[list[UserSession]] = relationship(UserSession, back_populates="scopes",
+                                                            secondary="user_session_scope",
                                                 primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
         secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",)
 

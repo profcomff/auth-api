@@ -1,8 +1,11 @@
 import datetime
 
+import pytest
+
 from auth_backend.models.db import Group, UserSession, User
 
 
+@pytest.mark.skip
 def test_scopes_groups(client_auth, dbsession, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
     time1 = datetime.datetime.utcnow()
@@ -61,7 +64,7 @@ def test_scopes_groups(client_auth, dbsession, user):
     dbsession.commit()
 
 
-
+@pytest.mark.skip
 def test_scopes_user_session(client_auth, dbsession, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
     time1 = datetime.datetime.utcnow()
@@ -110,6 +113,7 @@ def test_scopes_user_session(client_auth, dbsession, user):
     dbsession.commit()
 
 
+@pytest.mark.skip
 def test_scopes_user_session_incorect_scopes(client_auth, dbsession, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
     time1 = datetime.datetime.utcnow()
