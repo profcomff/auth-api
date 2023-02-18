@@ -27,11 +27,11 @@ def test_invalid_email(client_auth: TestClient):
     response = client_auth.post(url, json=body2)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     response = client_auth.post(url, json=body3)
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_200_OK
     response = client_auth.post(url, json=body4)
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_200_OK
     response = client_auth.post(url, json=body5)
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_200_OK
     response = client_auth.post(url, json=body6)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -40,7 +40,7 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session):
     time = datetime.datetime.utcnow()
     body1 = {"email": f"user{time}@example.com", "password": "string"}
     response = client_auth.post(url, json=body1)
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_200_OK
     body2 = {"email": f"UsEr{time}@example.com", "password": "string"}
     response = client_auth.post(url, json=body2)
     assert response.status_code == status.HTTP_200_OK
@@ -68,7 +68,7 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session):
 def test_repeated_registration_case(client_auth: TestClient, dbsession: Session):
     body = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string"}
     response = client_auth.post(url, json=body)
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_200_OK
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
     )
@@ -116,7 +116,7 @@ def test_user_exists(client_auth: TestClient, dbsession: Session):
     response = client_auth.post(
         url, headers={"Authorization": "1234"}, json={"user_id": user.id, "email": email, "password": "string"}
     )
-    assert response.status_code == status.HTTP_201_CREATED
+    assert response.status_code == status.HTTP_200_OK
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == email, AuthMethod.param == 'email').one()
     )

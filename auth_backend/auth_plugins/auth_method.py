@@ -1,17 +1,27 @@
 from __future__ import annotations
 
-import re
 import logging
-from abc import abstractmethod, ABCMeta
+import random
+import re
+import string
+from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
 from fastapi import APIRouter
 from pydantic import constr
+from sqlalchemy.orm import Session
 
 from auth_backend.base import Base
+from auth_backend.models.db import User, UserSession
+from auth_backend.settings import get_settings
 
 
 logger = logging.getLogger(__name__)
+settings = get_settings()
+
+
+def random_string(length: int = 32) -> str:
+    return "".join([random.choice(string.ascii_letters) for _ in range(length)])
 
 
 class Session(Base):
@@ -54,6 +64,49 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @abstractmethod
     async def _login(*args, **kwargs) -> Session:
         raise NotImplementedError()
+
+    @staticmethod
+    async def _create_session(user: User, *, db_session: Session) -> Session:
+        """Создает сессию пользователя"""
+        user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
+        db_session.add(user_session)
+        db_session.flush()
+        return Session(
+            user_id=user_session.user_id,
+            token=user_session.token,
+            id=user_session.id,
+            expires=user_session.expires,
+        )
+
+    @staticmethod
+    async def _create_user(*, db_session: Session) -> User:
+        """Создает сессию пользователя"""
+        user = User()
+        db_session.add(user)
+        db_session.flush()
+        return user
+
+    async def _get_user(
+            *,
+            db_session: Session,
+            user_session: UserSession = None,
+            session_token: str = None,
+            user_id: int = None,
+            with_deleted: bool = False,
+            with_expired: bool = False,
+        ):
+        assert db_session, 'No db session'
+        if user_id:
+            return User.get(user_id, with_deleted=with_deleted, session=db_session)
+        if session_token:
+            user_session: UserSession = UserSession.query(
+                with_deleted=with_deleted, session=db_session
+            ).filter(
+                UserSession.token == session_token
+            ).one_or_none()
+        if user_session and (not user_session.expired or with_expired):
+            return user_session.user
+        return
 
 
 class OauthMeta(AuthMethodMeta):

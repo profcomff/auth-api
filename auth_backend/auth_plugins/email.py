@@ -1,6 +1,4 @@
 import hashlib
-import random
-import string
 
 from fastapi import Depends, Header, HTTPException
 from fastapi.background import BackgroundTasks
@@ -20,7 +18,7 @@ from auth_backend.utils.smtp import (
     send_reset_email,
 )
 
-from .auth_method import AuthMethodMeta, Session
+from .auth_method import AuthMethodMeta, Session, random_string
 
 
 auth = UnionAuth(auto_error=False)
@@ -94,9 +92,6 @@ class ResetPassword(Base):
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
-def random_string(length: int = 12) -> str:
-    return "".join([random.choice(string.ascii_letters) for _ in range(length)])
-
 
 class Email(AuthMethodMeta):
     prefix = "/email"
@@ -129,8 +124,8 @@ class Email(AuthMethodMeta):
         )
         self.tags = ["Email"]
 
-    @staticmethod
-    async def _login(user_inp: EmailLogin) -> Session:
+    @classmethod
+    async def _login(cls, user_inp: EmailLogin) -> Session:
         query = (
             AuthMethod.query(session=db.session)
             .filter(
@@ -150,13 +145,7 @@ class Email(AuthMethodMeta):
             user_inp.password, query.user.auth_methods.hashed_password.value, query.user.auth_methods.salt.value
         ):
             raise AuthFailed(error="Incorrect login or password")
-        db.session.add(
-            user_session := UserSession(user_id=query.user.id, token=random_string(length=settings.TOKEN_LENGTH))
-        )
-        db.session.commit()
-        return Session(
-            user_id=user_session.user_id, token=user_session.token, id=user_session.id, expires=user_session.expires
-        )
+        return await cls._create_session(query.user, db_session=db.session)
 
     @staticmethod
     async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> None:
@@ -182,18 +171,12 @@ class Email(AuthMethodMeta):
         else:
             user.auth_methods.confirmation_token.value = confirmation_token
 
-    @staticmethod
-    async def _get_user_by_token_and_id(id: int, user_session: UserSession) -> User:
-        user: User = User.get(session=db.session, id=id)
-        if not user:
-            raise ObjectNotFound(User, id)
-        if user_session.expired:
-            raise SessionExpired(user_session.token)
-        return user
-
-    @staticmethod
+    @classmethod
     async def _register(
-        user_inp: EmailRegister, background_tasks: BackgroundTasks, user_session: UserSession = Depends(auth)
+        cls,
+        user_inp: EmailRegister,
+        background_tasks: BackgroundTasks,
+        user_session: UserSession = Depends(auth),
     ) -> ResponseModel:
         confirmation_token: str = random_string()
         auth_method: AuthMethod = (
@@ -215,11 +198,11 @@ class Email(AuthMethodMeta):
             db.session.commit()
             return ResponseModel(status="Success", message="Email confirmation link sent")
         if user_session:
-            user = await Email._get_user_by_token_and_id(user_session.user_id, user_session)
+            user = await cls._get_user(user_session=user_session, db_session=db.session)
+            if not user:
+                raise SessionExpired(user_session.token)
         else:
-            user: User = User()  # type: ignore
-            db.session.add(user)
-            db.session.flush()
+            user = await cls._create_user(db_session=db.session)
         await Email._add_to_db(user_inp, confirmation_token, user)
         background_tasks.add_task(
             send_confirmation_email,
@@ -227,9 +210,7 @@ class Email(AuthMethodMeta):
             link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
         )
         db.session.commit()
-        raise HTTPException(
-            status_code=201, detail=ResponseModel(status="Success", message="Email confirmation link sent").json()
-        )
+        return ResponseModel(status="Success", message="Email confirmation link sent")
 
     @staticmethod
     def _hash_password(password: str, salt: str) -> str:
