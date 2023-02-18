@@ -1,3 +1,4 @@
+from collections import namedtuple
 import datetime
 from unittest.mock import patch
 
@@ -29,7 +30,12 @@ def client():
     patcher2.return_value = None
     patcher3.return_value = None
     patcher4.return_value = None
-    patcher5.return_value = {"id": 0, "email": None}
+    patcher5.return_value = UserSession(**{
+        "id": 0,
+        "user_id": 0,
+        "expires": datetime.datetime.now() + datetime.timedelta(days=7),
+        "token": "123456",
+    })
     client = TestClient(app)
     yield client
     patcher1.stop()

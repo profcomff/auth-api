@@ -70,7 +70,7 @@ class EmailLogin(Base):
 
 
 class EmailRegister(EmailLogin):
-    user_id: int | None
+    pass
 
 
 class EmailChange(Base):
@@ -119,7 +119,7 @@ class Email(AuthMethodMeta):
             "/reset/email/request", self._request_reset_email, methods=["POST"], response_model=ResponseModel
         )
         self.router.add_api_route(
-            "/reset/email/{user_id}", self._reset_email, methods=["GET"], response_model=ResponseModel
+            "/reset/email", self._reset_email, methods=["GET"], response_model=ResponseModel
         )
         self.router.add_api_route(
             "/reset/password/request", self._request_reset_password, methods=["POST"], response_model=ResponseModel
@@ -214,8 +214,8 @@ class Email(AuthMethodMeta):
             )
             db.session.commit()
             return ResponseModel(status="Success", message="Email confirmation link sent")
-        if user_inp.user_id and user_session:
-            user = await Email._get_user_by_token_and_id(user_inp.user_id, user_session)
+        if user_session:
+            user = await Email._get_user_by_token_and_id(user_session.user_id, user_session)
         else:
             user: User = User()  # type: ignore
             db.session.add(user)
@@ -294,19 +294,19 @@ class Email(AuthMethodMeta):
         return ResponseModel(status="Success", message="Email confirmation link sent")
 
     @staticmethod
-    async def _reset_email(user_id: int, token: str, email: str) -> ResponseModel:
-        user: User = User.get(id=user_id, session=db.session)
+    async def _reset_email(token: str) -> ResponseModel:
+        auth: AuthMethod = AuthMethod.query(session=db.session).filter(
+            AuthMethod.param == 'tmp_email_confirmation_token',
+            AuthMethod.value == token,
+        ).one_or_none()
+        if not auth:
+            raise HTTPException(
+                status_code=403, detail=ResponseModel(status="Error", message="Incorrect confirmation token").json()
+            )
+        user: User = auth.user
         if user.auth_methods.confirmed.value == "false":
             raise AuthFailed(
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
-            )
-        if email != user.auth_methods.tmp_email.value:
-            raise HTTPException(
-                status_code=403, detail=ResponseModel(status="Error", message="Incorrect new email").json()
-            )
-        if token != user.auth_methods.tmp_email_confirmation_token.value:
-            raise HTTPException(
-                status_code=403, detail=ResponseModel(status="Error", message="Incorrect confirmation token").json()
             )
         user.auth_methods.email.value = user.auth_methods.tmp_email.value
         user.auth_methods.tmp_email_confirmation_token.is_deleted = True

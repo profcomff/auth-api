@@ -9,7 +9,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 url = "/email/registration"
 
 
-def test_invalid_email(client: TestClient):
+def test_invalid_email(client_auth: TestClient):
     body1 = {"email": f"notEmailForSure", "password": "string"}
     body2 = {"email": f"EmailForSure{datetime.datetime.utcnow()}@mail.gtg", "password": ""}
     body3 = {
@@ -22,27 +22,27 @@ def test_invalid_email(client: TestClient):
         "email": f"roman@dyakov.space\nContent-Type: text/html; charset=utf-8;\n\nАхаха,лох<!---",
         "password": "string",
     }
-    response = client.post(url, json=body1)
+    response = client_auth.post(url, json=body1)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    response = client.post(url, json=body2)
+    response = client_auth.post(url, json=body2)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    response = client.post(url, json=body3)
+    response = client_auth.post(url, json=body3)
     assert response.status_code == status.HTTP_201_CREATED
-    response = client.post(url, json=body4)
+    response = client_auth.post(url, json=body4)
     assert response.status_code == status.HTTP_201_CREATED
-    response = client.post(url, json=body5)
+    response = client_auth.post(url, json=body5)
     assert response.status_code == status.HTTP_201_CREATED
-    response = client.post(url, json=body6)
+    response = client_auth.post(url, json=body6)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
-def test_main_scenario(client: TestClient, dbsession: Session):
+def test_main_scenario(client_auth: TestClient, dbsession: Session):
     time = datetime.datetime.utcnow()
     body1 = {"email": f"user{time}@example.com", "password": "string"}
-    response = client.post(url, json=body1)
+    response = client_auth.post(url, json=body1)
     assert response.status_code == status.HTTP_201_CREATED
     body2 = {"email": f"UsEr{time}@example.com", "password": "string"}
-    response = client.post(url, json=body2)
+    response = client_auth.post(url, json=body2)
     assert response.status_code == status.HTTP_200_OK
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body1['email'], AuthMethod.param == 'email').one()
@@ -56,8 +56,8 @@ def test_main_scenario(client: TestClient, dbsession: Session):
         )
         .one()
     )
-    client.get(f"/email/approve?token={token.value}")
-    response = client.post(url, json=body2)
+    client_auth.get(f"/email/approve?token={token.value}")
+    response = client_auth.post(url, json=body2)
     assert response.status_code == status.HTTP_409_CONFLICT
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
         dbsession.delete(row)
@@ -65,9 +65,9 @@ def test_main_scenario(client: TestClient, dbsession: Session):
     dbsession.commit()
 
 
-def test_repeated_registration_case(client: TestClient, dbsession: Session):
+def test_repeated_registration_case(client_auth: TestClient, dbsession: Session):
     body = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string"}
-    response = client.post(url, json=body)
+    response = client_auth.post(url, json=body)
     assert response.status_code == status.HTTP_201_CREATED
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
@@ -83,7 +83,7 @@ def test_repeated_registration_case(client: TestClient, dbsession: Session):
         .one()
         .value
     )
-    response2 = client.post(url, json=body)
+    response2 = client_auth.post(url, json=body)
     assert response2.status_code == status.HTTP_200_OK
 
     tokens = (
@@ -97,9 +97,9 @@ def test_repeated_registration_case(client: TestClient, dbsession: Session):
 
     curr_token = tokens[-1].value
     assert curr_token != prev_token
-    from_prev_token = client.get(f'/email/approve?token={prev_token}')
+    from_prev_token = client_auth.get(f'/email/approve?token={prev_token}')
     assert from_prev_token.status_code == status.HTTP_403_FORBIDDEN
-    from_curr_token = client.get(f'/email/approve?token={curr_token}')
+    from_curr_token = client_auth.get(f'/email/approve?token={curr_token}')
     assert from_curr_token.status_code == status.HTTP_200_OK
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == user_id).all():
         dbsession.delete(row)
