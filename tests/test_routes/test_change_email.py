@@ -44,13 +44,10 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
     response = client_auth.post(f"/email/login", json={"email": tmp_email, "password": body["password"]})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-    response = client_auth.get(f"{url}{user_id}?token={conf_token_1}&email=changed@mail.com")
+    response = client_auth.get(f"{url}?token={conf_token_1}")
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    response = client_auth.get(f"{url}{user_id}?token={tmp_token}&email=wrong@mail.com")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    response = client_auth.get(f"{url}{user_id}?token={tmp_token}&email={tmp_email}")
+    response = client_auth.get(f"{url}?token={tmp_token}")
     assert response.status_code == status.HTTP_200_OK
 
     response = client_auth.post(f"/email/login", json=body)

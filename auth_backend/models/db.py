@@ -22,6 +22,7 @@ class ParamDict:
     tmp_email: AuthMethod
     reset_token: AuthMethod
     tmp_email_confirmation_token: AuthMethod
+    client_id: AuthMethod
 
     def __new__(cls, methods: list[AuthMethod], *args, **kwargs):
         obj = super(ParamDict, cls).__new__(cls)

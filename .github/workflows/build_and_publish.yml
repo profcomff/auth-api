@@ -86,9 +86,14 @@ jobs:
             --env DB_DSN='${{ secrets.DB_DSN }}' \
             --env EMAIL='${{ secrets.EMAIL }}' \
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
-            --env SMTP_HOST='smtp.gmail.com' \
-            --env SMTP_PORT='587' \
+            --env SMTP_HOST='mail.profcomff.com' \
+            --env SMTP_PORT='465' \
             --env APPLICATION_HOST='${{ secrets.HOST }}' \
+            --env GOOGLE_REDIRECT_URL='https://app.test.profcomff.com/auth/oauth-authorized/google' \
+            --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
+            --env PHYSICS_REDIRECT_URL='https://app.test.profcomff.com/auth/oauth-authorized/physics-msu' \
+            --env PHYSICS_CREDENTIALS='${{ secrets.PHYSICS_CREDENTIALS }}' \
+            --env LKMSU_REDIRECT_URL='https://app.test.profcomff.com/auth/oauth-authorized/lk-msu' \
             --name ${{ env.CONTAITER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
 
@@ -132,8 +137,13 @@ jobs:
             --env EMAIL='${{ secrets.EMAIL }}' \
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
             --env ENABLED_AUTH_METHODS='${{ secrets.ENABLED_AUTH_METHODS }}' \
-            --env SMTP_HOST='smtp.gmail.com' \
-            --env SMTP_PORT='587' \
+            --env SMTP_HOST='mail.profcomff.com' \
+            --env SMTP_PORT='465' \
             --env APPLICATION_HOST='${{ secrets.HOST }}' \
+            --env GOOGLE_REDIRECT_URL='https://app.profcomff.com/auth/oauth-authorized/google' \
+            --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
+            --env PHYSICS_REDIRECT_URL='https://app.profcomff.com/auth/oauth-authorized/physics-msu' \
+            --env PHYSICS_CREDENTIALS='${{ secrets.PHYSICS_CREDENTIALS }}' \
+            --env LKMSU_REDIRECT_URL='https://app.profcomff.com/auth/oauth-authorized/lk-msu' \
             --name ${{ env.CONTAITER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest

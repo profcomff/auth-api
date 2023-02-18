@@ -40,8 +40,7 @@ def send_confirmation_email(to_addr, link):
     img.add_header('Content-ID', '<header>')
     message.attach(img)
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as smtp:
-        smtp.starttls()
+    with smtplib.SMTP_SSL(settings.SMTP_HOST, 465) as smtp:
         smtp.login(settings.EMAIL, settings.EMAIL_PASS)
         smtp.sendmail(settings.EMAIL, to_addr, message.as_string())
 
@@ -76,8 +75,7 @@ def send_reset_email(to_addr, link):
     img.add_header('Content-ID', '<header>')
     message.attach(img)
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as smtp:
-        smtp.starttls()
+    with smtplib.SMTP_SSL(settings.SMTP_HOST, 465) as smtp:
         smtp.login(settings.EMAIL, settings.EMAIL_PASS)
         smtp.sendmail(settings.EMAIL, to_addr, message.as_string())
 
@@ -112,8 +110,7 @@ def send_change_password_confirmation(to_addr, link):
     img.add_header('Content-ID', '<header>')
     message.attach(img)
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as smtp:
-        smtp.starttls()
+    with smtplib.SMTP_SSL(settings.SMTP_HOST, 465) as smtp:
         smtp.login(settings.EMAIL, settings.EMAIL_PASS)
         smtp.sendmail(settings.EMAIL, to_addr, message.as_string())
 
@@ -147,7 +144,6 @@ def send_changes_password_notification(to_addr):
     img.add_header('Content-ID', '<header>')
     message.attach(img)
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as smtp:
-        smtp.starttls()
+    with smtplib.SMTP_SSL(settings.SMTP_HOST, 465) as smtp:
         smtp.login(settings.EMAIL, settings.EMAIL_PASS)
         smtp.sendmail(settings.EMAIL, to_addr, message.as_string())

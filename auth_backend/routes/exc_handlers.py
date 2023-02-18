@@ -1,9 +1,18 @@
 import starlette.requests
 from starlette.responses import JSONResponse
 
-from auth_backend.exceptions import ObjectNotFound, IncorrectUserAuthType, AlreadyExists, AuthFailed, SessionExpired
-from .base import app
 from auth_backend.base import ResponseModel
+from auth_backend.exceptions import (
+    AlreadyExists,
+    AuthFailed,
+    IncorrectUserAuthType,
+    OauthAuthFailed,
+    OauthCredentialsIncorrect,
+    ObjectNotFound,
+    SessionExpired,
+)
+
+from .base import app
 
 
 @app.exception_handler(ObjectNotFound)
@@ -24,6 +33,27 @@ async def already_exists_handler(req: starlette.requests.Request, exc: AlreadyEx
 @app.exception_handler(AuthFailed)
 async def auth_failed_handler(req: starlette.requests.Request, exc: AuthFailed):
     return JSONResponse(content=ResponseModel(status="Error", message=f"{exc}").json(), status_code=401)
+
+
+class OauthAuthFailedResponseModel(ResponseModel):
+    id_token: str
+
+
+@app.exception_handler(OauthAuthFailed)
+async def auth_failed_handler(req: starlette.requests.Request, exc: OauthAuthFailed):
+    return JSONResponse(
+        content=OauthAuthFailedResponseModel(
+            status="Error",
+            message=f"{exc}",
+            id_token=exc.id_token,
+        ).json(),
+        status_code=401,
+    )
+
+
+@app.exception_handler(OauthCredentialsIncorrect)
+async def auth_failed_handler(req: starlette.requests.Request, exc: AuthFailed):
+    return JSONResponse(content=ResponseModel(status="Error", message=f"{exc}").json(), status_code=406)
 
 
 @app.exception_handler(SessionExpired)
