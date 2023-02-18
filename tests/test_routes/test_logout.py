@@ -27,12 +27,12 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session):
         .one()
     )
     response = client_auth.get(f"/email/approve?token={auth_token.value}")
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_200_OK, response.json()
     response = client_auth.post("/email/login", json=body)
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_200_OK, response.json()
     token = response.json()['token']
     response = client_auth.post(url, headers={"Authorization": token})
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_200_OK, response.json()
     expire_date = dbsession.query(UserSession).filter(UserSession.token == token).one()
     assert expire_date.expired
     response = client_auth.post(url, headers={"Authorization": token})
