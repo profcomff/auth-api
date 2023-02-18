@@ -80,7 +80,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     @staticmethod
     async def _create_user(*, db_session: Session) -> User:
-        """Создает сессию пользователя"""
+        """Создает пользователя"""
         user = User()
         db_session.add(user)
         db_session.flush()
@@ -95,7 +95,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
             with_deleted: bool = False,
             with_expired: bool = False,
         ):
-        assert db_session, 'No db session'
+        """Отдает пользователя по сессии, токену или user_id"""
         if user_id:
             return User.get(user_id, with_deleted=with_deleted, session=db_session)
         if session_token:
