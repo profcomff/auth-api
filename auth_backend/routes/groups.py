@@ -66,8 +66,10 @@ async def patch_group(id: int, group_inp: GroupPatch, _: UserSession = Depends(a
     if group_inp.scopes:
         for _scope_id in group_inp.scopes:
             scopes.add(Scope.get(session=db.session, id=_scope_id))
-    db.session.flush()
-    return Group.from_orm(patched)
+    if scopes:
+        group.scopes = scopes
+    db.session.commit()
+    return Group.from_orm(group)
 
 
 @groups.delete("/{id}", response_model=None)

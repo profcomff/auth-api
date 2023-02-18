@@ -88,18 +88,21 @@ def patch_scope_validator(v: str) -> str:
 class ScopeGet(Base):
     id: int
     name: str
+    comment: str | None
 
     validator_name = validator("name", allow_reuse=True)(scope_validator)
 
 
 class ScopePost(Base):
     name: str
+    comment: str | None
 
     validator_name = validator("name", allow_reuse=True)(scope_validator)
 
 
 class ScopePatch(Base):
     name: str | None
+    comment: str | None
 
     validator_name = validator("name", allow_reuse=True)(patch_scope_validator)
 

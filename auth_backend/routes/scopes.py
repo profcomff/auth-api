@@ -12,10 +12,10 @@ auth = UnionAuth()
 scopes = APIRouter(prefix="/scopes", tags=["Scopes"])
 
 @scopes.post("", response_model=ScopeGet)
-async def create_scope(scope: ScopePost, _: UserSession = Depends(auth)) -> ScopeGet:
+async def create_scope(scope: ScopePost, user_session: UserSession = Depends(auth)) -> ScopeGet:
     if Scope.query(session=db.session).filter(Scope.name == scope.name).all():
         raise HTTPException(status_code=409, detail=ResponseModel(status="Error", message="Already exists").json())
-    return ScopeGet.from_orm(Scope.create(**scope.dict(), session=db.session))
+    return ScopeGet.from_orm(Scope.create(**scope.dict(), creator_id=user_session.user_id, session=db.session))
 
 @scopes.get("/{id}", response_model=ScopeGet)
 async def get_scope(id: int, _: UserSession = Depends(auth)) -> ScopeGet:

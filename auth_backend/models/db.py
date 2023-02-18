@@ -152,7 +152,9 @@ class UserSession(BaseDbModel):
 
 
 class Scope(BaseDbModel):
+    creator_id: Mapped[int] = mapped_column(Integer, ForeignKey(User.id))
     name: Mapped[str] = mapped_column(String)
+    comment: Mapped[str] = mapped_column(String, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     groups: Mapped[list[Group]] = relationship(Group, back_populates="scopes",
         primaryjoin="and_(Scope.id==GroupScope.scope_id, not_(GroupScope.is_deleted))",
@@ -161,6 +163,7 @@ class Scope(BaseDbModel):
     user_sessions: Mapped[list[UserSession]] = relationship(UserSession, back_populates="scopes",
                                                 primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
         secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",)
+
 
 class GroupScope(BaseDbModel):
     group_id: Mapped[int] = mapped_column(Integer, ForeignKey(Group.id))
