@@ -21,3 +21,12 @@ class SessionExpired(Exception):
 class AuthFailed(Exception):
     def __init__(self, error: str):
         super().__init__(error)
+
+class OauthAuthFailed(Exception):
+    def __init__(self, error: str, id_token: str = None):
+        self.id_token = id_token
+        super().__init__(error)
+
+class OauthCredentialsIncorrect(Exception):
+    def __init__(self, error: str):
+        super().__init__(error)

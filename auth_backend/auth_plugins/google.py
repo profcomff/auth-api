@@ -1,14 +1,16 @@
 import logging
 
 import google_auth_oauthlib.flow
-from google.oauth2 import id_token
+from google.oauth2.id_token import verify_oauth2_token
+from google.auth.exceptions import GoogleAuthError
 from fastapi import Depends
 from fastapi_sqlalchemy import db
-from pydantic import BaseModel, Json
+import oauthlib.oauth2.rfc6749.errors
+from pydantic import BaseModel, Field, Json
 from google.auth.transport import requests
 
 from auth_backend.models.db import AuthMethod, User, UserSession
-from auth_backend.exceptions import AuthFailed
+from auth_backend.exceptions import AlreadyExists, OauthAuthFailed, OauthCredentialsIncorrect
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
@@ -34,11 +36,10 @@ class GoogleAuth(OauthMeta):
     settings = GoogleSettings()
 
     class OauthResponseSchema(BaseModel):
-        code: str
+        code: str | None
         scope: str | None
         state: str | None
-        prompt: str | None
-        authuser: str | None
+        id_token: str | None = Field(help="Google JWT token identifier")
 
     def __init__(self):
         super().__init__()
@@ -54,18 +55,31 @@ class GoogleAuth(OauthMeta):
         Если передана активная сессия пользователя, то привязывает аккаунт Google к аккаунту в
         активной сессии. Иначе, создает новый пользователь и делает Google первым методом входа.
         """
-        flow = await cls._default_flow()
-        credentials = flow.fetch_token(code=user_inp.code)
-        request = requests.Request()
-        guser_id = id_token.verify_oauth2_token(
-            credentials.get("id_token"),
-            request,
-            cls.settings.GOOGLE_CREDENTIALS['web']['client_id']
-        )
+        if not user_inp.id_token:
+            flow = await cls._default_flow()
+            try:
+                credentials = flow.fetch_token(**user_inp.dict(exclude_unset=True))
+            except oauthlib.oauth2.rfc6749.errors.InvalidGrantError as exc:
+                raise OauthCredentialsIncorrect('Google account response invalid: {exc}')
+            id_token = credentials.get("id_token")
+        else:
+            id_token = user_inp.id_token
 
-        user = await cls._create_user() if user_session is None else user_session.user
+        try:
+            guser_id = verify_oauth2_token(
+                id_token,
+                requests.Request(),
+                cls.settings.GOOGLE_CREDENTIALS['web']['client_id'],
+            )
+        except GoogleAuthError as exc:
+            raise OauthCredentialsIncorrect('Google account response invalid: {exc}')
+        user = await cls._get_user(guser_id, db_session=db.session)
+        if user is not None:
+            raise AlreadyExists(user, user.id)
+
+        user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         await cls._register_auth_method(guser_id, user, db_session=db.session)
-        return await cls._create_session(user.user, db_session=db.session)
+        return await cls._create_session(user, db_session=db.session)
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema):
@@ -75,26 +89,22 @@ class GoogleAuth(OauthMeta):
         возвращает ошибка.
         """
         flow = await cls._default_flow()
-        credentials = flow.fetch_token(**user_inp.dict(exclude_unset=True))
-        request = requests.Request()
-        guser_id = id_token.verify_oauth2_token(
-            credentials.get("id_token"),
-            request,
-            cls.settings.GOOGLE_CREDENTIALS['web']['client_id']
-        )
-
-        auth_method: AuthMethod = (
-            AuthMethod.query(session=db.session)
-            .filter(
-                AuthMethod.param == "unique_google_id",
-                AuthMethod.value == guser_id['sub'],  # An identifier for the user, unique among all Google accounts
-                AuthMethod.auth_method == cls.get_name(),
+        try:
+            credentials = flow.fetch_token(**user_inp.dict(exclude_unset=True))
+        except oauthlib.oauth2.rfc6749.errors.InvalidGrantError as exc:
+            raise OauthCredentialsIncorrect('Google account response invalid: {exc}')
+        try:
+            guser_id = verify_oauth2_token(
+                credentials.get("id_token"),
+                requests.Request(),
+                cls.settings.GOOGLE_CREDENTIALS['web']['client_id']
             )
-            .one_or_none()
-        )
-        if not auth_method:
-            raise AuthFailed('No users found for google account')
-        return await cls._create_session(auth_method.user, db_session=db.session)
+        except GoogleAuthError as exc:
+            raise OauthCredentialsIncorrect('Google account response invalid: {exc}')
+        user = await cls._get_user(guser_id, db_session=db.session)
+        if not user:
+            raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
+        return await cls._create_session(user, db_session=db.session)
 
     @classmethod
     async def _redirect_url(cls):
@@ -131,3 +141,17 @@ class GoogleAuth(OauthMeta):
             value=guser_id['sub'],
             session=db_session,
         )
+
+    @classmethod
+    async def _get_user(cls, guser_id: dict[str], *, db_session: Session) -> User | None:
+        auth_method: AuthMethod = (
+            AuthMethod.query(session=db_session)
+            .filter(
+                AuthMethod.param == "unique_google_id",
+                AuthMethod.value == guser_id['sub'],  # An identifier for the user, unique among all Google accounts
+                AuthMethod.auth_method == cls.get_name(),
+            )
+            .one_or_none()
+        )
+        if auth_method:
+            return auth_method.user
