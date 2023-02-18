@@ -38,16 +38,29 @@ class LkmsuAuth(OauthMeta):
 
     @staticmethod
     async def _register(user_inp: OauthResponseSchema, background_tasks: BackgroundTasks, user_session: UserSession = Depends(auth)):
-        pass
+        """Создает аккаунт или привязывает существующий
+
+        Если передана активная сессия пользователя, то привязывает аккаунт https://lk.msu.ru к
+        аккаунту в активной сессии. Иначе, создает новый пользователь и делает https://lk.msu.ru
+        первым методом входа.
+        """
+        raise NotImplementedError
 
     @staticmethod
     async def _login(user_inp: OauthResponseSchema):
-        return Session(token='123', expires=datetime.now(), id=1, user_id=123)
+        """Вход в пользователя с помощью аккаунта https://lk.msu.ru
+
+        Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
+        найден, возвращает ошибка.
+        """
+        raise NotImplementedError
 
     @classmethod
     async def _redirect_url(cls):
-        pass
+        """URL на который происходит редирект после завершения входа на стороне провайдера"""
+        raise NotImplementedError
 
     @classmethod
     async def _auth_url(cls):
-        pass
+        """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
+        raise NotImplementedError

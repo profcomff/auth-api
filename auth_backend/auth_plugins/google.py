@@ -8,10 +8,11 @@ from pydantic import BaseModel, Json
 from google.auth.transport import requests
 
 from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.exceptions import AuthFailed
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from .auth_method import OauthMeta
+from .auth_method import OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -19,9 +20,9 @@ auth = UnionAuth(auto_error=False)
 
 
 class GoogleSettings(Settings):
-    GOOGLE_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/google'
-    GOOGLE_SCOPES: list[str] = ['openid', 'https://www.googleapis.com/auth/userinfo.profile']
-    GOOGLE_CREDENTIALS: Json
+    GOOGLE_REDIRECT_URL: str | None = 'https://app.test.profcomff.com/auth/oauth-authorized/google'
+    GOOGLE_SCOPES: list[str] | None = ['openid', 'https://www.googleapis.com/auth/userinfo.profile']
+    GOOGLE_CREDENTIALS: Json | None
 
 
 class GoogleAuth(OauthMeta):
@@ -47,7 +48,7 @@ class GoogleAuth(OauthMeta):
         cls,
         user_inp: OauthResponseSchema,
         user_session: UserSession | None = Depends(auth),
-    ):
+    ) -> Session:
         """Создает аккаунт или привязывает существующий
 
         Если передана активная сессия пользователя, то привязывает аккаунт Google к аккаунту в
@@ -62,22 +63,16 @@ class GoogleAuth(OauthMeta):
             cls.settings.GOOGLE_CREDENTIALS['web']['client_id']
         )
 
-
-        if user_session is None:
-            user = await cls._create_user()
-        else:
-            user = user_session.user
-
+        user = await cls._create_user() if user_session is None else user_session.user
         await cls._register_auth_method(guser_id, user, db_session=db.session)
-
-        return
+        return await cls._create_session(user.user, db_session=db.session)
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema):
         """Вход в пользователя с помощью аккаунта Google
 
         Производит вход, если находит пользователя по Google client_id. Если аккаунт не найден,
-        создает его.
+        возвращает ошибка.
         """
         flow = await cls._default_flow()
         credentials = flow.fetch_token(**user_inp.dict(exclude_unset=True))
@@ -92,26 +87,23 @@ class GoogleAuth(OauthMeta):
             AuthMethod.query(session=db.session)
             .filter(
                 AuthMethod.param == "unique_google_id",
-                AuthMethod.value == guser_id['sub'],
+                AuthMethod.value == guser_id['sub'],  # An identifier for the user, unique among all Google accounts
                 AuthMethod.auth_method == cls.get_name(),
             )
             .one_or_none()
         )
-
-        if auth_method is None:
-            user = await cls._create_user(db_session=db.session)
-            await cls._register_auth_method(guser_id, user, db_session=db.session)
-        else:
-            user = auth_method.user
-
-        return await cls._create_session(user, db_session=db.session)
+        if not auth_method:
+            raise AuthFailed('No users found for google account')
+        return await cls._create_session(auth_method.user, db_session=db.session)
 
     @classmethod
     async def _redirect_url(cls):
+        """URL на который происходит редирект после завершения входа на стороне провайдера"""
         return OauthMeta.UrlSchema(url=cls.settings.GOOGLE_REDIRECT_URL)
 
     @classmethod
     async def _auth_url(cls):
+        """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
         # Docs: https://developers.google.com/identity/protocols/oauth2/web-server#python_1
         flow = await cls._default_flow()
         authorization_url, _ = flow.authorization_url(
@@ -131,7 +123,7 @@ class GoogleAuth(OauthMeta):
 
     @classmethod
     async def _register_auth_method(cls, guser_id, user: User, *, db_session):
-        """Регистрация нового пользователя или нового AuthMethod"""
+        """Добавление пользователю новый AuthMethod"""
         AuthMethod.create(
             user_id=user.id,
             auth_method=cls.get_name(),
