@@ -114,6 +114,7 @@ def send_change_password_confirmation(to_addr, link):
         smtp.login(settings.EMAIL, settings.EMAIL_PASS)
         smtp.sendmail(settings.EMAIL, to_addr, message.as_string())
 
+
 @retry(
     stop_max_attempt_number=settings.MAX_RETRIES,
     stop_max_delay=settings.STOP_MAX_DELAY,

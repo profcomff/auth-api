@@ -19,8 +19,8 @@ class LkmsuSettings(BaseSettings):
 
 
 class LkmsuAuth(OauthMeta):
-    """Вход в приложение по аккаунту гугл
-    """
+    """Вход в приложение по аккаунту гугл"""
+
     prefix = '/lk-msu'
     tags = ['lk_msu']
     fields = []
@@ -37,7 +37,11 @@ class LkmsuAuth(OauthMeta):
         super().__init__()
 
     @staticmethod
-    async def _register(user_inp: OauthResponseSchema, background_tasks: BackgroundTasks, user_session: UserSession = Depends(auth)):
+    async def _register(
+        user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
+        user_session: UserSession = Depends(auth),
+    ):
         """Создает аккаунт или привязывает существующий
 
         Если передана активная сессия пользователя, то привязывает аккаунт https://lk.msu.ru к

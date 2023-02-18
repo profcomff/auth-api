@@ -92,7 +92,6 @@ class ResetPassword(Base):
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
-
 class Email(AuthMethodMeta):
     prefix = "/email"
     fields = [
@@ -113,9 +112,7 @@ class Email(AuthMethodMeta):
         self.router.add_api_route(
             "/reset/email/request", self._request_reset_email, methods=["POST"], response_model=ResponseModel
         )
-        self.router.add_api_route(
-            "/reset/email", self._reset_email, methods=["GET"], response_model=ResponseModel
-        )
+        self.router.add_api_route("/reset/email", self._reset_email, methods=["GET"], response_model=ResponseModel)
         self.router.add_api_route(
             "/reset/password/request", self._request_reset_password, methods=["POST"], response_model=ResponseModel
         )
@@ -276,10 +273,14 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     async def _reset_email(token: str) -> ResponseModel:
-        auth: AuthMethod = AuthMethod.query(session=db.session).filter(
-            AuthMethod.param == 'tmp_email_confirmation_token',
-            AuthMethod.value == token,
-        ).one_or_none()
+        auth: AuthMethod = (
+            AuthMethod.query(session=db.session)
+            .filter(
+                AuthMethod.param == 'tmp_email_confirmation_token',
+                AuthMethod.value == token,
+            )
+            .one_or_none()
+        )
         if not auth:
             raise HTTPException(
                 status_code=403, detail=ResponseModel(status="Error", message="Incorrect confirmation token").json()

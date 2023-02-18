@@ -87,48 +87,44 @@ class AuthMethodMeta(metaclass=ABCMeta):
         return user
 
     async def _get_user(
-            *,
-            db_session: Session,
-            user_session: UserSession = None,
-            session_token: str = None,
-            user_id: int = None,
-            with_deleted: bool = False,
-            with_expired: bool = False,
-        ):
+        *,
+        db_session: Session,
+        user_session: UserSession = None,
+        session_token: str = None,
+        user_id: int = None,
+        with_deleted: bool = False,
+        with_expired: bool = False,
+    ):
         """Отдает пользователя по сессии, токену или user_id"""
         if user_id:
             return User.get(user_id, with_deleted=with_deleted, session=db_session)
         if session_token:
-            user_session: UserSession = UserSession.query(
-                with_deleted=with_deleted, session=db_session
-            ).filter(
-                UserSession.token == session_token
-            ).one_or_none()
+            user_session: UserSession = (
+                UserSession.query(with_deleted=with_deleted, session=db_session)
+                .filter(UserSession.token == session_token)
+                .one_or_none()
+            )
         if user_session and (not user_session.expired or with_expired):
             return user_session.user
         return
 
 
 class OauthMeta(AuthMethodMeta):
-    """Абстрактная авторизация и аутентификация через OAuth
-    """
+    """Абстрактная авторизация и аутентификация через OAuth"""
 
     class UrlSchema(Base):
         url: str
-
 
     def __init__(self):
         super().__init__()
         self.router.add_api_route("/redirect_url", self._redirect_url, methods=["GET"], response_model=self.UrlSchema)
         self.router.add_api_route("/auth_url", self._auth_url, methods=["GET"], response_model=self.UrlSchema)
 
-
     @staticmethod
     @abstractmethod
     async def _redirect_url(*args, **kwargs) -> UrlSchema:
         """URL на который происходит редирект после завершения входа на стороне провайдера"""
         raise NotImplementedError()
-
 
     @staticmethod
     @abstractmethod

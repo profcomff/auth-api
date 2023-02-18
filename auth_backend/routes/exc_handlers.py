@@ -41,11 +41,14 @@ class OauthAuthFailedResponseModel(ResponseModel):
 
 @app.exception_handler(OauthAuthFailed)
 async def auth_failed_handler(req: starlette.requests.Request, exc: OauthAuthFailed):
-    return JSONResponse(content=OauthAuthFailedResponseModel(
-        status="Error",
-        message=f"{exc}",
-        id_token=exc.id_token
-    ).json(), status_code=401)
+    return JSONResponse(
+        content=OauthAuthFailedResponseModel(
+            status="Error",
+            message=f"{exc}",
+            id_token=exc.id_token,
+        ).json(),
+        status_code=401,
+    )
 
 
 @app.exception_handler(OauthCredentialsIncorrect)

@@ -28,8 +28,8 @@ class GoogleSettings(Settings):
 
 
 class GoogleAuth(OauthMeta):
-    """Вход в приложение по аккаунту гугл
-    """
+    """Вход в приложение по аккаунту гугл"""
+
     prefix = '/google'
     tags = ['Google']
     fields = ["code", "scope"]
@@ -101,7 +101,7 @@ class GoogleAuth(OauthMeta):
             guser_id = verify_oauth2_token(
                 credentials.get("id_token"),
                 requests.Request(),
-                cls.settings.GOOGLE_CREDENTIALS['web']['client_id']
+                cls.settings.GOOGLE_CREDENTIALS['web']['client_id'],
             )
         except GoogleAuthError as exc:
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
@@ -130,7 +130,7 @@ class GoogleAuth(OauthMeta):
     async def _default_flow(cls) -> google_auth_oauthlib.flow.Flow:
         flow = google_auth_oauthlib.flow.Flow.from_client_config(
             cls.settings.GOOGLE_CREDENTIALS,
-            scopes=cls.settings.GOOGLE_SCOPES
+            scopes=cls.settings.GOOGLE_SCOPES,
         )
         flow.redirect_uri = cls.settings.GOOGLE_REDIRECT_URL
         return flow
