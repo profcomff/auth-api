@@ -126,7 +126,6 @@ class Email(AuthMethodMeta):
         self.router.add_api_route(
             "/reset/password", self._reset_password, methods=["POST"], response_model=ResponseModel
         )
-        self.router.prefix = self.prefix
         self.tags = ["Email"]
 
     @staticmethod
