@@ -2,25 +2,26 @@ import hashlib
 import random
 import string
 
-from fastapi import HTTPException, Header, Depends
+from fastapi import Depends, Header, HTTPException
+from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
-from pydantic import validator, constr
+from pydantic import constr, validator
 from sqlalchemy import func
 
 from auth_backend.base import Base, ResponseModel
-from auth_backend.exceptions import AlreadyExists, AuthFailed, ObjectNotFound, SessionExpired, IncorrectUserAuthType
-from auth_backend.models.db import AuthMethod
-from auth_backend.models.db import UserSession, User
+from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, ObjectNotFound, SessionExpired
+from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import get_settings
+from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import (
-    send_confirmation_email,
     send_change_password_confirmation,
     send_changes_password_notification,
+    send_confirmation_email,
     send_reset_email,
 )
+
 from .auth_method import AuthMethodMeta, Session
-from fastapi.background import BackgroundTasks
-from ..utils.security import UnionAuth
+
 
 auth = UnionAuth(auto_error=False)
 

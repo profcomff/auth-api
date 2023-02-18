@@ -4,7 +4,7 @@ from pydantic import BaseSettings, PostgresDsn, conint
 
 
 class Settings(BaseSettings):
-    DB_DSN: PostgresDsn
+    DB_DSN: PostgresDsn = 'postgresql://postgres@localhost:5432/postgres'
 
     EMAIL: str | None
     APPLICATION_HOST: str = "localhost"
