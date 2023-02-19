@@ -99,15 +99,15 @@ foo@bar:~$ python -m auth_backend
     - Вы можете определить и свои методы, но помните, что их нужно также поддержать и на фронтенде приложения. Обязательно опишите пошагово (а лучше нарисуйте схему в Miro или draw.io), как будут рабоать ваши методы со стороны пользователя/фронтенда
 
 3. Создайте новый файл в папке `auth_backend/auth_plugins`, создайте класс и отнаследуйте его 
-    - для legacy аутентификации от (https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/auth_plugins/auth_method.py#L37)[AuthMethodMeta]
-    - для OAuth аутентификации от (https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/auth_plugins/auth_method.py#L112)[OauthMeta]
+    - для legacy аутентификации от https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/auth_plugins/auth_method.py#L37
+    - для OAuth аутентификации от https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/auth_plugins/auth_method.py#L112
 
-4. Задайте классу описание, `prefix` и `tags` ((https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/auth_plugins/google.py#L31-L34)[Пример])
+4. Задайте классу описание, `prefix` и `tags` https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/auth_plugins/google.py#L31-L34
     - `prefix` используется как отправная точка для ваших методов. Ручка логина для метода авторизации с премиксом `/myauth` будет `/myauth/login`
     - Описание и теги используются для документирования кода. Зачастую без них непонятно, что вообще происходит. Не пропускайте их.
 
 5. Создайте основные методы
     - Помните, что все методы являются `@staticmethod` или `@classmethod`. То есть не принимают аргумент `self` (текущий объект), а принимают ничего или `cls` (текущий класс) соответственно
     - Ручки `/login` и `/register` имеют сигнатуры `async def _login(...)` и `async def _register(...)` соответственно
-    - Ручка `/login` обязательно возвращает объект (https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/models/db.py#L117)[UserSession]
-    - Ручки `/auth_url` и `/redirect_url` методов OAuth2 обязательно возвращают оъект (https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/auth_plugins/auth_method.py#L115-L116)[UrlSchema]
+    - Ручка `/login` обязательно возвращает объект https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/models/db.py#L117
+    - Ручки `/auth_url` и `/redirect_url` методов OAuth2 обязательно возвращают оъект https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/auth_plugins/auth_method.py#L115-L116
