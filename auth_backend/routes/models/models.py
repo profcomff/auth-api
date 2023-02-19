@@ -5,12 +5,11 @@ from pydantic import Field, validator
 from auth_backend.base import Base
 
 
-
 class Group(Base):
     id: int = Field(..., gt=0)
     name: str
     parent_id: int | None = Field(None, gt=0)
-    scopes: list[ScopeGet | None]
+    scopes: list[ScopeGet]
 
 
 class GroupChilds(Base):
@@ -18,7 +17,8 @@ class GroupChilds(Base):
 
 
 class GroupIndirectScopes(Base):
-    indirect_scopes: list[ScopeGet | None]
+    indirect_scopes: list[ScopeGet] | None
+
 
 class GroupGet(Group, GroupChilds, GroupIndirectScopes):
     pass
@@ -44,7 +44,7 @@ class UserGet(UserInfo, UserGroups, UserIndirectGroups):
 class GroupPost(Base):
     name: str
     parent_id: int | None = Field(None, gt=0)
-    scopes: list[int] | None
+    scopes: list[int]
 
 
 class GroupsGet(Base):
@@ -55,7 +55,6 @@ class GroupPatch(Base):
     name: str | None
     parent_id: int | None = Field(None, gt=0)
     scopes: list[int] | None
-
 
 
 class UserGroupGet(Base):
@@ -80,10 +79,12 @@ def scope_validator(v: str) -> str:
         raise ValueError
     return v
 
+
 def patch_scope_validator(v: str) -> str:
     if not v:
         return v
     return scope_validator(v)
+
 
 class ScopeGet(Base):
     id: int
@@ -106,3 +107,6 @@ class ScopePatch(Base):
 
     validator_name = validator("name", allow_reuse=True)(patch_scope_validator)
 
+
+Group.update_forward_refs()
+GroupGet.update_forward_refs()

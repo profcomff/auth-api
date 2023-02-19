@@ -8,7 +8,7 @@ from sqlalchemy import func
 
 from auth_backend.base import Base, ResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, ObjectNotFound, SessionExpired
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import AuthMethod, User, UserSession, Scope
 from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import (
@@ -63,12 +63,16 @@ def check_email(v):
 class EmailLogin(Base):
     email: constr(min_length=1)
     password: constr(min_length=1)
+    scopes: list[int]
 
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
-class EmailRegister(EmailLogin):
-    pass
+class EmailRegister(Base):
+    email: constr(min_length=1)
+    password: constr(min_length=1)
+
+    email_validator = validator("email", allow_reuse=True)(check_email)
 
 
 class EmailChange(Base):
@@ -142,7 +146,7 @@ class Email(AuthMethodMeta):
             user_inp.password, query.user.auth_methods.hashed_password.value, query.user.auth_methods.salt.value
         ):
             raise AuthFailed(error="Incorrect login or password")
-        return await cls._create_session(query.user, db_session=db.session)
+        return await cls._create_session(query.user, user_inp.scopes, db_session=db.session)
 
     @staticmethod
     async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> None:

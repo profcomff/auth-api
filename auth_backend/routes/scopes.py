@@ -9,7 +9,8 @@ from auth_backend.utils.security import UnionAuth
 
 auth = UnionAuth()
 
-scopes = APIRouter(prefix="/scopes", tags=["Scopes"])
+scopes = APIRouter(prefix="/scope", tags=["Scopes"])
+
 
 @scopes.post("", response_model=ScopeGet)
 async def create_scope(scope: ScopePost, user_session: UserSession = Depends(auth)) -> ScopeGet:
@@ -17,16 +18,19 @@ async def create_scope(scope: ScopePost, user_session: UserSession = Depends(aut
         raise HTTPException(status_code=409, detail=ResponseModel(status="Error", message="Already exists").json())
     return ScopeGet.from_orm(Scope.create(**scope.dict(), creator_id=user_session.user_id, session=db.session))
 
+
 @scopes.get("/{id}", response_model=ScopeGet)
 async def get_scope(id: int, _: UserSession = Depends(auth)) -> ScopeGet:
     return ScopeGet.from_orm(Scope.get(id, session=db.session))
+
 
 @scopes.get("", response_model=list[ScopeGet])
 async def get_scopes(_: UserSession = Depends(auth)) -> list[ScopeGet]:
     return parse_obj_as(list[ScopeGet], Scope.query(session=db.session).all())
 
+
 @scopes.patch("/{id}", response_model=ScopeGet)
-async def update_scope(id: int, scope_inp: ScopePatch,  _: UserSession = Depends(auth)) -> ScopeGet:
+async def update_scope(id: int, scope_inp: ScopePatch, _: UserSession = Depends(auth)) -> ScopeGet:
     scope = Scope.get(id, session=db.session)
     return ScopeGet.from_orm(Scope.update(scope.id, **scope_inp.dict(), session=db.session))
 

@@ -15,7 +15,9 @@ groups = APIRouter(prefix="/group", tags=["Groups"])
 
 
 @groups.get("/{id}", response_model=GroupGet, response_model_exclude_unset=True)
-async def get_group(id: int, info: list[Literal["child", "scopes", "indirect_scopes"]] = Query(default=[])) -> dict[str, str | int]:
+async def get_group(
+    id: int, info: list[Literal["child", "scopes", "indirect_scopes"]] = Query(default=[])
+) -> dict[str, str | int]:
     group = DbGroup.get(id, session=db.session)
     result = {}
     result = result | Group.from_orm(group).dict()
@@ -39,13 +41,13 @@ async def create_group(group_inp: GroupPost, _: UserSession = Depends(auth)) -> 
         for _scope_id in group_inp.scopes:
             scopes.add(Scope.get(session=db.session, id=_scope_id))
     result = {}
-    group = DbGroup.create(session=db.session, **group_inp.dict())
+    group = DbGroup.create(session=db.session, name=group_inp.name, parent_id=group_inp.parent_id)
     db.session.flush()
-    result = result | Group.from_orm(group).dict()
+    result = result | {"name": group.name, "id": group.id, "parent_id": group.parent_id}
     for scope in scopes:
         GroupScope.create(session=db.session, group_id=group.id, scope_id=scope.id)
     db.session.flush()
-    result["scopes"] = group.scopes
+    result["scopes"] = list(group.scopes)
     db.session.commit()
     return GroupGet(**result).dict(exclude_unset=True)
 
@@ -61,7 +63,9 @@ async def patch_group(id: int, group_inp: GroupPatch, _: UserSession = Depends(a
     group = DbGroup.get(id, session=db.session)
     if group_inp.parent_id in (row.id for row in group.child):
         raise HTTPException(status_code=400, detail=ResponseModel(status="Error", message="Cycle detected").json())
-    result = Group.from_orm(DbGroup.update(id, session=db.session, **group_inp.dict(exclude_unset=True))).dict(exclude_unset=True)
+    result = Group.from_orm(DbGroup.update(id, session=db.session, **group_inp.dict(exclude_unset=True))).dict(
+        exclude_unset=True
+    )
     scopes = set()
     if group_inp.scopes:
         for _scope_id in group_inp.scopes:

@@ -7,12 +7,14 @@ import string
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi_sqlalchemy import db
 from pydantic import constr
 from sqlalchemy.orm import Session
 
-from auth_backend.base import Base
-from auth_backend.models.db import User, UserSession
+from auth_backend.base import Base, ResponseModel
+from auth_backend.exceptions import ObjectNotFound
+from auth_backend.models.db import User, UserSession, Scope
 from auth_backend.settings import get_settings
 
 
@@ -66,8 +68,23 @@ class AuthMethodMeta(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @staticmethod
-    async def _create_session(user: User, *, db_session: Session) -> Session:
+    async def _create_session(user: User, scopes_list_ids: list[int], *, db_session: Session) -> Session:
         """Создает сессию пользователя"""
+        scopes = set()
+
+        for scope_id in scopes_list_ids:
+            scope = Scope.get(session=db.session, id=scope_id)
+            if not scope:
+                raise ObjectNotFound(Scope, scope_id)
+            scopes.add(scope)
+        if len(scopes & user.indirect_scopes) != len(scopes):
+            raise HTTPException(
+                status_code=403,
+                detail=ResponseModel(
+                    status="Error",
+                    message=f"Incorrect user scopes, triggering scopes -> {(scopes & user.indirect_scopes) - user.indirect_scopes} ",
+                ),
+            )
         user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
         db_session.add(user_session)
         db_session.flush()

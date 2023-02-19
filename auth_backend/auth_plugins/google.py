@@ -75,7 +75,7 @@ class GoogleAuth(OauthMeta):
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
         user = await cls._get_user(guser_id, db_session=db.session)
         if user is not None:
-            raise AlreadyExists(user, user.id)
+            raise AlreadyExists(User, user.id)
 
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
@@ -83,7 +83,7 @@ class GoogleAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method(guser_id, user, db_session=db.session)
 
-        return await cls._create_session(user, db_session=db.session)
+        return await cls._create_session(user, user_inp.scope, db_session=db.session)
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema):

@@ -29,12 +29,14 @@ def client():
     patcher2.return_value = None
     patcher3.return_value = None
     patcher4.return_value = None
-    patcher5.return_value = UserSession(**{
-        "id": 0,
-        "user_id": 0,
-        "expires": datetime.datetime.now() + datetime.timedelta(days=7),
-        "token": "123456",
-    })
+    patcher5.return_value = UserSession(
+        **{
+            "id": 0,
+            "user_id": 0,
+            "expires": datetime.datetime.now() + datetime.timedelta(days=7),
+            "token": "123456",
+        }
+    )
     client = TestClient(app)
     yield client
     patcher1.stop()
@@ -97,8 +99,8 @@ def user_id(client_auth: TestClient, dbsession):
 def user(client_auth: TestClient, dbsession):
     url = "/email/login"
     time = datetime.datetime.utcnow()
-    body = {"email": f"user{time}@example.com", "password": "string"}
-    client_auth.post("/email/registration", json=body)
+    body = {"email": f"user{time}@example.com", "password": "string", "scopes": []}
+    response = client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
     )
@@ -131,7 +133,7 @@ def user(client_auth: TestClient, dbsession):
 @pytest.fixture
 def parent_id(client, dbsession):
     time = datetime.datetime.utcnow()
-    body = {"name": f"group{time}", "parent_id": None}
+    body = {"name": f"group{time}", "parent_id": None, "scopes": []}
     response = client.post(url="/group", json=body)
     yield response.json()["id"]
     dbsession.query(Group).get(response.json()["id"])
@@ -144,7 +146,7 @@ def group(dbsession, parent_id):
 
     def _group(client: TestClient):
         time = datetime.datetime.utcnow()
-        body = {"name": f"group{time}", "parent_id": parent_id}
+        body = {"name": f"group{time}", "parent_id": parent_id, "scopes": []}
         response = client.post(url="/group", json=body)
         nonlocal _ids
         _ids.append(_id := response.json()["id"])

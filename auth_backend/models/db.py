@@ -54,6 +54,13 @@ class User(BaseDbModel):
     )
 
     @hybrid_property
+    def indirect_scopes(self) -> set[Scope]:
+        _scopes = set()
+        for group in self.groups:
+            _scopes.update(group.indirect_scopes)
+        return _scopes
+
+    @hybrid_property
     def active_sessions(self) -> list:
         return [row for row in self.sessions if not row.expired]
 
@@ -87,11 +94,13 @@ class Group(BaseDbModel):
         secondaryjoin="and_(User.id==UserGroup.user_id, not_(User.is_deleted))",
     )
 
-    scopes: Mapped[set[Scope]] = relationship("Scope", back_populates="groups",
-                                               secondary="group_scope",
-                                               primaryjoin="and_(Group.id==GroupScope.group_id, not_(GroupScope.is_deleted))",
-                                               secondaryjoin="and_(Scope.id==GroupScope.scope_id, not_(Scope.is_deleted))"
-                                               )
+    scopes: Mapped[set[Scope]] = relationship(
+        "Scope",
+        back_populates="groups",
+        secondary="group_scope",
+        primaryjoin="and_(Group.id==GroupScope.group_id, not_(GroupScope.is_deleted))",
+        secondaryjoin="and_(Scope.id==GroupScope.scope_id, not_(Scope.is_deleted))",
+    )
 
     @hybrid_property
     def indirect_scopes(self) -> set[Scope]:
@@ -100,7 +109,6 @@ class Group(BaseDbModel):
         for group in self.parents:
             _indirect_scopes.update(group.scopes)
         return _indirect_scopes
-
 
     @hybrid_property
     def parents(self) -> Iterator[Group]:
@@ -143,11 +151,13 @@ class UserSession(BaseDbModel):
         back_populates="sessions",
         primaryjoin="and_(UserSession.user_id==User.id, not_(User.is_deleted))",
     )
-    scopes: Mapped[list[Scope]] = relationship("Scope", back_populates="user_sessions",
-                                                secondary="user_session_scope",
-                                                primaryjoin="and_(UserSession.id==UserSessionScope.user_session_id, not_(UserSessionScope.is_deleted))",
-        secondaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(Scope.is_deleted))")
-
+    scopes: Mapped[list[Scope]] = relationship(
+        "Scope",
+        back_populates="user_sessions",
+        secondary="user_session_scope",
+        primaryjoin="and_(UserSession.id==UserSessionScope.user_session_id, not_(UserSessionScope.is_deleted))",
+        secondaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(Scope.is_deleted))",
+    )
 
     @hybrid_property
     def expired(self) -> bool:
@@ -159,15 +169,20 @@ class Scope(BaseDbModel):
     name: Mapped[str] = mapped_column(String)
     comment: Mapped[str] = mapped_column(String, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
-    groups: Mapped[list[Group]] = relationship(Group, back_populates="scopes",
-                                               secondary="group_scope",
+    groups: Mapped[list[Group]] = relationship(
+        Group,
+        back_populates="scopes",
+        secondary="group_scope",
         primaryjoin="and_(Scope.id==GroupScope.scope_id, not_(GroupScope.is_deleted))",
         secondaryjoin="and_(Group.id==GroupScope.group_id, not_(Group.is_deleted))",
-                                               )
-    user_sessions: Mapped[list[UserSession]] = relationship(UserSession, back_populates="scopes",
-                                                            secondary="user_session_scope",
-                                                primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
-        secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",)
+    )
+    user_sessions: Mapped[list[UserSession]] = relationship(
+        UserSession,
+        back_populates="scopes",
+        secondary="user_session_scope",
+        primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
+        secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",
+    )
 
 
 class GroupScope(BaseDbModel):
@@ -180,8 +195,3 @@ class UserSessionScope(BaseDbModel):
     user_session_id: Mapped[int] = mapped_column(Integer, ForeignKey(UserSession.id))
     scope_id: Mapped[int] = mapped_column(Integer, ForeignKey(Scope.id))
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
-
-
-
-
-

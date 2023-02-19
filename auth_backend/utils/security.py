@@ -11,10 +11,13 @@ from auth_backend.models.db import UserSession
 class UnionAuth(SecurityBase):
     model = APIKey.construct(in_=APIKeyIn.header, name="Authorization")
     scheme_name = "token"
+    auto_error: bool
+    allow_none: bool
 
-    def __init__(self, auto_error=True) -> None:
+    def __init__(self, allow_none=False, auto_error=False) -> None:
         super().__init__()
         self.auto_error = auto_error
+        self.allow_none = allow_none
 
     def _except(self):
         if self.auto_error:

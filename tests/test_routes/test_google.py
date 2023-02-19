@@ -137,7 +137,6 @@ def test_register_fail(client_auth: TestClient):
     patch_check_google_token.stop()
 
 
-
 @pytest.mark.skip('Google should be properly mocked')
 def test_add_method_ok(client: TestClient):
     """Пользователь залогинен, передаем ему верные данные гугла"""

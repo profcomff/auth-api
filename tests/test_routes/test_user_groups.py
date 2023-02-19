@@ -9,7 +9,7 @@ from auth_backend.models.db import UserGroup, Group, User
 
 def test_add_user(client: TestClient, dbsession: Session, user_factory):
     time1 = datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     user1 = user_factory(client)
     response = client.post(f"/group/{group}/user", json={"user_id": user1})
@@ -28,7 +28,7 @@ def test_add_user(client: TestClient, dbsession: Session, user_factory):
 
 def test_get_user_list(client, dbsession, group, user_factory):
     time1 = datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     user1 = user_factory(client)
     user2 = user_factory(client)
@@ -55,7 +55,7 @@ def test_get_user_list(client, dbsession, group, user_factory):
 
 def test_del_user_from_group(client, dbsession, user_factory):
     time1 = datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     user1 = user_factory(client)
     user2 = user_factory(client)

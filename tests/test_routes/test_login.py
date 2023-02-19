@@ -16,16 +16,16 @@ def test_invalid_email(client: TestClient):
 
 def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
-    body_with_uppercase = {"email": body["email"].replace("u", "U"), "password": "string"}
+    body_with_uppercase = {"email": body["email"].replace("u", "U"), "password": "string", "scopes": []}
     response = client_auth.post(url, json=body_with_uppercase)
     assert response.status_code == status.HTTP_200_OK
 
 
 def test_incorrect_data(client_auth: TestClient, dbsession: Session):
-    body1 = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string"}
-    body2 = {"email": "wrong@example.com", "password": "string"}
-    body3 = {"email": "some@example.com", "password": "strong"}
-    body4 = {"email": "wrong@example.com", "password": "strong"}
+    body1 = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string", "scopes": []}
+    body2 = {"email": "wrong@example.com", "password": "string", "scopes": []}
+    body3 = {"email": "some@example.com", "password": "strong", "scopes": []}
+    body4 = {"email": "wrong@example.com", "password": "strong", "scopes": []}
     client_auth.post("/email/registration", json=body1)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body1['email'], AuthMethod.param == 'email').one()
@@ -101,13 +101,13 @@ def test_invalid_check_tokens(client_auth: TestClient, user):
 def test_check_me_groups(client_auth: TestClient, user):
     user_id, body_user, login = user["user_id"], user["body"], user["login_json"]
     time1 = datetime.datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     _group1 = client_auth.post(url="/group", json=body, headers={"Authorization": login["token"]}).json()["id"]
     time2 = datetime.datetime.utcnow()
-    body = {"name": f"group{time2}", "parent_id": _group1}
+    body = {"name": f"group{time2}", "parent_id": _group1, "scopes": []}
     _group2 = client_auth.post(url="/group", json=body, headers={"Authorization": login["token"]}).json()["id"]
     time3 = datetime.datetime.utcnow()
-    body = {"name": f"group{time3}", "parent_id": _group2}
+    body = {"name": f"group{time3}", "parent_id": _group2, "scopes": []}
     _group3 = client_auth.post(url="/group", json=body, headers={"Authorization": login["token"]}).json()["id"]
     response = client_auth.post(
         f"/group/{_group3}/user", json={"user_id": user_id}, headers={"Authorization": login["token"]}

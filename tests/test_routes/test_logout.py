@@ -9,7 +9,7 @@ url = "/logout"
 
 
 def test_main_scenario(client_auth: TestClient, dbsession: Session):
-    body = {"email": f"user{datetime.utcnow()}@example.com", "password": "string"}
+    body = {"email": f"user{datetime.utcnow()}@example.com", "password": "string", "scopes": []}
     user_response = client_auth.post("/email/registration", json=body)
     query = (
         dbsession.query(AuthMethod)
