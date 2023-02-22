@@ -41,6 +41,9 @@ class UnionAuth(SecurityBase):
         )
         if not user_session:
             self._except()
-        if len(set(self._scopes) & set([scope.name for scope in user_session.scopes])) != len(set(self._scopes)):
+        if len(
+            set([_scope.lower() for _scope in self._scopes])
+            & set([scope.name.lower() for scope in user_session.scopes])
+        ) != len(set(self._scopes)):
             self._except()
         return user_session

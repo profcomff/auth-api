@@ -4,6 +4,7 @@ import pytest
 import datetime
 
 from fastapi.testclient import TestClient
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -28,7 +29,7 @@ def test_create_scope(client_auth: TestClient, dbsession: Session, user):
         "/scope", json={"name": f"gh.gh.gh{rand}", "comment": "test"}, headers={"Authorization": token_}
     )
     assert response.status_code == 200
-    db_resp: Scope = dbsession.query(Scope).filter(Scope.name == f"gh.gh.gh{rand}").one()
+    db_resp: Scope = dbsession.query(Scope).filter(func.lower(Scope.name) == f"gh.gh.gh{rand}".lower()).one()
     assert db_resp.name == response.json()["name"]
     assert db_resp.comment == response.json()["comment"]
     assert db_resp.creator_id == user_session.user_id

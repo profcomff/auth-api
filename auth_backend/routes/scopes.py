@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi_sqlalchemy import db
 from pydantic import parse_obj_as
+from sqlalchemy import func
 
 from auth_backend.base import ResponseModel
 from auth_backend.models.db import UserSession, Scope
@@ -16,8 +17,9 @@ async def create_scope(
     scope: ScopePost,
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.scope.create"], allow_none=False, auto_error=True)),
 ) -> ScopeGet:
-    if Scope.query(session=db.session).filter(Scope.name == scope.name).all():
+    if Scope.query(session=db.session).filter(func.lower(Scope.name) == scope.name.lower()).all():
         raise HTTPException(status_code=409, detail=ResponseModel(status="Error", message="Already exists").json())
+    scope.name = scope.name.lower()
     return ScopeGet.from_orm(Scope.create(**scope.dict(), creator_id=user_session.user_id, session=db.session))
 
 
