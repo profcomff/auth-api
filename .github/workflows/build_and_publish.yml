@@ -96,6 +96,7 @@ jobs:
             --env LKMSU_REDIRECT_URL='https://app.test.profcomff.com/auth/oauth-authorized/lk-msu' \
             --env LKMSU_CLIENT_ID='app.test.profcomff.com' \
             --env LKMSU_CLIENT_SECRET='${{ secrets.LKMSU_CLIENT_SECRET }}' \
+            --env LKMSU_TEMPTOKEN='${{ secrets.LKMSU_TEMPTOKEN }}' \
             --name ${{ env.CONTAITER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
 
@@ -149,5 +150,6 @@ jobs:
             --env LKMSU_REDIRECT_URL='https://app.profcomff.com/auth/oauth-authorized/lk-msu' \
             --env LKMSU_CLIENT_ID='app.profcomff.com' \
             --env LKMSU_CLIENT_SECRET='${{ secrets.LKMSU_CLIENT_SECRET }}' \
+            --env LKMSU_TEMPTOKEN='${{ secrets.LKMSU_TEMPTOKEN }}' \
             --name ${{ env.CONTAITER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
