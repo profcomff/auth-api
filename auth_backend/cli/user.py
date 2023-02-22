@@ -6,7 +6,7 @@ from auth_backend.models import AuthMethod, User
 from auth_backend.models.db import UserGroup
 
 
-def create_user(email: str, password: str, groups: list[int], session: Session) -> None:
+def create_user(email: str, password: str, session: Session) -> None:
     user = User.create(session=session)
     session.flush()
     email = AuthMethod.create(
@@ -28,7 +28,4 @@ def create_user(email: str, password: str, groups: list[int], session: Session) 
         user_id=user.id, param="confirmation_token", value="admin", auth_method=Email.get_name(), session=session
     )
     session.add_all([email, password, salt, confirmed, confirmation_token])
-    session.flush()
-    for id in groups:
-        session.add(UserGroup(user_id=user.id, group_id=id))
     session.commit()
