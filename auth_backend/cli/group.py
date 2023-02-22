@@ -1,0 +1,11 @@
+from sqlalchemy.orm import Session
+
+from auth_backend.models.db import Group, GroupScope
+
+
+def create_group(name: str, scopes: list[int], parent_id: int, session: Session) -> None:
+    group = Group.create(name=name, parent_id=parent_id)
+    session.flush()
+    for id in scopes:
+        session.add(GroupScope(group_id=group.id, scope_id=id))
+    session.commit()
