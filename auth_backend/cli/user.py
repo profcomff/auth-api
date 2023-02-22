@@ -20,9 +20,7 @@ def create_user(email: str, password: str, groups: list[int], session: Session) 
         auth_method=Email.get_name(),
         session=session,
     )
-    salt = AuthMethod.create(
-        user_id=user.id, param="salt", value=_salt, auth_method=Email.get_name(), session=session
-    )
+    salt = AuthMethod.create(user_id=user.id, param="salt", value=_salt, auth_method=Email.get_name(), session=session)
     confirmed = AuthMethod.create(
         user_id=user.id, param="confirmed", value="true", auth_method=Email.get_name(), session=session
     )

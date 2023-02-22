@@ -12,10 +12,10 @@ settings = get_settings()
 engine = create_engine(settings.DB_DSN)
 Session = sessionmaker(bind=engine)
 
+
 def get_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
-
 
     user = subparsers.add_parser("user")
     user_subparsers = user.add_subparsers(dest='subcommand')
@@ -38,6 +38,8 @@ def get_args():
     scope_create.add_argument('--creator', type=str, required=True)
 
     return parser.parse_args()
+
+
 def process() -> None:
     args = get_args()
     session = Session()

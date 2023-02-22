@@ -94,7 +94,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
             scopes.add(scope)
         return scopes
 
-
     @staticmethod
     async def _check_scopes(scopes: set[Scope], user: User) -> None:
         if len(scopes & user.indirect_scopes) != len(scopes):
