@@ -10,7 +10,7 @@ class AlreadyExists(Exception):
 
 class IncorrectUserAuthType(Exception):
     def __init__(self):
-        super().__init__(f"Incorrect Authentication Type for this user")
+        super().__init__("Incorrect Authentication Type for this user")
 
 
 class SessionExpired(Exception):

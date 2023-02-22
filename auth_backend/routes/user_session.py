@@ -8,16 +8,17 @@ from starlette.responses import JSONResponse
 from auth_backend.base import ResponseModel
 from auth_backend.exceptions import SessionExpired
 from auth_backend.models.db import UserSession, Group
-from auth_backend.routes.models.models import UserGroups, UserIndirectGroups, UserInfo, UserGet
+from auth_backend.routes.models.models import UserGroups, UserIndirectGroups, UserInfo, UserGet, UserScopes
 from auth_backend.utils.security import UnionAuth
 
-auth = UnionAuth()
 
 logout_router = APIRouter(prefix="", tags=["Logout"])
 
 
 @logout_router.post("/logout", response_model=str)
-async def logout(session: UserSession = Depends(auth)) -> JSONResponse:
+async def logout(
+    session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
+) -> JSONResponse:
     if session.expired:
         raise SessionExpired(session.token)
     session.expires = datetime.utcnow()
@@ -27,7 +28,8 @@ async def logout(session: UserSession = Depends(auth)) -> JSONResponse:
 
 @logout_router.get("/me", response_model_exclude_unset=True, response_model=UserGet)
 async def me(
-    session: UserSession = Depends(auth), info: list[Literal["groups", "indirect_groups", ""]] = Query(default=[])
+    session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
+    info: list[Literal["groups", "indirect_groups", "scopes", ""]] = Query(default=[]),
 ) -> dict[str, str | int]:
     if session.expired:
         raise SessionExpired(str(session.token))
@@ -44,6 +46,13 @@ async def me(
             result
             | UserIndirectGroups(
                 indirect_groups=indirect_groups | groups,
+            ).dict()
+        )
+    if "scopes" in info:
+        result = (
+            result
+            | UserScopes(
+                scopes=list(session.scopes),
             ).dict()
         )
     return UserGet(**result).dict(exclude_unset=True)

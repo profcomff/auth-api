@@ -7,7 +7,7 @@ from pydantic import constr, validator
 from sqlalchemy import func
 
 from auth_backend.base import Base, ResponseModel
-from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, ObjectNotFound, SessionExpired
+from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
@@ -17,11 +17,7 @@ from auth_backend.utils.smtp import (
     send_confirmation_email,
     send_reset_email,
 )
-
 from .auth_method import AuthMethodMeta, Session, random_string
-
-
-auth = UnionAuth(auto_error=False)
 
 settings = get_settings()
 
@@ -63,12 +59,16 @@ def check_email(v):
 class EmailLogin(Base):
     email: constr(min_length=1)
     password: constr(min_length=1)
+    scopes: list[int]
 
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
-class EmailRegister(EmailLogin):
-    pass
+class EmailRegister(Base):
+    email: constr(min_length=1)
+    password: constr(min_length=1)
+
+    email_validator = validator("email", allow_reuse=True)(check_email)
 
 
 class EmailChange(Base):
@@ -142,7 +142,7 @@ class Email(AuthMethodMeta):
             user_inp.password, query.user.auth_methods.hashed_password.value, query.user.auth_methods.salt.value
         ):
             raise AuthFailed(error="Incorrect login or password")
-        return await cls._create_session(query.user, db_session=db.session)
+        return await cls._create_session(query.user, user_inp.scopes, db_session=db.session)
 
     @staticmethod
     async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> None:
@@ -173,7 +173,7 @@ class Email(AuthMethodMeta):
         cls,
         user_inp: EmailRegister,
         background_tasks: BackgroundTasks,
-        user_session: UserSession = Depends(auth),
+        user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
     ) -> ResponseModel:
         confirmation_token: str = random_string()
         auth_method: AuthMethod = (
@@ -238,10 +238,10 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     async def _request_reset_email(
-        scheme: EmailChange, background_tasks: BackgroundTasks, user_session: UserSession = Depends(auth)
+        scheme: EmailChange,
+        background_tasks: BackgroundTasks,
+        user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
     ) -> ResponseModel:
-        if not user_session:
-            raise HTTPException(status_code=401, detail="Unauthorized")
         if user_session.expired:
             raise SessionExpired(user_session.token)
         if not user_session.user.auth_methods.email:
@@ -298,7 +298,9 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     async def _request_reset_password(
-        schema: RequestResetPassword, background_tasks: BackgroundTasks, user_session: UserSession = Depends(auth)
+        schema: RequestResetPassword,
+        background_tasks: BackgroundTasks,
+        user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
     ) -> ResponseModel:
         salt = random_string()
         if user_session and schema.new_password and schema.password:

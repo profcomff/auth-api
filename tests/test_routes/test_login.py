@@ -3,7 +3,9 @@ import datetime
 from starlette import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from auth_backend.models.db import AuthMethod, User, UserSession
+
+from auth_backend.auth_plugins.auth_method import random_string
+from auth_backend.models.db import AuthMethod, User, UserSession, Scope, UserSessionScope, GroupScope, UserGroup, Group
 
 url = "/email/login"
 
@@ -16,16 +18,16 @@ def test_invalid_email(client: TestClient):
 
 def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
-    body_with_uppercase = {"email": body["email"].replace("u", "U"), "password": "string"}
+    body_with_uppercase = {"email": body["email"].replace("u", "U"), "password": "string", "scopes": []}
     response = client_auth.post(url, json=body_with_uppercase)
     assert response.status_code == status.HTTP_200_OK
 
 
 def test_incorrect_data(client_auth: TestClient, dbsession: Session):
-    body1 = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string"}
-    body2 = {"email": "wrong@example.com", "password": "string"}
-    body3 = {"email": "some@example.com", "password": "strong"}
-    body4 = {"email": "wrong@example.com", "password": "strong"}
+    body1 = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string", "scopes": []}
+    body2 = {"email": "wrong@example.com", "password": "string", "scopes": []}
+    body3 = {"email": "some@example.com", "password": "strong", "scopes": []}
+    body4 = {"email": "wrong@example.com", "password": "strong", "scopes": []}
     client_auth.post("/email/registration", json=body1)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body1['email'], AuthMethod.param == 'email').one()
@@ -98,20 +100,26 @@ def test_invalid_check_tokens(client_auth: TestClient, user):
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-def test_check_me_groups(client_auth: TestClient, user):
+def test_check_me_groups(client_auth: TestClient, user, dbsession):
     user_id, body_user, login = user["user_id"], user["body"], user["login_json"]
+    dbsession.add(scope1 := Scope(name="auth.group.create", creator_id=user_id))
+    dbsession.add(scope3 := Scope(name="auth.user_group.create", creator_id=user_id))
+    token_ = random_string()
+    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
+    dbsession.flush()
+    dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
+    dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
+    dbsession.commit()
     time1 = datetime.datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
-    _group1 = client_auth.post(url="/group", json=body, headers={"Authorization": login["token"]}).json()["id"]
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
+    _group1 = client_auth.post(url="/group", json=body, headers={"Authorization": token_}).json()["id"]
     time2 = datetime.datetime.utcnow()
-    body = {"name": f"group{time2}", "parent_id": _group1}
-    _group2 = client_auth.post(url="/group", json=body, headers={"Authorization": login["token"]}).json()["id"]
+    body = {"name": f"group{time2}", "parent_id": _group1, "scopes": []}
+    _group2 = client_auth.post(url="/group", json=body, headers={"Authorization": token_}).json()["id"]
     time3 = datetime.datetime.utcnow()
-    body = {"name": f"group{time3}", "parent_id": _group2}
-    _group3 = client_auth.post(url="/group", json=body, headers={"Authorization": login["token"]}).json()["id"]
-    response = client_auth.post(
-        f"/group/{_group3}/user", json={"user_id": user_id}, headers={"Authorization": login["token"]}
-    )
+    body = {"name": f"group{time3}", "parent_id": _group2, "scopes": []}
+    _group3 = client_auth.post(url="/group", json=body, headers={"Authorization": token_}).json()["id"]
+    response = client_auth.post(f"/group/{_group3}/user", json={"user_id": user_id}, headers={"Authorization": token_})
     assert response.status_code == status.HTTP_200_OK
     response = client_auth.get(f"/me", headers={"Authorization": login["token"]}, params={"info": "groups"})
     assert response.status_code == status.HTTP_200_OK
@@ -123,3 +131,10 @@ def test_check_me_groups(client_auth: TestClient, user):
     assert _group3 in [row["id"] for row in response.json()["indirect_groups"]]
     assert _group2 in [row["id"] for row in response.json()["indirect_groups"]]
     assert _group1 in [row["id"] for row in response.json()["indirect_groups"]]
+    dbsession.query(UserSessionScope).delete()
+    dbsession.delete(user_session)
+    dbsession.query(GroupScope).delete()
+    dbsession.query(UserGroup).delete()
+    dbsession.query(Group).delete()
+    dbsession.query(Scope).delete()
+    dbsession.commit()

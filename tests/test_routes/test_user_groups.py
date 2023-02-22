@@ -9,7 +9,7 @@ from auth_backend.models.db import UserGroup, Group, User
 
 def test_add_user(client: TestClient, dbsession: Session, user_factory):
     time1 = datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     user1 = user_factory(client)
     response = client.post(f"/group/{group}/user", json={"user_id": user1})
@@ -28,7 +28,7 @@ def test_add_user(client: TestClient, dbsession: Session, user_factory):
 
 def test_get_user_list(client, dbsession, group, user_factory):
     time1 = datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     user1 = user_factory(client)
     user2 = user_factory(client)
@@ -55,7 +55,7 @@ def test_get_user_list(client, dbsession, group, user_factory):
 
 def test_del_user_from_group(client, dbsession, user_factory):
     time1 = datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     user1 = user_factory(client)
     user2 = user_factory(client)
@@ -74,7 +74,7 @@ def test_del_user_from_group(client, dbsession, user_factory):
     assert response3.json()["user_id"] in [row["id"] for row in response.json()["items"]]
     response = client.delete(f"/group/{group}/user/{response2.json()['user_id']}")
     assert response.status_code == 200
-    last_id_fail = dbsession.query(UserGroup).order_by(UserGroup.id.desc()).first().id + 100
+    last_id_fail = dbsession.query(UserGroup).order_by(UserGroup.id.desc()).first().id + 1000
     response_fail = client.delete(f"/group/{group}/user/{last_id_fail}")
     assert response_fail.status_code == 404
     response = client.get(f"/group/{group}/user")

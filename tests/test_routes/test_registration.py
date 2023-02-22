@@ -1,4 +1,6 @@
 import datetime
+import random
+import string
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -109,12 +111,13 @@ def test_repeated_registration_case(client_auth: TestClient, dbsession: Session)
 
 def test_user_exists(client_auth: TestClient, dbsession: Session):
     user = User.create(session=dbsession)
-    session = UserSession.create(session=dbsession, user_id=user.id, token="1234")
+    _token = "".join([random.choice(string.ascii_letters) for _ in range(12)])
+    session = UserSession.create(session=dbsession, user_id=user.id, token=_token)
     dbsession.commit()
     time = datetime.datetime.utcnow()
     email = f"user{time}@example.com"
     response = client_auth.post(
-        url, headers={"Authorization": "1234"}, json={"user_id": user.id, "email": email, "password": "string"}
+        url, headers={"Authorization": _token}, json={"user_id": user.id, "email": email, "password": "string"}
     )
     assert response.status_code == status.HTTP_200_OK
     db_user: AuthMethod = (

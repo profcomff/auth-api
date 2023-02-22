@@ -3,16 +3,16 @@ import datetime
 import pytest
 
 from auth_backend.exceptions import ObjectNotFound
-from auth_backend.models.db import Group, UserGroup
+from auth_backend.models.db import Group, UserGroup, Scope, User, GroupScope
 
 
 def test_create(client, dbsession):
     time = datetime.datetime.utcnow()
-    body = {"name": f"group{time}"}
+    body = {"name": f"group{time}", "scopes": []}
     response_parent = client.post(url="/group", json=body)
     assert response_parent.status_code == 200
     parent_id = dbsession.query(Group).order_by(Group.id.desc()).first().id + 100
-    res = client.post(url="/group", json={"name": f"group{time}", "parent_id": parent_id})
+    res = client.post(url="/group", json={"name": f"group{time}", "parent_id": parent_id, "scopes": []})
     assert res.status_code == 404
     response_parent2 = client.post(url="/group", json=body)
     assert response_parent2.status_code == 409
@@ -22,7 +22,7 @@ def test_create(client, dbsession):
     assert group.name == response_parent.json()["name"]
 
     time = datetime.datetime.utcnow()
-    body = {"name": f"group{time}", "parent_id": response_parent.json()["id"]}
+    body = {"name": f"group{time}", "parent_id": response_parent.json()["id"], "scopes": []}
     response = client.post(url="/group", json=body)
     assert response.status_code == 200
     group = Group.get(response.json()["id"], session=dbsession)
@@ -42,10 +42,10 @@ def test_create(client, dbsession):
 
 def test_get(client, dbsession):
     time1 = datetime.datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     time2 = datetime.datetime.utcnow()
-    body = {"name": f"group{time2}", "parent_id": group}
+    body = {"name": f"group{time2}", "parent_id": group, "scopes": []}
     child = client.post(url="/group", json=body).json()["id"]
     response = client.get(f"/group/{group}")
     assert response.status_code == 200
@@ -72,10 +72,10 @@ def test_get(client, dbsession):
 
 def test_get_all(client, dbsession):
     time1 = datetime.datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     time2 = datetime.datetime.utcnow()
-    body = {"name": f"group{time2}", "parent_id": group}
+    body = {"name": f"group{time2}", "parent_id": group, "scopes": []}
     child = client.post(url="/group", json=body).json()["id"]
     response = client.get("/group").json()["items"]
     assert group in [row["id"] for row in response]
@@ -88,10 +88,10 @@ def test_get_all(client, dbsession):
 
 def test_with_childs(client, dbsession):
     time1 = datetime.datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     time2 = datetime.datetime.utcnow()
-    body = {"name": f"group{time2}", "parent_id": group}
+    body = {"name": f"group{time2}", "parent_id": group, "scopes": []}
     child = client.post(url="/group", json=body).json()["id"]
     response = client.get(f"/group/{group}", params={"info": ["child"]})
     assert response.status_code == 200
@@ -108,7 +108,7 @@ def test_with_childs(client, dbsession):
 
 def test_patch(client, dbsession):
     time1 = datetime.datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     response_old = client.get(f"/group/{group}")
     assert response_old.status_code == 200
@@ -134,28 +134,30 @@ def test_patch(client, dbsession):
 
 def test_cycle_patch(client, dbsession):
     time1 = datetime.datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     time2 = datetime.datetime.utcnow()
     group = client.post(url="/group", json=body).json()["id"]
-    body2 = {"name": f"group{time2}", "parent_id": group}
+    body2 = {"name": f"group{time2}", "parent_id": group, "scopes": []}
     group2 = client.post(url="/group", json=body2).json()["id"]
     response = client.patch(f"/group/{group}", json={"parent_id": group2})
     assert response.status_code == 400
 
     dbsession.query(UserGroup).delete()
+    dbsession.query(GroupScope).delete()
+    dbsession.query(Scope).delete()
     dbsession.query(Group).delete()
     dbsession.commit()
 
 
 def test_delete(client, dbsession):
     time1 = datetime.datetime.utcnow()
-    body = {"name": f"group{time1}", "parent_id": None}
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     _group1 = client.post(url="/group", json=body).json()["id"]
     time2 = datetime.datetime.utcnow()
-    body = {"name": f"group{time2}", "parent_id": _group1}
+    body = {"name": f"group{time2}", "parent_id": _group1, "scopes": []}
     _group2 = client.post(url="/group", json=body).json()["id"]
     time3 = datetime.datetime.utcnow()
-    body = {"name": f"group{time3}", "parent_id": _group2}
+    body = {"name": f"group{time3}", "parent_id": _group2, "scopes": []}
     _group3 = client.post(url="/group", json=body).json()["id"]
     db1 = Group.get(_group1, session=dbsession)
     db2 = Group.get(_group2, session=dbsession)

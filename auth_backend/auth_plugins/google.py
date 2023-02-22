@@ -18,7 +18,6 @@ from .auth_method import OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
-auth = UnionAuth(auto_error=False)
 
 
 class GoogleSettings(Settings):
@@ -37,15 +36,15 @@ class GoogleAuth(OauthMeta):
 
     class OauthResponseSchema(BaseModel):
         code: str | None
-        scope: str | None
         state: str | None
         id_token: str | None = Field(help="Google JWT token identifier")
+        scopes: list[int]
 
     @classmethod
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
-        user_session: UserSession | None = Depends(auth),
+        user_session: UserSession | None = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
 
@@ -72,7 +71,7 @@ class GoogleAuth(OauthMeta):
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
         user = await cls._get_user(guser_id, db_session=db.session)
         if user is not None:
-            raise AlreadyExists(user, user.id)
+            raise AlreadyExists(User, user.id)
 
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
@@ -80,7 +79,7 @@ class GoogleAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method(guser_id, user, db_session=db.session)
 
-        return await cls._create_session(user, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema):
@@ -105,7 +104,7 @@ class GoogleAuth(OauthMeta):
         user = await cls._get_user(guser_id, db_session=db.session)
         if not user:
             raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
-        return await cls._create_session(user, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
     @classmethod
     async def _redirect_url(cls):
