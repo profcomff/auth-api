@@ -41,9 +41,6 @@ class GoogleAuth(OauthMeta):
         state: str | None
         id_token: str | None = Field(help="Google JWT token identifier")
 
-    def __init__(self):
-        super().__init__()
-
     @classmethod
     async def _register(
         cls,
