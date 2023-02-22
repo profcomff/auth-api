@@ -22,7 +22,8 @@ class ParamDict:
     tmp_email: AuthMethod
     reset_token: AuthMethod
     tmp_email_confirmation_token: AuthMethod
-    client_id: AuthMethod
+    unique_google_id: AuthMethod  # Google auth method field
+    user_id: AuthMethod  # LK MSU auth method field
 
     def __new__(cls, methods: list[AuthMethod], *args, **kwargs):
         obj = super(ParamDict, cls).__new__(cls)
