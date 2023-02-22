@@ -3,7 +3,7 @@ import datetime
 import pytest
 
 from auth_backend.exceptions import ObjectNotFound
-from auth_backend.models.db import Group, UserGroup
+from auth_backend.models.db import Group, UserGroup, Scope, User, GroupScope
 
 
 def test_create(client, dbsession):
@@ -143,6 +143,8 @@ def test_cycle_patch(client, dbsession):
     assert response.status_code == 400
 
     dbsession.query(UserGroup).delete()
+    dbsession.query(GroupScope).delete()
+    dbsession.query(Scope).delete()
     dbsession.query(Group).delete()
     dbsession.commit()
 

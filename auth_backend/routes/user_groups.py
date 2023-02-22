@@ -7,12 +7,15 @@ from auth_backend.routes.models.models import UserGroupGet, GroupUserListGet, Us
 from auth_backend.base import ResponseModel
 from auth_backend.utils.security import UnionAuth
 
-auth = UnionAuth()
 user_groups = APIRouter(prefix="/group/{id}/user", tags=["User Groups"])
 
 
 @user_groups.post("", response_model=UserGroupGet)
-async def add_user_to_group(id: int, user_inp: UserGroupPost, _: dict[str, str] = Depends(auth)) -> UserGroupGet:
+async def add_user_to_group(
+    id: int,
+    user_inp: UserGroupPost,
+    _: dict[str, str] = Depends(UnionAuth(scopes=["auth.user_group.create"], allow_none=False, auto_error=True)),
+) -> UserGroupGet:
     Group.get(id, session=db.session)
     user_group = UserGroup.create(session=db.session, user_id=user_inp.user_id, group_id=id)
     db.session.commit()
@@ -20,13 +23,19 @@ async def add_user_to_group(id: int, user_inp: UserGroupPost, _: dict[str, str] 
 
 
 @user_groups.get("", response_model=GroupUserListGet)
-async def group_user_list(id: int, _: dict[str, str] = Depends(auth)) -> GroupUserListGet:
+async def group_user_list(
+    id: int, _: dict[str, str] = Depends(UnionAuth(scopes=["auth.user_group.read"], allow_none=False, auto_error=True))
+) -> GroupUserListGet:
     group: Group = Group.get(id, session=db.session)
     return GroupUserListGet(items=group.users)
 
 
 @user_groups.delete("/{user_id}")
-async def delete_user_from_group(id: int, user_id: int, _: dict[str, str] = Depends(auth)):
+async def delete_user_from_group(
+    id: int,
+    user_id: int,
+    _: dict[str, str] = Depends(UnionAuth(scopes=["auth.user_group.delete"], allow_none=False, auto_error=True)),
+):
     Group.get(id, session=db.session)
     user_group = (
         db.session.query(UserGroup).filter(UserGroup.user_id == user_id, UserGroup.group_id == id).one_or_none()

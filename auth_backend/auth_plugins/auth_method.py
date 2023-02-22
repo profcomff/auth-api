@@ -10,11 +10,10 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from fastapi_sqlalchemy import db
 from pydantic import constr
-from sqlalchemy.orm import Session
 
 from auth_backend.base import Base, ResponseModel
 from auth_backend.exceptions import ObjectNotFound
-from auth_backend.models.db import User, UserSession, Scope
+from auth_backend.models.db import User, UserSession, Scope, UserSessionScope
 from auth_backend.settings import get_settings
 
 
@@ -83,11 +82,14 @@ class AuthMethodMeta(metaclass=ABCMeta):
                 detail=ResponseModel(
                     status="Error",
                     message=f"Incorrect user scopes, triggering scopes -> {(scopes & user.indirect_scopes) - user.indirect_scopes} ",
-                ),
+                ).json(),
             )
         user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
         db_session.add(user_session)
         db_session.flush()
+        for scope in scopes:
+            db_session.add(UserSessionScope(scope_id=scope.id, user_session_id=user_session.id))
+        db_session.commit()
         return Session(
             user_id=user_session.user_id,
             token=user_session.token,

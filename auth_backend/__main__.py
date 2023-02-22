@@ -1,11 +1,10 @@
 import argparse
 
+from fastapi_sqlalchemy import db
+
 from auth_backend.auth_plugins import Email
 from auth_backend.auth_plugins.auth_method import random_string
 from auth_backend.models.db import User, Group, AuthMethod, UserGroup, GroupScope, Scope
-from fastapi_sqlalchemy import db
-
-import uvicorn
 
 
 def get_args():

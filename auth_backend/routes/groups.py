@@ -9,7 +9,6 @@ from auth_backend.routes.models.models import Group, GroupPost, GroupsGet, Group
 from auth_backend.base import ResponseModel
 from auth_backend.utils.security import UnionAuth
 
-auth = UnionAuth()
 
 groups = APIRouter(prefix="/group", tags=["Groups"])
 
@@ -31,7 +30,10 @@ async def get_group(
 
 
 @groups.post("", response_model=Group)
-async def create_group(group_inp: GroupPost, _: UserSession = Depends(auth)) -> dict[str, str | int]:
+async def create_group(
+    group_inp: GroupPost,
+    _: UserSession = Depends(UnionAuth(scopes=["auth.group.create"], allow_none=False, auto_error=True)),
+) -> dict[str, str | int]:
     if group_inp.parent_id and not db.session.query(DbGroup).get(group_inp.parent_id):
         raise ObjectNotFound(Group, group_inp.parent_id)
     if DbGroup.query(session=db.session).filter(DbGroup.name == group_inp.name).one_or_none():
@@ -53,7 +55,11 @@ async def create_group(group_inp: GroupPost, _: UserSession = Depends(auth)) -> 
 
 
 @groups.patch("/{id}", response_model=Group)
-async def patch_group(id: int, group_inp: GroupPatch, _: UserSession = Depends(auth)) -> Group:
+async def patch_group(
+    id: int,
+    group_inp: GroupPatch,
+    _: UserSession = Depends(UnionAuth(scopes=["auth.group.update"], allow_none=False, auto_error=True)),
+) -> Group:
     if (
         exists_check := DbGroup.query(session=db.session)
         .filter(DbGroup.name == group_inp.name, DbGroup.id != id)
@@ -63,9 +69,9 @@ async def patch_group(id: int, group_inp: GroupPatch, _: UserSession = Depends(a
     group = DbGroup.get(id, session=db.session)
     if group_inp.parent_id in (row.id for row in group.child):
         raise HTTPException(status_code=400, detail=ResponseModel(status="Error", message="Cycle detected").json())
-    result = Group.from_orm(DbGroup.update(id, session=db.session, **group_inp.dict(exclude_unset=True))).dict(
-        exclude_unset=True
-    )
+    result = Group.from_orm(
+        DbGroup.update(id, session=db.session, **group_inp.dict(exclude_unset=True, exclude={"scopes"}))
+    ).dict(exclude_unset=True)
     scopes = set()
     if group_inp.scopes:
         for _scope_id in group_inp.scopes:
@@ -77,7 +83,9 @@ async def patch_group(id: int, group_inp: GroupPatch, _: UserSession = Depends(a
 
 
 @groups.delete("/{id}", response_model=None)
-async def delete_group(id: int, _: UserSession = Depends(auth)) -> None:
+async def delete_group(
+    id: int, _: UserSession = Depends(UnionAuth(scopes=["auth.scope.delete"], allow_none=False, auto_error=True))
+) -> None:
     group: DbGroup = DbGroup.get(id, session=db.session)
     if child := group.child:
         for children in child:

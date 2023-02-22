@@ -15,7 +15,6 @@ from auth_backend.utils.security import UnionAuth
 from .auth_method import OauthMeta, Session, random_string
 
 
-auth = UnionAuth(auto_error=False)
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +41,7 @@ class LkmsuAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
-        user_session: UserSession = Depends(auth),
+        user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
 
@@ -55,7 +54,7 @@ class LkmsuAuth(OauthMeta):
             "code": user_inp.code,
             "client_id": cls.settings.LKMSU_CLIENT_ID,
             "client_secret": cls.settings.LKMSU_CLIENT_SECRET,
-            "redirect_uri": cls.settings.LKMSU_REDIRECT_URL
+            "redirect_uri": cls.settings.LKMSU_REDIRECT_URL,
         }
         lk_user_id = None
         userinfo = None
@@ -69,7 +68,9 @@ class LkmsuAuth(OauthMeta):
                     raise OauthAuthFailed('Invalid credentials for lk msu account')
                 token = token_result['access_token']
 
-                async with session.get('https://lk.msu.ru/oauth/userinfo', headers={"Authorization": f"Bearer {token}"}) as response:
+                async with session.get(
+                    'https://lk.msu.ru/oauth/userinfo', headers={"Authorization": f"Bearer {token}"}
+                ) as response:
                     userinfo = await response.json()
                     logger.debug(userinfo)
                     lk_user_id = userinfo['user_id']
@@ -102,7 +103,7 @@ class LkmsuAuth(OauthMeta):
             "code": user_inp.code,
             "client_id": cls.settings.LKMSU_CLIENT_ID,
             "client_secret": cls.settings.LKMSU_CLIENT_SECRET,
-            "redirect_uri": cls.settings.LKMSU_REDIRECT_URL
+            "redirect_uri": cls.settings.LKMSU_REDIRECT_URL,
         }
         lk_user_id = None
         userinfo = None
@@ -114,7 +115,9 @@ class LkmsuAuth(OauthMeta):
                 raise OauthAuthFailed('Invalid credentials for lk msu account')
             token = token_result['access_token']
 
-            async with session.get('https://lk.msu.ru/oauth/userinfo', headers={"Authorization": f"Bearer {token}"}) as response:
+            async with session.get(
+                'https://lk.msu.ru/oauth/userinfo', headers={"Authorization": f"Bearer {token}"}
+            ) as response:
                 userinfo = await response.json()
                 logger.error(userinfo)
                 lk_user_id = userinfo['user_id']

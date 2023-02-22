@@ -18,7 +18,6 @@ from .auth_method import OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
-auth = UnionAuth(auto_error=False)
 
 
 class GoogleSettings(Settings):
@@ -45,7 +44,7 @@ class GoogleAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
-        user_session: UserSession | None = Depends(auth),
+        user_session: UserSession | None = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
 
