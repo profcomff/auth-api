@@ -36,9 +36,9 @@ class GoogleAuth(OauthMeta):
 
     class OauthResponseSchema(BaseModel):
         code: str | None
-        scope: str | None
         state: str | None
         id_token: str | None = Field(help="Google JWT token identifier")
+        scopes: list[int]
 
     @classmethod
     async def _register(
@@ -79,7 +79,7 @@ class GoogleAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method(guser_id, user, db_session=db.session)
 
-        return await cls._create_session(user, user_inp.scope, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema):
@@ -104,7 +104,7 @@ class GoogleAuth(OauthMeta):
         user = await cls._get_user(guser_id, db_session=db.session)
         if not user:
             raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
-        return await cls._create_session(user, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
     @classmethod
     async def _redirect_url(cls):

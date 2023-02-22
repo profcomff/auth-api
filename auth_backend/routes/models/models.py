@@ -112,6 +112,7 @@ class ScopePatch(Base):
     validator_name = validator("name", allow_reuse=True)(patch_scope_validator)
 
 
+
 Group.update_forward_refs()
 GroupGet.update_forward_refs()
 UserScopes.update_forward_refs()

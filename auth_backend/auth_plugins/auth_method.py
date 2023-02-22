@@ -69,21 +69,8 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @staticmethod
     async def _create_session(user: User, scopes_list_ids: list[int], *, db_session: Session) -> Session:
         """Создает сессию пользователя"""
-        scopes = set()
-
-        for scope_id in scopes_list_ids:
-            scope = Scope.get(session=db.session, id=scope_id)
-            if not scope:
-                raise ObjectNotFound(Scope, scope_id)
-            scopes.add(scope)
-        if len(scopes & user.indirect_scopes) != len(scopes):
-            raise HTTPException(
-                status_code=403,
-                detail=ResponseModel(
-                    status="Error",
-                    message=f"Incorrect user scopes, triggering scopes -> {(scopes & user.indirect_scopes) - user.indirect_scopes} ",
-                ).json(),
-            )
+        scopes = await AuthMethodMeta.create_scopes_set_by_ids(scopes_list_ids)
+        await AuthMethodMeta._check_scopes(scopes, user)
         user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
         db_session.add(user_session)
         db_session.flush()
@@ -96,6 +83,28 @@ class AuthMethodMeta(metaclass=ABCMeta):
             id=user_session.id,
             expires=user_session.expires,
         )
+
+    @staticmethod
+    async def create_scopes_set_by_ids(scopes_list_ids: list[int]) -> set[Scope]:
+        scopes = set()
+        for scope_id in scopes_list_ids:
+            scope = Scope.get(session=db.session, id=scope_id)
+            if not scope:
+                raise ObjectNotFound(Scope, scope_id)
+            scopes.add(scope)
+        return scopes
+
+
+    @staticmethod
+    async def _check_scopes(scopes: set[Scope], user: User) -> None:
+        if len(scopes & user.indirect_scopes) != len(scopes):
+            raise HTTPException(
+                status_code=403,
+                detail=ResponseModel(
+                    status="Error",
+                    message=f"Incorrect user scopes, triggering scopes -> {(scopes & user.indirect_scopes) - user.indirect_scopes} ",
+                ).json(),
+            )
 
     @staticmethod
     async def _create_user(*, db_session: Session) -> User:

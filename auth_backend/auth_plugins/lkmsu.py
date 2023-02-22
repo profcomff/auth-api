@@ -36,6 +36,7 @@ class LkmsuAuth(OauthMeta):
     class OauthResponseSchema(BaseModel):
         code: str | None
         id_token: str | None = Field(help="LK MSU JWT token identifier")
+        scopes: list[int]
 
     @classmethod
     async def _register(
@@ -89,7 +90,7 @@ class LkmsuAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method(lk_user_id, user, db_session=db.session)
 
-        return await cls._create_session(user, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema) -> Session:
@@ -126,7 +127,7 @@ class LkmsuAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.LKMSU_TEMPTOKEN, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
-        return await cls._create_session(user, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
     @classmethod
     async def _redirect_url(cls):

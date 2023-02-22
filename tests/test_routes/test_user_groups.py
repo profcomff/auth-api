@@ -74,7 +74,7 @@ def test_del_user_from_group(client, dbsession, user_factory):
     assert response3.json()["user_id"] in [row["id"] for row in response.json()["items"]]
     response = client.delete(f"/group/{group}/user/{response2.json()['user_id']}")
     assert response.status_code == 200
-    last_id_fail = dbsession.query(UserGroup).order_by(UserGroup.id.desc()).first().id + 100
+    last_id_fail = dbsession.query(UserGroup).order_by(UserGroup.id.desc()).first().id + 1000
     response_fail = client.delete(f"/group/{group}/user/{last_id_fail}")
     assert response_fail.status_code == 404
     response = client.get(f"/group/{group}/user")

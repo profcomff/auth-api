@@ -128,7 +128,7 @@ class AuthMethod(BaseDbModel):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"))
     auth_method: Mapped[str] = mapped_column(String)
     param: Mapped[str] = mapped_column(String)
-    value: Mapped[str] = mapped_column(String, nullable=True)
+    value: Mapped[str] = mapped_column(String, nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped[User] = relationship(

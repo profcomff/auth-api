@@ -103,14 +103,11 @@ def test_invalid_check_tokens(client_auth: TestClient, user):
 def test_check_me_groups(client_auth: TestClient, user, dbsession):
     user_id, body_user, login = user["user_id"], user["body"], user["login_json"]
     dbsession.add(scope1 := Scope(name="auth.group.create", creator_id=user_id))
-    dbsession.flush()
     dbsession.add(scope3 := Scope(name="auth.user_group.create", creator_id=user_id))
-    dbsession.flush()
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
     dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
     dbsession.commit()
     time1 = datetime.datetime.utcnow()

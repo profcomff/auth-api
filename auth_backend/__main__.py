@@ -11,7 +11,6 @@ def get_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
 
-    subparsers.add_parser("start")
 
     user = subparsers.add_parser("user")
     user_subparsers = user.add_subparsers(dest='subcommand')
@@ -38,8 +37,6 @@ def get_args():
 
 if __name__ == '__main__':
     args = get_args()
-    if args.command == 'start':
-        print('Just start')
     if args.command == 'user' and args.subcommand == 'create':
         print(f'Creating user with params {args}')
         user = User.create(session=db.session)

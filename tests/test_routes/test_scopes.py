@@ -18,7 +18,6 @@ from auth_backend.models.db import Group, UserGroup
 def test_create_scope(client_auth: TestClient, dbsession: Session, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
     dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
-    dbsession.flush()
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
     dbsession.flush()
@@ -42,18 +41,13 @@ def test_create_scope(client_auth: TestClient, dbsession: Session, user):
 def test_patch_scope(client_auth, dbsession, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
     dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
-    dbsession.flush()
     dbsession.add(scope2 := Scope(name="auth.scope.update", creator_id=user_id))
-    dbsession.flush()
     dbsession.add(scope3 := Scope(name="auth.scope.read", creator_id=user_id))
-    dbsession.flush()
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
     dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
-    dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
     dbsession.commit()
     rand = random_string()
@@ -86,14 +80,11 @@ def test_patch_scope(client_auth, dbsession, user):
 def test_get_scope(client_auth, dbsession, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
     dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
-    dbsession.flush()
     dbsession.add(scope2 := Scope(name="auth.scope.read", creator_id=user_id))
-    dbsession.flush()
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
     dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
     dbsession.commit()
     rand = random_string()
@@ -113,18 +104,13 @@ def test_get_scope(client_auth, dbsession, user):
 def test_delete_scope(client_auth, dbsession, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
     dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
-    dbsession.flush()
     dbsession.add(scope2 := Scope(name="auth.scope.read", creator_id=user_id))
-    dbsession.flush()
     dbsession.add(scope3 := Scope(name="auth.scope.delete", creator_id=user_id))
-    dbsession.flush()
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
     dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
-    dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
     dbsession.commit()
     rand = random_string()
