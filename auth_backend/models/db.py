@@ -138,11 +138,14 @@ class AuthMethod(BaseDbModel):
         primaryjoin="and_(AuthMethod.user_id==User.id, not_(User.is_deleted))",
     )
 
+def session_expires_date():
+    return datetime.datetime.utcnow() + datetime.timedelta(days=7)
+
 
 class UserSession(BaseDbModel):
     user_id: Mapped[int] = mapped_column(Integer, sqlalchemy.ForeignKey("user.id"))
     expires: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        DateTime, default=session_expires_date
     )
     token: Mapped[str] = mapped_column(String, unique=True)
 
