@@ -7,6 +7,8 @@ import sqlalchemy.orm
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
+from auth_backend.settings import get_settings
+settings = get_settings()
 
 
 from auth_backend.models.base import BaseDbModel
@@ -139,7 +141,7 @@ class AuthMethod(BaseDbModel):
     )
 
 def session_expires_date():
-    return datetime.datetime.utcnow() + datetime.timedelta(days=7)
+    return datetime.datetime.utcnow() + datetime.timedelta(days=settings.SESSION_TIME_IN_DAYS)
 
 
 class UserSession(BaseDbModel):
