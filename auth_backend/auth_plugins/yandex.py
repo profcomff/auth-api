@@ -64,14 +64,14 @@ class YandexAuth(OauthMeta):
                         raise OauthAuthFailed('Invalid credentials for Yandex account')
                     token = token_result['access_token']
 
-                    get_headers = {"Authorization": f"OAuth {token}"}
-                    get_payload = {"format": "json"}
-                    async with session.get(
-                        "https://login.yandex.ru/info?", headers=get_headers, data=get_payload
-                    ) as response:
-                        userinfo = await response.json()
-                        logger.debug(userinfo)
-                        yandex_user_id = userinfo['id']
+                get_headers = {"Authorization": f"OAuth {token}"}
+                get_payload = {"format": "json"}
+                async with session.get(
+                    "https://login.yandex.ru/info?", headers=get_headers, data=get_payload
+                ) as response:
+                    userinfo = await response.json()
+                    logger.debug(userinfo)
+                    yandex_user_id = userinfo['id']
         else:
             userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
             yandex_user_id = userinfo['id']
@@ -79,7 +79,7 @@ class YandexAuth(OauthMeta):
 
         user = await cls._get_user(yandex_user_id, db_session=db.session)
 
-        if user is not None:
+        if user:
             raise AlreadyExists(user, user.id)
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
