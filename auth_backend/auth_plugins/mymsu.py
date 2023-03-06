@@ -8,8 +8,8 @@ class MyMsuSettings(Settings):
         'https://app.test.profcomff.com/auth/oauth-authorized/my-msu',
         env='MY_MSU_REDIRECT_URL',
     )
-    YANDEX_CLIENT_ID: str | None
-    YANDEX_CLIENT_SECRET: str | None
+    YANDEX_CLIENT_ID: str = Field(None, env='MY_MSU_CLIENT_ID')
+    YANDEX_CLIENT_SECRET: str = Field(None, env='MY_MSU_CLIENT_SECRET')
 
 
 class MyMsuAuth(YandexAuth):
