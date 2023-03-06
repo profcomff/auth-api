@@ -4,5 +4,7 @@ from .google import GoogleAuth
 from .physics import PhysicsAuth
 from .lkmsu import LkmsuAuth
 from .yandex import YandexAuth
+from .mymsu import MyMsuAuth
+
 
 __all__ = ["AUTH_METHODS", "AuthMethodMeta", "Email"]

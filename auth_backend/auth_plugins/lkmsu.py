@@ -22,7 +22,6 @@ class LkmsuSettings(Settings):
     LKMSU_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/lk-msu'
     LKMSU_CLIENT_ID: str | None
     LKMSU_CLIENT_SECRET: str | None
-    LKMSU_TEMPTOKEN: str = random_string()
 
 
 class LkmsuAuth(OauthMeta):
@@ -76,7 +75,7 @@ class LkmsuAuth(OauthMeta):
                     logger.debug(userinfo)
                     lk_user_id = userinfo['user_id']
         else:
-            userinfo = jwt.decode(user_inp.id_token, cls.settings.LKMSU_TEMPTOKEN, algorithms=["HS256"])
+            userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
             lk_user_id = userinfo['user_id']
             logger.debug(userinfo)
 
@@ -125,7 +124,7 @@ class LkmsuAuth(OauthMeta):
 
         user = await cls._get_user(lk_user_id, db_session=db.session)
         if not user:
-            id_token = jwt.encode(userinfo, cls.settings.LKMSU_TEMPTOKEN, algorithm="HS256")
+            id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

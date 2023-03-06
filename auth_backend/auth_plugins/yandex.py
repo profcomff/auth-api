@@ -19,9 +19,6 @@ class YandexSettings(Settings):
     YANDEX_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
     YANDEX_CLIENT_ID: str | None
     YANDEX_CLIENT_SECRET: str | None
-    YANDEX_SCOPES: list[str] = []
-    YANDEX_TEMPTOKEN: str = random_string()
-    YANDEX_CREDENTIALS: Json = '{}'
 
 
 class YandexAuth(OauthMeta):
@@ -76,7 +73,7 @@ class YandexAuth(OauthMeta):
                         logger.debug(userinfo)
                         yandex_user_id = userinfo['id']
         else:
-            userinfo = jwt.decode(user_inp.id_token, cls.settings.YANDEX_TEMPTOKEN, algorithms=["HS256"])
+            userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
             yandex_user_id = userinfo['id']
             logger.debug(yandex_user_id)
 
@@ -127,7 +124,7 @@ class YandexAuth(OauthMeta):
         user = await cls._get_user(yandex_user_id, db_session=db.session)
 
         if not user:
-            id_token = jwt.encode(userinfo, cls.settings.YANDEX_TEMPTOKEN, algorithm="HS256")
+            id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Yandex account', id_token)
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
