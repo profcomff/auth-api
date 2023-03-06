@@ -8,7 +8,6 @@ from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.db import Group, UserGroup, Scope, User, GroupScope
 
 
-
 def test_create(client, dbsession):
     time = datetime.datetime.utcnow()
     body = {"name": f"group{time}", "scopes": []}

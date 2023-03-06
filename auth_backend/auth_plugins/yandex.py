@@ -13,6 +13,8 @@ from auth_backend.settings import Settings
 import aiohttp
 
 logger = logging.getLogger(__name__)
+
+
 class YandexSettings(Settings):
     YANDEX_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
     YANDEX_CLIENT_ID: str | None
@@ -20,11 +22,14 @@ class YandexSettings(Settings):
     YANDEX_SCOPES: list[str] = []
     YANDEX_TEMPTOKEN: str = random_string()
     YANDEX_CREDENTIALS: Json = '{}'
+
+
 class YandexAuth(OauthMeta):
     prefix = '/yandex'
     tags = ['Yandex']
     fields = ["code", "scope"]
     settings = YandexSettings()
+
     class OauthResponseSchema(BaseModel):
         code: str | None
         id_token: str | None = Field(help="Yandex JWT token identifier")
@@ -32,11 +37,10 @@ class YandexAuth(OauthMeta):
 
     @classmethod
     async def _register(
-            cls,
-            user_inp: OauthResponseSchema,
-            user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
+        cls,
+        user_inp: OauthResponseSchema,
+        user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
-
         """Создает аккаунт или привязывает существующий
 
         Если передана активная сессия пользователя, то привязывает аккаунт https://lk.msu.ru к
@@ -45,14 +49,12 @@ class YandexAuth(OauthMeta):
 
         """
 
-        header = {
-            "content-type": "application/x-www-form-urlencoded"
-        }
+        header = {"content-type": "application/x-www-form-urlencoded"}
         payload = {
             "grant_type": "authorization_code",
             "code": user_inp.code,
             "client_id": cls.settings.YANDEX_CLIENT_ID,
-            "client_secret" : cls.settings.YANDEX_CLIENT_SECRET
+            "client_secret": cls.settings.YANDEX_CLIENT_SECRET,
         }
         userinfo = None
         yandex_user_id = None
@@ -65,13 +67,11 @@ class YandexAuth(OauthMeta):
                         raise OauthAuthFailed('Invalid credentials for Yandex account')
                     token = token_result['access_token']
 
-                    get_headers = {
-                        "Authorization": f"OAuth {token}"
-                    }
-                    get_payload = {
-                        "format" : "json"
-                    }
-                    async with session.get("https://login.yandex.ru/info?", headers=get_headers, data=get_payload ) as response:
+                    get_headers = {"Authorization": f"OAuth {token}"}
+                    get_payload = {"format": "json"}
+                    async with session.get(
+                        "https://login.yandex.ru/info?", headers=get_headers, data=get_payload
+                    ) as response:
                         userinfo = await response.json()
                         logger.debug(userinfo)
                         yandex_user_id = userinfo['id']
@@ -92,22 +92,18 @@ class YandexAuth(OauthMeta):
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
-
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema) -> Session:
-
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
         найден, возвращает ошибка.
         """
-        header = {
-            "content-type": "application/x-www-form-urlencoded"
-        }
+        header = {"content-type": "application/x-www-form-urlencoded"}
         payload = {
             "grant_type": "authorization_code",
             "code": user_inp.code,
             "client_id": cls.settings.YANDEX_CLIENT_ID,
-            "client_secret": cls.settings.YANDEX_CLIENT_SECRET
+            "client_secret": cls.settings.YANDEX_CLIENT_SECRET,
         }
         userinfo = None
         yandex_user_id = None
@@ -119,14 +115,11 @@ class YandexAuth(OauthMeta):
                     raise OauthAuthFailed('Invalid credentials for Yandex account')
                 token = token_result['access_token']
 
-                get_headers = {
-                    "Authorization": f"OAuth {token}"
-                }
-                get_payload = {
-                    "format": "json"
-                }
-                async with session.get("https://login.yandex.ru/info?", headers=get_headers,
-                                       data=get_payload) as response:
+                get_headers = {"Authorization": f"OAuth {token}"}
+                get_payload = {"format": "json"}
+                async with session.get(
+                    "https://login.yandex.ru/info?", headers=get_headers, data=get_payload
+                ) as response:
                     userinfo = await response.json()
                     logger.debug(userinfo)
                     yandex_user_id = userinfo['id']
@@ -140,18 +133,16 @@ class YandexAuth(OauthMeta):
 
     @classmethod
     async def _redirect_url(cls):
-
         """URL на который происходит редирект после завершения входа на стороне провайдера"""
 
         return OauthMeta.UrlSchema(url=cls.settings.YANDEX_REDIRECT_URL)
 
     @classmethod
     async def _auth_url(cls):
-
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
 
         return OauthMeta.UrlSchema(
-            url = f"https://oauth.yandex.ru/authorize?response_type=code&client_id={cls.settings.YANDEX_CLIENT_ID}&redirect_uri={quote(cls.settings.YANDEX_REDIRECT_URL)}"
+            url=f"https://oauth.yandex.ru/authorize?response_type=code&client_id={cls.settings.YANDEX_CLIENT_ID}&redirect_uri={quote(cls.settings.YANDEX_REDIRECT_URL)}"
         )
 
     @classmethod
@@ -170,7 +161,6 @@ class YandexAuth(OauthMeta):
 
     @classmethod
     async def _register_auth_method(cls, yandex_id: str | int, user: User, *, db_session):
-
         """Добавление пользователю новый AuthMethod"""
 
         AuthMethod.create(
@@ -180,5 +170,3 @@ class YandexAuth(OauthMeta):
             value=str(yandex_id),
             session=db_session,
         )
-
-
