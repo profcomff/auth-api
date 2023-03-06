@@ -2,7 +2,9 @@ from functools import lru_cache
 
 from pydantic import BaseSettings, PostgresDsn, conint
 
-from auth_backend.auth_plugins.auth_method import random_string
+import random
+
+import string
 
 
 class Settings(BaseSettings):
@@ -26,7 +28,7 @@ class Settings(BaseSettings):
     CORS_ALLOW_METHODS: list[str] = ['*']
     CORS_ALLOW_HEADERS: list[str] = ['*']
 
-    ENCRYPTION_KEY: str = random_string()
+    ENCRYPTION_KEY: str = "".join([random.choice(string.ascii_letters) for _ in range(32)])
 
     class Config:
         """Pydantic BaseSettings config"""
