@@ -7,6 +7,8 @@ import sqlalchemy.orm
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
+from auth_backend.settings import get_settings
+settings = get_settings()
 
 
 from auth_backend.models.base import BaseDbModel
@@ -138,11 +140,14 @@ class AuthMethod(BaseDbModel):
         primaryjoin="and_(AuthMethod.user_id==User.id, not_(User.is_deleted))",
     )
 
+def session_expires_date():
+    return datetime.datetime.utcnow() + datetime.timedelta(days=settings.SESSION_TIME_IN_DAYS)
+
 
 class UserSession(BaseDbModel):
     user_id: Mapped[int] = mapped_column(Integer, sqlalchemy.ForeignKey("user.id"))
     expires: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(days=7)
+        DateTime, default=session_expires_date
     )
     token: Mapped[str] = mapped_column(String, unique=True)
 
