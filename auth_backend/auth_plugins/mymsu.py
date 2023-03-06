@@ -11,6 +11,7 @@ class MyMsuSettings(Settings):
     YANDEX_CLIENT_ID: str | None
     YANDEX_CLIENT_SECRET: str | None
 
+
 class MyMsuAuth(YandexAuth):
     """Вход в приложение по почте @my.msu.ru"""
 
