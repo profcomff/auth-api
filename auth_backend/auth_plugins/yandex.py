@@ -59,7 +59,7 @@ class YandexAuth(OauthMeta):
             async with aiohttp.ClientSession(headers=header) as session:
                 async with session.post("https://oauth.yandex.ru/token", data=payload) as response:
                     token_result = await response.json()
-                    logger.error(token_result)
+                    logger.debug(token_result)
                     if 'access_token' not in token_result:
                         raise OauthAuthFailed('Invalid credentials for Yandex account')
                     token = token_result['access_token']
@@ -107,19 +107,19 @@ class YandexAuth(OauthMeta):
         async with aiohttp.ClientSession(headers=header) as session:
             async with session.post("https://oauth.yandex.ru/token", data=payload) as response:
                 token_result = await response.json()
-                logger.error(token_result)
-                if 'access_token' not in token_result:
-                    raise OauthAuthFailed('Invalid credentials for Yandex account')
-                token = token_result['access_token']
+                logger.debug(token_result)
+            if 'access_token' not in token_result:
+                raise OauthAuthFailed('Invalid credentials for Yandex account')
+            token = token_result['access_token']
 
-                get_headers = {"Authorization": f"OAuth {token}"}
-                get_payload = {"format": "json"}
-                async with session.get(
-                    "https://login.yandex.ru/info?", headers=get_headers, data=get_payload
-                ) as response:
-                    userinfo = await response.json()
-                    logger.debug(userinfo)
-                    yandex_user_id = userinfo['id']
+            get_headers = {"Authorization": f"OAuth {token}"}
+            get_payload = {"format": "json"}
+            async with session.get(
+                "https://login.yandex.ru/info?", headers=get_headers, data=get_payload
+            ) as response:
+                userinfo = await response.json()
+                logger.debug(userinfo)
+                yandex_user_id = userinfo['id']
 
         user = await cls._get_user(yandex_user_id, db_session=db.session)
 
