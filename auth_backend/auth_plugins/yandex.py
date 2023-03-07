@@ -114,9 +114,7 @@ class YandexAuth(OauthMeta):
 
             get_headers = {"Authorization": f"OAuth {token}"}
             get_payload = {"format": "json"}
-            async with session.get(
-                "https://login.yandex.ru/info?", headers=get_headers, data=get_payload
-            ) as response:
+            async with session.get("https://login.yandex.ru/info?", headers=get_headers, data=get_payload) as response:
                 userinfo = await response.json()
                 logger.debug(userinfo)
                 yandex_user_id = userinfo['id']
