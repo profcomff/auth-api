@@ -10,6 +10,7 @@ class Group(Base):
     name: str
     parent_id: int | None = Field(None, gt=0)
 
+
 class GroupScopes(Base):
     scopes: list[ScopeGet] | None
 

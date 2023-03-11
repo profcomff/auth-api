@@ -14,6 +14,8 @@ from urllib.parse import unquote
 
 
 logger = logging.getLogger(__name__)
+
+
 class TelegramSettings(Settings):
     TELEGRAM_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
     TELEGRAM_BOT_TOKEN: str | None
@@ -36,40 +38,35 @@ class TelegramAuth(OauthMeta):
         hash: str | None
         scopes: list[int]
 
-
-
-
     @classmethod
     async def _register(
-            cls,
-            user_inp: OauthResponseSchema,
-            user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
-        ) -> Session:
+        cls,
+        user_inp: OauthResponseSchema,
+        user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
+    ) -> Session:
+        telegram_user_id = None
+        userinfo = None
 
-            telegram_user_id = None
-            userinfo = None
+        if user_inp.id_token is None:
+            userinfo = cls._check(user_inp)
+            telegram_user_id = user_inp.id
+            logger.debug(userinfo)
+        else:
+            userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
+            telegram_user_id = userinfo['id']
+            logger.debug(userinfo)
 
-            if user_inp.id_token is None:
-                userinfo = cls._check(user_inp)
-                telegram_user_id = user_inp.id
-                logger.debug(userinfo)
-            else:
-                userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
-                telegram_user_id = userinfo['id']
-                logger.debug(userinfo)
+        user = await cls._get_user(telegram_user_id, db_session=db.session)
 
-            user = await cls._get_user(telegram_user_id, db_session=db.session)
+        if user is not None:
+            raise AlreadyExists(user, user.id)
+        if user_session is None:
+            user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
+        else:
+            user = user_session.user
+        await cls._register_auth_method(telegram_user_id, user, db_session=db.session)
 
-            if user is not None:
-                raise AlreadyExists(user, user.id)
-            if user_session is None:
-                user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
-            else:
-                user = user_session.user
-            await cls._register_auth_method(telegram_user_id, user, db_session=db.session)
-
-            return await cls._create_session(user, user_inp.scopes, db_session=db.session)
-
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema) -> Session:
@@ -90,8 +87,6 @@ class TelegramAuth(OauthMeta):
             raise OauthAuthFailed('No users found for Telegram account', id_token)
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
-
-
     @classmethod
     async def _redirect_url(cls):
         """URL на который происходит редирект после завершения входа на стороне провайдера"""
@@ -103,7 +98,6 @@ class TelegramAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f"https://oauth.telegram.org/auth?bot_id={cls.settings.TELEGRAM_BOT_ID}6&origin={cls.settings.TELEGRAM_REDIRECT_URL}&return_to={cls.settings.TELEGRAM_REDIRECT_URL}"
         )
-
 
     @classmethod
     async def _get_user(cls, telegram_id: str | int, *, db_session: Session) -> User | None:
@@ -132,9 +126,9 @@ class TelegramAuth(OauthMeta):
 
     @classmethod
     async def _check(cls, user_inp):
-        ''' Проверка данных пользователя
-            https://core.telegram.org/widgets/login#checking-authorization
-         '''
+        '''Проверка данных пользователя
+        https://core.telegram.org/widgets/login#checking-authorization
+        '''
         data_check = {
             'id': user_inp.id,
             'first_name': user_inp.first_name,
@@ -150,7 +144,7 @@ class TelegramAuth(OauthMeta):
         data_check_string = data_check_string.rstrip('\n')
         secret_key = hashlib.sha256(str.encode(cls.settings.TELEGRAM_BOT_TOKEN)).digest()
         signing = hmac.new(secret_key, msg=str.encode(data_check_string), digestmod=hashlib.sha256).hexdigest()
-        if (signing == check_hash):
+        if signing == check_hash:
             return data_check
         else:
             raise OauthAuthFailed
