@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 class TelegramSettings(Settings):
     TELEGRAM_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
     TELEGRAM_BOT_TOKEN: str | None
-    TELEGRAM_BOT_ID: str | None
 
 
 class TelegramAuth(OauthMeta):
@@ -95,8 +94,9 @@ class TelegramAuth(OauthMeta):
     @classmethod
     async def _auth_url(cls):
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
+
         return OauthMeta.UrlSchema(
-            url=f"https://oauth.telegram.org/auth?bot_id={cls.settings.TELEGRAM_BOT_ID}6&origin={cls.settings.TELEGRAM_REDIRECT_URL}&return_to={cls.settings.TELEGRAM_REDIRECT_URL}"
+            url=f"https://oauth.telegram.org/auth?bot_id={cls.settings.TELEGRAM_BOT_TOKEN.split(':')[0]}6&origin={cls.settings.TELEGRAM_REDIRECT_URL}&return_to={cls.settings.TELEGRAM_REDIRECT_URL}"
         )
 
     @classmethod
