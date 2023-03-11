@@ -2,6 +2,10 @@ from functools import lru_cache
 
 from pydantic import BaseSettings, PostgresDsn, conint
 
+import random
+
+import string
+
 
 class Settings(BaseSettings):
     DB_DSN: PostgresDsn = 'postgresql://postgres@localhost:5432/postgres'
@@ -24,6 +28,8 @@ class Settings(BaseSettings):
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: list[str] = ['*']
     CORS_ALLOW_HEADERS: list[str] = ['*']
+
+    ENCRYPTION_KEY: str = "".join([random.choice(string.ascii_letters) for _ in range(32)])
 
     class Config:
         """Pydantic BaseSettings config"""

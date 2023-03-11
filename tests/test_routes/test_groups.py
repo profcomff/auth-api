@@ -1,6 +1,8 @@
 import datetime
+from time import sleep
 
 import pytest
+import httpx
 
 from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.db import Group, UserGroup, Scope, User, GroupScope
@@ -135,7 +137,7 @@ def test_patch(client, dbsession):
 def test_cycle_patch(client, dbsession):
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
-    time2 = datetime.datetime.utcnow()
+    time2 = datetime.datetime.utcnow() + datetime.timedelta(days=1)
     group = client.post(url="/group", json=body).json()["id"]
     body2 = {"name": f"group{time2}", "parent_id": group, "scopes": []}
     group2 = client.post(url="/group", json=body2).json()["id"]
