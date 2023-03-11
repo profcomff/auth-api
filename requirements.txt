@@ -9,6 +9,7 @@ gunicorn
 email-validator
 retrying
 aiohttp
+logging-profcomff
 
 # Google Auth Method
 google-api-python-client
