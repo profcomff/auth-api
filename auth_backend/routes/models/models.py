@@ -9,7 +9,9 @@ class Group(Base):
     id: int = Field(..., gt=0)
     name: str
     parent_id: int | None = Field(None, gt=0)
-    scopes: list[ScopeGet]
+
+class GroupScopes(Base):
+    scopes: list[ScopeGet] | None
 
 
 class GroupChilds(Base):
@@ -20,7 +22,7 @@ class GroupIndirectScopes(Base):
     indirect_scopes: list[ScopeGet] | None
 
 
-class GroupGet(Group, GroupChilds, GroupIndirectScopes):
+class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes):
     pass
 
 

@@ -101,7 +101,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
                 status_code=403,
                 detail=ResponseModel(
                     status="Error",
-                    message=f"Incorrect user scopes, triggering scopes -> {(scopes & user.indirect_scopes) - user.indirect_scopes} ",
+                    message=f"Incorrect user scopes, triggering scopes -> {scopes - user.indirect_scopes} ",
                 ).json(),
             )
 

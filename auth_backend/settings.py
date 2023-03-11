@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     ENABLED_AUTH_METHODS: list[str] | None
     TOKEN_LENGTH: conint(gt=8) = 64  # type: ignore
+    SESSION_TIME_IN_DAYS: int = 30
 
     MAX_RETRIES: int = 10
     STOP_MAX_DELAY: int = 10000
