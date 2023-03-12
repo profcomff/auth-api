@@ -41,10 +41,14 @@ class UserIndirectGroups(Base):
 
 
 class UserScopes(Base):
-    scopes: list[ScopeGet] | None
+    user_scopes: list[ScopeGet] | None
 
 
-class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes):
+class SessionScopes(Base):
+    session_scopes: list[ScopeGet] | None
+
+
+class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScopes):
     pass
 
 
@@ -119,3 +123,4 @@ Group.update_forward_refs()
 GroupGet.update_forward_refs()
 UserScopes.update_forward_refs()
 UserGet.update_forward_refs()
+SessionScopes.update_forward_refs()

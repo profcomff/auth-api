@@ -6,7 +6,7 @@ from starlette import status
 
 from auth_backend.models.db import AuthMethod, UserSession
 
-url = "/email/reset/email/"
+url = "/email/reset/email"
 
 
 def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
@@ -18,7 +18,7 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
         .value
     )
     tmp_email = f"changed{datetime.datetime.utcnow()}@mail.com"
-    response = client_auth.post(f"{url}request", json={"email": tmp_email}, headers={"Authorization": login["token"]})
+    response = client_auth.post(f"{url}/request", json={"email": tmp_email}, headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
     conf_token_2 = (
@@ -60,13 +60,13 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
 def test_invalid_jsons(client_auth: TestClient, dbsession: Session, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
 
-    response = client_auth.post(f"{url}request", json={"email": "changed@mail.com"}, headers={"Authorization": ""})
+    response = client_auth.post(f"{url}/request", json={"email": "changed@mail.com"}, headers={"Authorization": ""})
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    response = client_auth.post(f"{url}request", json={"email": ""}, headers={"Authorization": login["token"]})
+    response = client_auth.post(f"{url}/request", json={"email": ""}, headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    response = client_auth.post(f"{url}request", json={"email": ""}, headers={"Authorization": ""})
+    response = client_auth.post(f"{url}/request", json={"email": ""}, headers={"Authorization": ""})
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -76,6 +76,6 @@ def test_expired_token(client_auth: TestClient, dbsession: Session, user):
     assert response.status_code == status.HTTP_200_OK
 
     response = client_auth.post(
-        f"{url}request", json={"email": "changed@mail.com"}, headers={"Authorization": login["token"]}
+        f"{url}/request", json={"email": "changed@mail.com"}, headers={"Authorization": login["token"]}
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN

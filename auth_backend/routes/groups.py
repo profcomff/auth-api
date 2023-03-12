@@ -5,7 +5,7 @@ from fastapi_sqlalchemy import db
 
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists
 from auth_backend.models.db import Group as DbGroup, UserSession, GroupScope, Scope
-from auth_backend.routes.models.models import Group, GroupPost, GroupsGet, GroupPatch, GroupGet
+from auth_backend.pydantic.models import Group, GroupPost, GroupsGet, GroupPatch, GroupGet
 from auth_backend.base import ResponseModel
 from auth_backend.utils.security import UnionAuth
 

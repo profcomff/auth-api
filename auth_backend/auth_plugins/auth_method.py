@@ -12,7 +12,6 @@ from fastapi_sqlalchemy import db
 from pydantic import constr
 
 from auth_backend.base import Base, ResponseModel
-from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.db import User, UserSession, Scope, UserSessionScope
 from auth_backend.settings import get_settings
 
@@ -67,9 +66,9 @@ class AuthMethodMeta(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @staticmethod
-    async def _create_session(user: User, scopes_list_ids: list[int], *, db_session: Session) -> Session:
+    async def _create_session(user: User, scopes_list_names: list[str], *, db_session: Session) -> Session:
         """Создает сессию пользователя"""
-        scopes = await AuthMethodMeta.create_scopes_set_by_ids(scopes_list_ids)
+        scopes = await AuthMethodMeta.create_scopes_set_by_ids(scopes_list_names)
         await AuthMethodMeta._check_scopes(scopes, user)
         user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
         db_session.add(user_session)
@@ -85,12 +84,10 @@ class AuthMethodMeta(metaclass=ABCMeta):
         )
 
     @staticmethod
-    async def create_scopes_set_by_ids(scopes_list_ids: list[int]) -> set[Scope]:
+    async def create_scopes_set_by_ids(scopes_list_names: list[str]) -> set[Scope]:
         scopes = set()
-        for scope_id in scopes_list_ids:
-            scope = Scope.get(session=db.session, id=scope_id)
-            if not scope:
-                raise ObjectNotFound(Scope, scope_id)
+        for scope_name in scopes_list_names:
+            scope = Scope.get_by_name(scope_name, session=db.session)
             scopes.add(scope)
         return scopes
 

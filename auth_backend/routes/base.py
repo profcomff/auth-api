@@ -15,12 +15,12 @@ from .scopes import scopes
 
 settings = get_settings()
 app = FastAPI(
-    title='Сервис мониторинга активности',
+    title='Сервис аутентификации и авторизации',
     description=(
-        'Серверная часть сервиса для выдачи печенек за активности'
+        'Серверная часть сервиса проверки подлинности пользователя '
+        'и предоставления лицу или группе лиц прав на выполнение определённых действий'
     ),
     version=__version__,
-
     # Настраиваем интернет документацию
     root_path=settings.ROOT_PATH if __version__ != 'dev' else '/',
     docs_url=None if __version__ != 'dev' else '/docs',

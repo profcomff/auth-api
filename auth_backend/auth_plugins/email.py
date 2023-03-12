@@ -18,6 +18,7 @@ from auth_backend.utils.smtp import (
     send_reset_email,
 )
 from .auth_method import AuthMethodMeta, Session, random_string
+from auth_backend.pydantic.types.validators import Scope
 
 settings = get_settings()
 
@@ -59,7 +60,7 @@ def check_email(v):
 class EmailLogin(Base):
     email: constr(min_length=1)
     password: constr(min_length=1)
-    scopes: list[int]
+    scopes: list[Scope]
 
     email_validator = validator("email", allow_reuse=True)(check_email)
 

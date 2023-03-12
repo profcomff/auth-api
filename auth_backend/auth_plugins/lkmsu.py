@@ -9,11 +9,10 @@ from pydantic import BaseModel, Field
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.pydantic.types.validators import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-
-from .auth_method import OauthMeta, Session, random_string
-
+from .auth_method import OauthMeta, Session
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,7 @@ class LkmsuAuth(OauthMeta):
     class OauthResponseSchema(BaseModel):
         code: str | None
         id_token: str | None = Field(help="LK MSU JWT token identifier")
-        scopes: list[int]
+        scopes: list[Scope]
 
     @classmethod
     async def _register(

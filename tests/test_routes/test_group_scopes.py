@@ -101,44 +101,60 @@ def test_scopes_user_session(client_auth, dbsession, user):
     assert response.status_code == 200
     response = client_auth.post(f"/group/{_group3}/user", json={"user_id": user_id}, headers=headers)
     assert response.status_code == 200
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.id]})
+    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.name]})
     assert response.status_code == 200
     token = response.json()["token"]
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope2.id + 1]})
-    assert response.status_code == 403
-    response = client_auth.get("/me", headers={"Authorization": token}, params={"info": ["scopes"]})
+    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope2.name + "s"]})
+    assert response.status_code == 404
+    response = client_auth.get("/me", headers={"Authorization": token}, params={"info": ["token_scopes"]})
     assert response.status_code == 200
-    assert scope1.id in [row["id"] for row in response.json()["scopes"]]
-    response = client_auth.get("/me", headers={"Authorization": login["token"]}, params={"info": ["scopes"]})
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
+    response = client_auth.get("/me", headers={"Authorization": login["token"]}, params={"info": ["token_scopes"]})
     assert response.status_code == 200
-    assert scope2.id not in [row["id"] for row in response.json()["scopes"]]
+    assert scope2.id not in [row["id"] for row in response.json()["session_scopes"]]
     response = client_auth.patch(f"/group/{_group3}", json={"scopes": [scope1.id, scope2.id]}, headers=headers)
     assert response.status_code == 200
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.id, scope2.id]})
+    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.name, scope2.name]})
     assert response.status_code == 200
     token1 = response.json()["token"]
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope2.id]})
+    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope2.name]})
     assert response.status_code == 200
     token2 = response.json()["token"]
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.id]})
+    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.name]})
     assert response.status_code == 200
     token3 = response.json()["token"]
-    response = client_auth.get("/me", headers={"Authorization": token1}, params={"info": ["scopes"]})
+    response = client_auth.get(
+        "/me", headers={"Authorization": token1}, params={"info": ["token_scopes", "user_scopes"]}
+    )
     assert response.status_code == 200
-    assert scope2.id in [row["id"] for row in response.json()["scopes"]]
-    assert scope1.id in [row["id"] for row in response.json()["scopes"]]
-    response = client_auth.get("/me", headers={"Authorization": token2}, params={"info": ["scopes"]})
+    assert scope2.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
+    response = client_auth.get(
+        "/me", headers={"Authorization": token2}, params={"info": ["token_scopes", "user_scopes"]}
+    )
     assert response.status_code == 200
-    assert scope2.id in [row["id"] for row in response.json()["scopes"]]
-    assert scope1.id not in [row["id"] for row in response.json()["scopes"]]
-    response = client_auth.get("/me", headers={"Authorization": token3}, params={"info": ["scopes"]})
+    assert scope2.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope1.id not in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
+    response = client_auth.get(
+        "/me", headers={"Authorization": token3}, params={"info": ["token_scopes", "user_scopes"]}
+    )
     assert response.status_code == 200
-    assert scope1.id in [row["id"] for row in response.json()["scopes"]]
-    assert scope2.id not in [row["id"] for row in response.json()["scopes"]]
-    response = client_auth.get("/me", headers={"Authorization": login["token"]}, params={"info": ["scopes"]})
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id not in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
+    response = client_auth.get(
+        "/me", headers={"Authorization": login["token"]}, params={"info": ["token_scopes", "user_scopes"]}
+    )
     assert response.status_code == 200
-    assert scope2.id not in [row["id"] for row in response.json()["scopes"]]
-    assert scope1.id not in [row["id"] for row in response.json()["scopes"]]
+    assert scope2.id not in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope1.id not in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
     dbsession.query(UserSessionScope).delete()
     dbsession.delete(user_session)
     dbsession.query(GroupScope).delete()
