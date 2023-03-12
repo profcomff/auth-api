@@ -1,17 +1,18 @@
-import json
+import logging
 from urllib.parse import quote
-from fastapi_sqlalchemy import db
+
+import aiohttp
 import jwt
 from fastapi import Depends
-from pydantic import BaseModel, Field, Json, validator
-import logging
-from auth_backend.auth_plugins.auth_method import OauthMeta, Session, random_string
-from auth_backend.pydantic.types.validators import Scope
+from fastapi_sqlalchemy import db
+from pydantic import BaseModel, Field
+
+from auth_backend.auth_plugins.auth_method import OauthMeta, Session
 from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
 from auth_backend.models.db import UserSession, User, AuthMethod
-from auth_backend.utils.security import UnionAuth
+from auth_backend.pydantic.types.validators import Scope
 from auth_backend.settings import Settings
-import aiohttp
+from auth_backend.utils.security import UnionAuth
 
 logger = logging.getLogger(__name__)
 

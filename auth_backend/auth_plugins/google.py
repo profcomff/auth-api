@@ -1,21 +1,20 @@
 import logging
 
 import google_auth_oauthlib.flow
-from google.oauth2.id_token import verify_oauth2_token
-from google.auth.exceptions import GoogleAuthError
+import oauthlib.oauth2.rfc6749.errors
 from fastapi import Depends
 from fastapi_sqlalchemy import db
-import oauthlib.oauth2.rfc6749.errors
-from pydantic import BaseModel, Field, Json, validator
+from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests
+from google.oauth2.id_token import verify_oauth2_token
+from pydantic import BaseModel, Field, Json
 
-from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed, OauthCredentialsIncorrect
+from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.pydantic.types.validators import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-
 from .auth_method import OauthMeta, Session
-from auth_backend.pydantic.types.validators import Scope
 
 logger = logging.getLogger(__name__)
 

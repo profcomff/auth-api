@@ -5,15 +5,14 @@ import aiohttp
 import jwt
 from fastapi import Depends
 from fastapi_sqlalchemy import db
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.pydantic.types.validators import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-
-from .auth_method import OauthMeta, Session, random_string
-from auth_backend.pydantic.types.validators import Scope
+from .auth_method import OauthMeta, Session
 
 logger = logging.getLogger(__name__)
 

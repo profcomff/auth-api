@@ -40,7 +40,7 @@ class OauthAuthFailedResponseModel(ResponseModel):
 
 
 @app.exception_handler(OauthAuthFailed)
-async def auth_failed_handler(req: starlette.requests.Request, exc: OauthAuthFailed):
+async def oauth_failed_handler(req: starlette.requests.Request, exc: OauthAuthFailed):
     return JSONResponse(
         content=OauthAuthFailedResponseModel(
             status="Error",
