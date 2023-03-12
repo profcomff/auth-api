@@ -59,7 +59,7 @@ class GroupPost(Base):
 
 
 class GroupsGet(Base):
-    items: list[Group]
+    items: list[GroupGet]
 
 
 class GroupPatch(Base):

@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 from auth_backend.base import ResponseModel
 from auth_backend.exceptions import SessionExpired
 from auth_backend.models.db import UserSession, Group
-from auth_backend.pydantic.models import UserGroups, UserIndirectGroups, UserInfo, UserGet, UserScopes, SessionScopes
+from auth_backend.schemas.models import UserGroups, UserIndirectGroups, UserInfo, UserGet, UserScopes, SessionScopes
 from auth_backend.utils.security import UnionAuth
 
 

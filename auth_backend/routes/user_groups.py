@@ -3,7 +3,7 @@ from fastapi_sqlalchemy import db
 from starlette.exceptions import HTTPException
 
 from auth_backend.models.db import Group, UserGroup
-from auth_backend.pydantic.models import UserGroupGet, GroupUserListGet, UserGroupPost
+from auth_backend.schemas.models import UserGroupGet, GroupUserListGet, UserGroupPost
 from auth_backend.base import ResponseModel
 from auth_backend.utils.security import UnionAuth
 

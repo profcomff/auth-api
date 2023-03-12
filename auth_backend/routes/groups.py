@@ -1,11 +1,11 @@
-from typing import Literal
+from typing import Literal, Dict, Any
 
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi_sqlalchemy import db
 
 from auth_backend.exceptions import ObjectNotFound, AlreadyExists
 from auth_backend.models.db import Group as DbGroup, UserSession, GroupScope, Scope
-from auth_backend.pydantic.models import Group, GroupPost, GroupsGet, GroupPatch, GroupGet
+from auth_backend.schemas.models import Group, GroupPost, GroupsGet, GroupPatch, GroupGet
 from auth_backend.base import ResponseModel
 from auth_backend.utils.security import UnionAuth
 
@@ -96,6 +96,20 @@ async def delete_group(
     return None
 
 
-@groups.get("", response_model=GroupsGet)
-async def get_groups() -> GroupsGet:
-    return GroupsGet(items=DbGroup.query(session=db.session).all())
+@groups.get("", response_model=GroupsGet, response_model_exclude_unset=True)
+async def get_groups(info: list[Literal["", "scopes", "indirect_scopes", "child"]] = Query(default=[])) -> dict[
+    str, Any]:
+    groups = DbGroup.query(session=db.session).all()
+    result = {}
+    print(groups)
+    result = result | GroupsGet(items=groups).dict()
+    if "scopes" not in info:
+        for row in result["items"]:
+            del row["scopes"]
+    if "indirect_scopes" not in info:
+        for row in result["items"]:
+            del row["indirect_scopes"]
+    if "child" not in info:
+        for row in result["items"]:
+            del row["child"]
+    return GroupsGet(**result).dict(exclude_unset=True)

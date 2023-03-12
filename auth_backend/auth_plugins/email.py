@@ -18,7 +18,7 @@ from auth_backend.utils.smtp import (
     send_reset_email,
 )
 from .auth_method import AuthMethodMeta, Session, random_string
-from auth_backend.pydantic.types.validators import Scope
+from auth_backend.schemas.types.scope import Scope
 
 settings = get_settings()
 
