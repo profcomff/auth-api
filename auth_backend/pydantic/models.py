@@ -48,7 +48,6 @@ class SessionScopes(Base):
     session_scopes: list[ScopeGet] | None
 
 
-
 class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScopes):
     pass
 

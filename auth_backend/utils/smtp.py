@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from retrying import retry
 
 from auth_backend.settings import get_settings
+from pydantic import EmailStr
 
 settings = get_settings()
 

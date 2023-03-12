@@ -14,7 +14,8 @@ from auth_backend.exceptions import AlreadyExists, OauthAuthFailed, OauthCredent
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from .auth_method import OauthMeta, Session, scopes_validator
+from .auth_method import OauthMeta, Session
+from auth_backend.pydantic.types.validators import Scope
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +38,7 @@ class GoogleAuth(OauthMeta):
         code: str | None
         state: str | None
         id_token: str | None = Field(help="Google JWT token identifier")
-        scopes: list[str]
-
-        validator_scope = validator("scopes", allow_reuse=True)(scopes_validator)
+        scopes: list[Scope]
 
     @classmethod
     async def _register(

@@ -200,7 +200,6 @@ class Scope(BaseDbModel):
         return scope
 
 
-
 class GroupScope(BaseDbModel):
     group_id: Mapped[int] = mapped_column(Integer, ForeignKey(Group.id))
     scope_id: Mapped[int] = mapped_column(Integer, ForeignKey(Scope.id))

@@ -12,7 +12,6 @@ from fastapi_sqlalchemy import db
 from pydantic import constr
 
 from auth_backend.base import Base, ResponseModel
-from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.db import User, UserSession, Scope, UserSessionScope
 from auth_backend.settings import get_settings
 
@@ -31,18 +30,6 @@ class Session(Base):
     id: int
     user_id: int
 
-
-def scopes_validator(v: list[str]) -> str:
-    if not v:
-        return v
-    for val in v:
-        if " " in val:
-            raise ValueError
-        if val.count(".") != 2:
-            raise ValueError
-        if not all(val.split(".")):
-            raise ValueError
-    return v
 
 AUTH_METHODS: dict[str, type[AuthMethodMeta]] = {}
 
