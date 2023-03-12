@@ -6,7 +6,9 @@ from typing import Iterator
 import sqlalchemy.orm
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapped, mapped_column, relationship, backref
+from sqlalchemy.orm import Mapped, mapped_column, relationship, backref, Session
+
+from auth_backend.exceptions import ObjectNotFound
 from auth_backend.settings import get_settings
 
 settings = get_settings()
@@ -172,7 +174,7 @@ class UserSession(BaseDbModel):
 
 class Scope(BaseDbModel):
     creator_id: Mapped[int] = mapped_column(Integer, ForeignKey(User.id))
-    name: Mapped[str] = mapped_column(String)
+    name: Mapped[str] = mapped_column(String, unique=True)
     comment: Mapped[str] = mapped_column(String, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     groups: Mapped[list[Group]] = relationship(
@@ -189,6 +191,14 @@ class Scope(BaseDbModel):
         primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
         secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",
     )
+
+    @classmethod
+    def get_by_name(cls, name: str, *, with_deleted: bool = False, session: Session) -> Scope:
+        scope = cls.query(with_deleted=with_deleted, session=session).filter(cls.name == name).one_or_none()
+        if not scope:
+            raise ObjectNotFound(cls, name)
+        return scope
+
 
 
 class GroupScope(BaseDbModel):

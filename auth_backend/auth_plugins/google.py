@@ -6,7 +6,7 @@ from google.auth.exceptions import GoogleAuthError
 from fastapi import Depends
 from fastapi_sqlalchemy import db
 import oauthlib.oauth2.rfc6749.errors
-from pydantic import BaseModel, Field, Json
+from pydantic import BaseModel, Field, Json, validator
 from google.auth.transport import requests
 
 from auth_backend.models.db import AuthMethod, User, UserSession
@@ -14,8 +14,7 @@ from auth_backend.exceptions import AlreadyExists, OauthAuthFailed, OauthCredent
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from .auth_method import OauthMeta, Session
-
+from .auth_method import OauthMeta, Session, scopes_validator
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +37,9 @@ class GoogleAuth(OauthMeta):
         code: str | None
         state: str | None
         id_token: str | None = Field(help="Google JWT token identifier")
-        scopes: list[int]
+        scopes: list[str]
+
+        validator_scope = validator("scopes", allow_reuse=True)(scopes_validator)
 
     @classmethod
     async def _register(

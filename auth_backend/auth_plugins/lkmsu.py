@@ -5,15 +5,14 @@ import aiohttp
 import jwt
 from fastapi import Depends
 from fastapi_sqlalchemy import db
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from .auth_method import OauthMeta, Session, random_string
-
+from .auth_method import OauthMeta, Session, random_string, scopes_validator
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,9 @@ class LkmsuAuth(OauthMeta):
     class OauthResponseSchema(BaseModel):
         code: str | None
         id_token: str | None = Field(help="LK MSU JWT token identifier")
-        scopes: list[int]
+        scopes: list[str]
+
+        validator_scope = validator("scopes", allow_reuse=True)(scopes_validator)
 
     @classmethod
     async def _register(

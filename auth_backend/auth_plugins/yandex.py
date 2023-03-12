@@ -3,9 +3,9 @@ from urllib.parse import quote
 from fastapi_sqlalchemy import db
 import jwt
 from fastapi import Depends
-from pydantic import BaseModel, Field, Json
+from pydantic import BaseModel, Field, Json, validator
 import logging
-from auth_backend.auth_plugins.auth_method import OauthMeta, Session, random_string
+from auth_backend.auth_plugins.auth_method import OauthMeta, Session, random_string, scopes_validator
 from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
 from auth_backend.models.db import UserSession, User, AuthMethod
 from auth_backend.utils.security import UnionAuth
@@ -30,7 +30,9 @@ class YandexAuth(OauthMeta):
     class OauthResponseSchema(BaseModel):
         code: str | None
         id_token: str | None = Field(help="Yandex JWT token identifier")
-        scopes: list[int]
+        scopes: list[str]
+
+        validator_scope = validator("scopes", allow_reuse=True)(scopes_validator)
 
     @classmethod
     async def _register(
