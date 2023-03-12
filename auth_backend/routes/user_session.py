@@ -34,7 +34,13 @@ async def me(
     if session.expired:
         raise SessionExpired(str(session.token))
     result: dict[str, str | int] = {}
-    result = result | UserInfo(id=session.user_id, email=session.user.auth_methods.email.value).dict()
+    result = (
+        result
+        | UserInfo(
+            id=session.user_id,
+            email=session.user.auth_methods.email.value if hasattr(session.user.auth_methods, "email") else None,
+        ).dict()
+    )
     if "groups" in info:
         result = result | UserGroups(groups=session.user.groups).dict()
     if "indirect_groups" in info:
