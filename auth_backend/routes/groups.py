@@ -100,7 +100,6 @@ async def get_groups(info: list[Literal["", "scopes", "indirect_scopes", "child"
     str, Any]:
     groups = DbGroup.query(session=db.session).all()
     result = {}
-    print(groups)
     result = result | GroupsGet(items=groups).dict()
     if "scopes" not in info:
         for row in result["items"]:
