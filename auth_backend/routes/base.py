@@ -2,16 +2,30 @@ from fastapi import FastAPI
 from fastapi_sqlalchemy import DBSessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
+
+from auth_backend import __version__
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.settings import get_settings
+
 from .user_session import logout_router
 from .user_groups import user_groups
 from .groups import groups
 from .scopes import scopes
 
-settings = get_settings()
 
-app = FastAPI()
+settings = get_settings()
+app = FastAPI(
+    title='Сервис мониторинга активности',
+    description=(
+        'Серверная часть сервиса для выдачи печенек за активности'
+    ),
+    version=__version__,
+
+    # Настраиваем интернет документацию
+    root_path=settings.ROOT_PATH if __version__ != 'dev' else '/',
+    docs_url=None if __version__ != 'dev' else '/docs',
+    redoc_url=None,
+)
 
 
 app.add_middleware(

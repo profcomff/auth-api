@@ -8,7 +8,10 @@ import string
 
 
 class Settings(BaseSettings):
+    """Application settings"""
+
     DB_DSN: PostgresDsn = 'postgresql://postgres@localhost:5432/postgres'
+    ROOT_PATH: str = '/' + os.getenv('APP_NAME', '')
 
     EMAIL: str | None
     APPLICATION_HOST: str = "localhost"

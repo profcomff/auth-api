@@ -54,7 +54,7 @@ jobs:
     runs-on: [ self-hosted, Linux ]
     environment:
       name: Testing
-      url: https://auth.api.test.profcomff.com/
+      url: https://api.test.profcomff.com/auth
     env:
       CONTAITER_NAME: com_profcomff_api_auth_test
     permissions:
@@ -108,7 +108,7 @@ jobs:
     runs-on: [ self-hosted, Linux ]
     environment:
       name: Production
-      url: https://auth.api.profcomff.com/
+      url: https://api.profcomff.com/auth
     env:
       CONTAITER_NAME: com_profcomff_api_auth
     permissions:
