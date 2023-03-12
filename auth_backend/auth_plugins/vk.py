@@ -60,7 +60,7 @@ class VkAuth(OauthMeta):
             async with aiohttp.ClientSession() as session:
                 async with session.get('https://oauth.vk.com/access_token', params=payload) as response:
                     token_result = await response.json()
-                    logger.error(token_result)
+                    logger.debug(token_result)
                 if 'access_token' not in token_result:
                     raise OauthAuthFailed('Invalid credentials for vk account')
                 token = token_result['access_token']
@@ -69,12 +69,12 @@ class VkAuth(OauthMeta):
                     'https://api.vk.com/method/users.get?', params={"v": '5.131'}, headers={"Authorization": f"Bearer {token}"}
                 ) as response:
                     userinfo = await response.json()
-                    logger.error(userinfo)
+                    logger.debug(userinfo)
                     vk_user_id = userinfo["id"]
         else:
             userinfo = jwt.decode(user_inp.id_token, cls.settings.VK_TEMPTOKEN, algorithms=["HS256"])
             vk_user_id = userinfo["id"]
-            logger.error(userinfo)
+            logger.debug(userinfo)
 
         user = await cls._get_user(vk_user_id, db_session=db.session)
 
@@ -106,7 +106,7 @@ class VkAuth(OauthMeta):
         async with aiohttp.ClientSession() as session:
             async with session.get('https://oauth.vk.com/access_token', params=payload) as response:
                 token_result = await response.json()
-                logger.error(token_result)
+                logger.debug(token_result)
             if 'access_token' not in token_result:
                 raise OauthAuthFailed('Invalid credentials for VK account')
             token = token_result['access_token']
@@ -115,7 +115,7 @@ class VkAuth(OauthMeta):
                 'https://api.vk.com/method/users.get?', params={"v": '5.131'}, headers={"Authorization": f"Bearer {token}"}
             ) as response:
                 userinfo = await response.json()
-                logger.error(userinfo)
+                logger.debug(userinfo)
                 vk_user_id = userinfo["id"]
 
         user = await cls._get_user(vk_user_id, db_session=db.session)
