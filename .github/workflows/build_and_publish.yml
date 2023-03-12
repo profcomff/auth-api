@@ -47,6 +47,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
 
   deploy-testing:
     name: Deploy Testing
@@ -84,6 +86,7 @@ jobs:
             --restart always \
             --network=web \
             --env DB_DSN='${{ secrets.DB_DSN }}' \
+            --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
             --env SMTP_HOST='mail.profcomff.com' \
@@ -138,6 +141,7 @@ jobs:
             --restart always \
             --network=web \
             --env DB_DSN='${{ secrets.DB_DSN }}' \
+            --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
             --env ENABLED_AUTH_METHODS='${{ secrets.ENABLED_AUTH_METHODS }}' \
