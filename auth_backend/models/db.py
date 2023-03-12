@@ -4,7 +4,7 @@ import datetime
 from typing import Iterator
 
 import sqlalchemy.orm
-from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean
+from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship, backref, Session
 
@@ -194,7 +194,7 @@ class Scope(BaseDbModel):
 
     @classmethod
     def get_by_name(cls, name: str, *, with_deleted: bool = False, session: Session) -> Scope:
-        scope = cls.query(with_deleted=with_deleted, session=session).filter(cls.name == name).one_or_none()
+        scope = cls.query(with_deleted=with_deleted, session=session).filter(func.lower(cls.name) == name.lower()).one_or_none()
         if not scope:
             raise ObjectNotFound(cls, name)
         return scope
