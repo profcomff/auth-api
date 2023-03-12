@@ -5,6 +5,10 @@ from functools import lru_cache
 
 from pydantic import BaseSettings, PostgresDsn, conint
 
+import random
+
+import string
+
 
 class Settings(BaseSettings):
     """Application settings"""
