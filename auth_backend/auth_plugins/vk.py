@@ -21,7 +21,6 @@ class VkSettings(Settings):
     VK_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/vk'
     VK_CLIENT_ID: int | None
     VK_CLIENT_SECRET: str | None
-    VK_TEMPTOKEN: str = random_string()
 
 
 class VkAuth(OauthMeta):
@@ -55,7 +54,6 @@ class VkAuth(OauthMeta):
         }
         vk_user_id = None
         userinfo = None
-
         if user_inp.id_token is None:
             async with aiohttp.ClientSession() as session:
                 async with session.get('https://oauth.vk.com/access_token', params=payload) as response:
@@ -66,20 +64,21 @@ class VkAuth(OauthMeta):
                 token = token_result['access_token']
 
                 async with session.get(
-                    'https://api.vk.com/method/users.get?', params={"v": '5.131'}, headers={"Authorization": f"Bearer {token}"}
-                ) as response:
+                    'https://api.vk.com/method/users.get?', params={"v": '5.131'},
+                    headers={"Authorization": f"Bearer {token}"}) as response:
+
                     userinfo = await response.json()
                     logger.debug(userinfo)
-                    vk_user_id = userinfo["id"]
+                    vk_user_id = userinfo['response'][0]['id']
         else:
-            userinfo = jwt.decode(user_inp.id_token, cls.settings.VK_TEMPTOKEN, algorithms=["HS256"])
-            vk_user_id = userinfo["id"]
+            userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
+            vk_user_id = userinfo['response'][0]['id']
             logger.debug(userinfo)
 
         user = await cls._get_user(vk_user_id, db_session=db.session)
 
-        if user is not None:
-            raise AlreadyExists(user, user.id)
+        if user:
+            raise AlreadyExists(User, user.id)
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
@@ -112,15 +111,16 @@ class VkAuth(OauthMeta):
             token = token_result['access_token']
 
             async with session.get(
-                'https://api.vk.com/method/users.get?', params={"v": '5.131'}, headers={"Authorization": f"Bearer {token}"}
-            ) as response:
+                'https://api.vk.com/method/users.get?', params={"v": '5.131'},
+                headers={"Authorization": f"Bearer {token}"}) as response:
+
                 userinfo = await response.json()
                 logger.debug(userinfo)
-                vk_user_id = userinfo["id"]
+                vk_user_id = userinfo['response'][0]['id']
 
         user = await cls._get_user(vk_user_id, db_session=db.session)
         if not user:
-            id_token = jwt.encode(userinfo, cls.settings.VK_TEMPTOKEN, algorithm="HS256")
+            id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for vk account', id_token)
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
@@ -133,7 +133,7 @@ class VkAuth(OauthMeta):
     async def _auth_url(cls):
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
         return OauthMeta.UrlSchema(
-            url=f'https://oauth.vk.com/authorize?client_id={cls.settings.VK_CLIENT_ID}&redirect_uri={quote(cls.settings.VK_REDIRECT_URL)}&display=popup'
+            url=f'https://oauth.vk.com/authorize?client_id={cls.settings.VK_CLIENT_ID}&redirect_uri={quote(cls.settings.VK_REDIRECT_URL)}'
         )
 
     @classmethod
