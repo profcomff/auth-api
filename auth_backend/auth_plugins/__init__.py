@@ -5,6 +5,6 @@ from .physics import PhysicsAuth
 from .lkmsu import LkmsuAuth
 from .yandex import YandexAuth
 from .mymsu import MyMsuAuth
-
+from .vk import VkAuth
 
 __all__ = ["AUTH_METHODS", "AuthMethodMeta", "Email"]
