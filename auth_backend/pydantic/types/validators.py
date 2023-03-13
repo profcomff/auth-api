@@ -19,10 +19,11 @@ class Scope(str):
     @classmethod
     def validate(cls, val: str) -> str:
         if not val:
-            return val
+            raise ValueError
+        val = str(val).strip()
         if val[0] == "." or val[-1] == ".":
             raise ValueError
-        if not set(string.ascii_letters) & set(val):
+        if len(set(val) - set(string.ascii_letters + ".")) > 0:
             raise ValueError
         return val
 
