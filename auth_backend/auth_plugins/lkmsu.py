@@ -34,7 +34,7 @@ class LkmsuAuth(OauthMeta):
     class OauthResponseSchema(BaseModel):
         code: str | None
         id_token: str | None = Field(help="LK MSU JWT token identifier")
-        scopes: list[Scope]
+        scopes: list[Scope] | None
 
     @classmethod
     async def _register(

@@ -90,8 +90,9 @@ class Group(BaseDbModel):
     child: Mapped[list[Group]] = relationship(
         "Group",
         backref=backref("parent", remote_side=[id]),
-        primaryjoin="and_(Group.id==Group.parent_id, not_(Group.is_deleted))",
+        primaryjoin="and_(remote(Group.parent_id)==Group.id, not_(remote(Group.is_deleted)))",
     )
+
     users: Mapped[list[User]] = relationship(
         "User",
         secondary="user_group",

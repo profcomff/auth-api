@@ -37,7 +37,7 @@ class GoogleAuth(OauthMeta):
         code: str | None
         state: str | None
         id_token: str | None = Field(help="Google JWT token identifier")
-        scopes: list[Scope]
+        scopes: list[Scope] | None
 
     @classmethod
     async def _register(
