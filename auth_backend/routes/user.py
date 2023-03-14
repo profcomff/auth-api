@@ -45,19 +45,20 @@ async def get_user(
 async def get_users(
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.user.read"], allow_none=False, auto_error=True)),
     info: list[Literal["groups", "indirect_groups", "scopes", ""]] = Query(default=[]),
-) -> ...:
+) -> UserGet:
     users = User.query(session=db.session).all()
-    users = UsersGet(items=users).dict()
-    if "groups" not in info:
-        for row in users["items"]:
-            del row["groups"]
-    if "indirect_groups" not in info:
-        for row in users["items"]:
-            del row["indirect_groups"]
-    if "scopes" not in info:
-        for row in users["items"]:
-            del row["scopes"]
-    return UsersGet(**users).dict(exclude_unset=True)
+    result = {}
+    result["items"] = []
+    for user in users:
+        add = {"id": user.id, "email": user.auth_methods.email.value if hasattr(user.auth_methods, "email") else None}
+        if "groups" in info:
+            add["groups"] = user.groups
+        if "indirect_scopes" in info:
+            add["indirect_scopes"] = user.indirect_scopes
+        if "scopes" in info:
+            add["scopes"] = user.scopes
+        result["items"].append(add)
+    return UsersGet(**result).dict(exclude_unset=True)
 
 
 @user.patch("/{user_id}", response_model=UserGet)

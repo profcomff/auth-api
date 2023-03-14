@@ -103,17 +103,16 @@ async def get_groups(
 ) -> dict[str, Any]:
     groups = DbGroup.query(session=db.session).all()
     result = {}
-    result = result | GroupsGet(items=groups).dict()
-    if "scopes" not in info:
-        for row in result["items"]:
-            del row["scopes"]
-    if "indirect_scopes" not in info:
-        for row in result["items"]:
-            del row["indirect_scopes"]
-    if "child" not in info:
-        for row in result["items"]:
-            del row["child"]
-    if "users" not in info:
-        for row in result["items"]:
-            del row["users"]
+    result["items"] = []
+    for group in groups:
+        add = {"id": group.id, "name": group.name, "parent_id": group.parent_id}
+        if "scopes" in info:
+            add["scopes"] = group.scopes
+        if "indirect_scopes" in info:
+            add["indirect_scopes"] = group.indirect_scopes
+        if "child" in info:
+            add["child"] = group.child
+        if "users" in info:
+            add["users"] = group.users
+        result["items"].append(add)
     return GroupsGet(**result).dict(exclude_unset=True)

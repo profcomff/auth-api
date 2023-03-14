@@ -82,7 +82,7 @@ class User(BaseDbModel):
 
 class Group(BaseDbModel):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, unique=False, nullable=False)
     parent_id: Mapped[int] = mapped_column(Integer, ForeignKey("group.id"), nullable=True)
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
