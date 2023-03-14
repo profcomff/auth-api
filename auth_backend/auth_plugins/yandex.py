@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from auth_backend.auth_plugins.auth_method import OauthMeta, Session
 from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
 from auth_backend.models.db import UserSession, User, AuthMethod
-from auth_backend.schemas.types.validators import Scope
+from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
