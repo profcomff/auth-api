@@ -1,3 +1,8 @@
+"""unique_scopes
+Revision ID: 6c27352ee53b
+Revises: 586cf0e784e5
+Create Date: 2023-03-12 23:39:28.891033
+"""
 from alembic import op
 import sqlalchemy as sa
 

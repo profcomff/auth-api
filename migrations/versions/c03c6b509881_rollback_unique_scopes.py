@@ -1,8 +1,15 @@
+"""rollback_unique_scopes
+
+Revision ID: c03c6b509881
+Revises: 6c27352ee53b
+Create Date: 2023-03-14 19:29:02.419553
+
+"""
 from alembic import op
 import sqlalchemy as sa
 
 
-revision = '89f7a1a1c063'
+revision = 'c03c6b509881'
 down_revision = '6c27352ee53b'
 branch_labels = None
 depends_on = None
