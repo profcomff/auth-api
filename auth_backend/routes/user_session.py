@@ -29,10 +29,8 @@ async def logout(
 @logout_router.get("/me", response_model_exclude_unset=True, response_model=UserGet)
 async def me(
     session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
-    info: list[Literal["groups", "indirect_groups", "token_scopes", "user_scopes", ""]] = Query(default=[]),
+    info: list[Literal["groups", "indirect_groups", "session_scopes", "user_scopes", ""]] = Query(default=[]),
 ) -> dict[str, str | int]:
-    if session.expired:
-        raise SessionExpired(str(session.token))
     result: dict[str, str | int] = {}
     result = (
         result
@@ -50,7 +48,7 @@ async def me(
             indirect_groups = indirect_groups | (set(row.parents))
         result = result | UserIndirectGroups(indirect_groups=indirect_groups | groups).dict()
 
-    if "token_scopes" in info:
+    if "session_scopes" in info:
         result = result | SessionScopes(session_scopes=list(session.scopes)).dict()
     if "user_scopes" in info:
         result = result | UserScopes(user_scopes=list(session.user.indirect_scopes)).dict()

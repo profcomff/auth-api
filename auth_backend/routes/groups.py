@@ -14,7 +14,7 @@ groups = APIRouter(prefix="/group", tags=["Groups"])
 
 @groups.get("/{id}", response_model=GroupGet, response_model_exclude_unset=True)
 async def get_group(
-    id: int, info: list[Literal["child", "scopes", "indirect_scopes"]] = Query(default=[])
+    id: int, info: list[Literal["child", "scopes", "indirect_scopes", "users"]] = Query(default=[])
 ) -> dict[str, str | int]:
     group = DbGroup.get(id, session=db.session)
     result = {}
@@ -25,6 +25,8 @@ async def get_group(
         result["scopes"] = group.scopes
     if "indirect_scopes" in info:
         result["indirect_scopes"] = group.indirect_scopes
+    if "users" in info:
+        result["users"] = group.users
     return GroupGet(**result).dict(exclude_unset=True)
 
 
@@ -96,8 +98,9 @@ async def delete_group(
 
 
 @groups.get("", response_model=GroupsGet, response_model_exclude_unset=True)
-async def get_groups(info: list[Literal["", "scopes", "indirect_scopes", "child"]] = Query(default=[])) -> dict[
-    str, Any]:
+async def get_groups(
+    info: list[Literal["", "scopes", "indirect_scopes", "child", "users"]] = Query(default=[])
+) -> dict[str, Any]:
     groups = DbGroup.query(session=db.session).all()
     result = {}
     result = result | GroupsGet(items=groups).dict()
@@ -110,4 +113,7 @@ async def get_groups(info: list[Literal["", "scopes", "indirect_scopes", "child"
     if "child" not in info:
         for row in result["items"]:
             del row["child"]
+    if "users" not in info:
+        for row in result["items"]:
+            del row["users"]
     return GroupsGet(**result).dict(exclude_unset=True)

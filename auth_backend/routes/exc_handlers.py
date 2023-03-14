@@ -52,7 +52,7 @@ async def oauth_failed_handler(req: starlette.requests.Request, exc: OauthAuthFa
 
 
 @app.exception_handler(OauthCredentialsIncorrect)
-async def auth_failed_handler(req: starlette.requests.Request, exc: AuthFailed):
+async def oauth_creds_failed_handler(req: starlette.requests.Request, exc: OauthCredentialsIncorrect):
     return JSONResponse(content=ResponseModel(status="Error", message=f"{exc}").dict(), status_code=406)
 
 

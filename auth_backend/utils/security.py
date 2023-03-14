@@ -41,6 +41,8 @@ class UnionAuth(SecurityBase):
         )
         if not user_session:
             self._except()
+        if user_session.expired:
+            self._except()
         if len(
             set([_scope.lower() for _scope in self._scopes])
             & set([scope.name.lower() for scope in user_session.scopes])
