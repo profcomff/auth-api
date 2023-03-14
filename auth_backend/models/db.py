@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import datetime
+from operator import and_
 from typing import Iterator
 
 import sqlalchemy.orm
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, func
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapped, mapped_column, relationship, backref, Session
+from sqlalchemy.orm import Mapped, mapped_column, relationship, backref, Session, remote
 
 from auth_backend.exceptions import ObjectNotFound
 from auth_backend.settings import get_settings
@@ -90,8 +91,9 @@ class Group(BaseDbModel):
     child: Mapped[list[Group]] = relationship(
         "Group",
         backref=backref("parent", remote_side=[id]),
-        primaryjoin="and_(Group.id==Group.parent_id, not_(Group.is_deleted))",
+        primaryjoin="and_(remote(Group.parent_id)==Group.id, not_(remote(Group.is_deleted)))",
     )
+
     users: Mapped[list[User]] = relationship(
         "User",
         secondary="user_group",
@@ -214,3 +216,4 @@ class UserSessionScope(BaseDbModel):
     user_session_id: Mapped[int] = mapped_column(Integer, ForeignKey(UserSession.id))
     scope_id: Mapped[int] = mapped_column(Integer, ForeignKey(Scope.id))
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+

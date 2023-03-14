@@ -94,11 +94,12 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @staticmethod
     async def _check_scopes(scopes: set[Scope], user: User) -> None:
         if len(scopes & user.indirect_scopes) != len(scopes):
+            triggering_scopes = scopes - user.indirect_scopes
             raise HTTPException(
                 status_code=403,
                 detail=ResponseModel(
                     status="Error",
-                    message=f"Incorrect user scopes, triggering scopes -> {scopes - user.indirect_scopes} ",
+                    message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in triggering_scopes]} ",
                 ).json(),
             )
 

@@ -115,4 +115,6 @@ async def get_groups(
         if "users" in info:
             add["users"] = group.users
         result["items"].append(add)
+
+    print(result)
     return GroupsGet(**result).dict(exclude_unset=True)
