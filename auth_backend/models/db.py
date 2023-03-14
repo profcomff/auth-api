@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import datetime
-from operator import and_
 from typing import Iterator
 
 import sqlalchemy.orm
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, func
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapped, mapped_column, relationship, backref, Session, remote
+from sqlalchemy.orm import Mapped, mapped_column, relationship, backref, Session
 
 from auth_backend.exceptions import ObjectNotFound
 from auth_backend.settings import get_settings
