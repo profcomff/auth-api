@@ -12,6 +12,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from .auth_method import OauthMeta, Session
+from ..schemas.types.scopes import Scope
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class VkAuth(OauthMeta):
     class OauthResponseSchema(BaseModel):
         code: str | None
         id_token: str | None = Field(help="VK JWT token identifier")
-        scopes: list[int]
+        scopes: list[Scope] | None
 
     @classmethod
     async def _register(

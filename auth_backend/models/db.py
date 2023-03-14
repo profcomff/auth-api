@@ -216,4 +216,3 @@ class UserSessionScope(BaseDbModel):
     user_session_id: Mapped[int] = mapped_column(Integer, ForeignKey(UserSession.id))
     scope_id: Mapped[int] = mapped_column(Integer, ForeignKey(Scope.id))
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
-

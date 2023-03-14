@@ -14,6 +14,7 @@ from pydantic import constr
 from auth_backend.base import Base, ResponseModel
 from auth_backend.models.db import User, UserSession, Scope, UserSessionScope
 from auth_backend.settings import get_settings
+from auth_backend.schemas.types.scopes import Scope as TypeScope
 
 
 logger = logging.getLogger(__name__)
@@ -66,10 +67,14 @@ class AuthMethodMeta(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @staticmethod
-    async def _create_session(user: User, scopes_list_names: list[str], *, db_session: Session) -> Session:
+    async def _create_session(user: User, scopes_list_names: list[TypeScope] | None, *, db_session: Session) -> Session:
         """Создает сессию пользователя"""
-        scopes = await AuthMethodMeta.create_scopes_set_by_ids(scopes_list_names)
-        await AuthMethodMeta._check_scopes(scopes, user)
+        scopes = set()
+        if scopes_list_names is None:
+            scopes = user.indirect_scopes
+        else:
+            scopes = await AuthMethodMeta.create_scopes_set_by_ids(scopes_list_names)
+            await AuthMethodMeta._check_scopes(scopes, user)
         user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
         db_session.add(user_session)
         db_session.flush()
@@ -84,7 +89,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
         )
 
     @staticmethod
-    async def create_scopes_set_by_ids(scopes_list_names: list[str]) -> set[Scope]:
+    async def create_scopes_set_by_ids(scopes_list_names: list[TypeScope]) -> set[Scope]:
         scopes = set()
         for scope_name in scopes_list_names:
             scope = Scope.get_by_name(scope_name, session=db.session)
@@ -94,12 +99,11 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @staticmethod
     async def _check_scopes(scopes: set[Scope], user: User) -> None:
         if len(scopes & user.indirect_scopes) != len(scopes):
-            triggering_scopes = scopes - user.indirect_scopes
             raise HTTPException(
                 status_code=403,
                 detail=ResponseModel(
                     status="Error",
-                    message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in triggering_scopes]} ",
+                    message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in scopes - user.indirect_scopes]} ",
                 ).json(),
             )
 

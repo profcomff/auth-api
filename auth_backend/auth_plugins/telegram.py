@@ -7,6 +7,7 @@ import logging
 from auth_backend.auth_plugins.auth_method import OauthMeta, Session
 from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
 from auth_backend.models.db import UserSession, User, AuthMethod
+from auth_backend.schemas.types.scopes import Scope
 from auth_backend.utils.security import UnionAuth
 from auth_backend.settings import Settings
 import hashlib
@@ -35,7 +36,7 @@ class TelegramAuth(OauthMeta):
         photo_url: str | None
         auth_date: str | None
         hash: str | None
-        scopes: list[int]
+        scopes: list[Scope] | None
 
     @classmethod
     async def _register(

@@ -60,7 +60,7 @@ def check_email(v):
 class EmailLogin(Base):
     email: constr(min_length=1)
     password: constr(min_length=1)
-    scopes: list[Scope]
+    scopes: list[Scope] | None
 
     email_validator = validator("email", allow_reuse=True)(check_email)
 
