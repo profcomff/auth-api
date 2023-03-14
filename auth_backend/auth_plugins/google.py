@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field, Json
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed, OauthCredentialsIncorrect
 from auth_backend.models.db import AuthMethod, User, UserSession
-from auth_backend.schemas.types.scope import Scope
+from auth_backend.schemas.types.validators import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from .auth_method import OauthMeta, Session
