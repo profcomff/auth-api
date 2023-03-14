@@ -8,9 +8,9 @@ from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.settings import get_settings
 
 from .user_session import logout_router
-from .user_groups import user_groups
 from .groups import groups
 from .scopes import scopes
+from .user import user
 
 
 settings = get_settings()
@@ -42,9 +42,9 @@ app.add_middleware(
 )
 
 app.include_router(logout_router)
-app.include_router(user_groups)
 app.include_router(groups)
 app.include_router(scopes)
+app.include_router(user)
 
 for method in AUTH_METHODS.values():
     if settings.ENABLED_AUTH_METHODS is None or method.get_name() in settings.ENABLED_AUTH_METHODS:

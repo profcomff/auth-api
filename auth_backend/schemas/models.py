@@ -23,7 +23,11 @@ class GroupIndirectScopes(Base):
     indirect_scopes: list[ScopeGet] | None
 
 
-class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes):
+class GroupUserList(Base):
+    users: list[UserInfo] | None
+
+
+class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes, GroupUserList):
     pass
 
 
@@ -52,6 +56,17 @@ class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScope
     pass
 
 
+class UsersGet(Base):
+    items: list[UserGet]
+
+    class Config:
+        fields = {'session_scopes': {'exclude': True}}
+
+
+class UserPatch(Base):
+    groups: list[int]
+
+
 class GroupPost(Base):
     name: str
     parent_id: int | None = Field(None, gt=0)
@@ -59,7 +74,7 @@ class GroupPost(Base):
 
 
 class GroupsGet(Base):
-    items: list[Group]
+    items: list[GroupGet]
 
 
 class GroupPatch(Base):

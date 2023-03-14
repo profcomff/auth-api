@@ -103,12 +103,12 @@ def test_invalid_check_tokens(client_auth: TestClient, user):
 def test_check_me_groups(client_auth: TestClient, user, dbsession):
     user_id, body_user, login = user["user_id"], user["body"], user["login_json"]
     dbsession.add(scope1 := Scope(name="auth.group.create", creator_id=user_id))
-    dbsession.add(scope3 := Scope(name="auth.user_group.create", creator_id=user_id))
+    dbsession.add(scope4 := Scope(name="auth.user.update", creator_id=user_id))
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
     dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
+    dbsession.add(UserSessionScope(scope_id=scope4.id, user_session_id=user_session.id))
     dbsession.commit()
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
@@ -119,7 +119,7 @@ def test_check_me_groups(client_auth: TestClient, user, dbsession):
     time3 = datetime.datetime.utcnow()
     body = {"name": f"group{time3}", "parent_id": _group2, "scopes": []}
     _group3 = client_auth.post(url="/group", json=body, headers={"Authorization": token_}).json()["id"]
-    response = client_auth.post(f"/group/{_group3}/user", json={"user_id": user_id}, headers={"Authorization": token_})
+    response = client_auth.patch(f"/user/{user_id}", json={"groups": [_group3]}, headers={"Authorization": token_})
     assert response.status_code == status.HTTP_200_OK
     response = client_auth.get(f"/me", headers={"Authorization": login["token"]}, params={"info": "groups"})
     assert response.status_code == status.HTTP_200_OK

@@ -12,11 +12,11 @@ def test_add_user(client: TestClient, dbsession: Session, user_factory):
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]
     user1 = user_factory(client)
-    response = client.post(f"/group/{group}/user", json={"user_id": user1})
+    response = client.patch(f"/user/{user1}", json={"groups": [group]})
     assert response.status_code == status.HTTP_200_OK
     usergroup = (
         dbsession.query(UserGroup)
-        .filter(UserGroup.user_id == response.json()["user_id"], UserGroup.group_id == response.json()["group_id"])
+        .filter(UserGroup.user_id == response.json()["id"], UserGroup.group_id == response.json()["groups"][0]["id"])
         .one_or_none()
     )
     assert usergroup
@@ -33,21 +33,32 @@ def test_get_user_list(client, dbsession, group, user_factory):
     user1 = user_factory(client)
     user2 = user_factory(client)
     user3 = user_factory(client)
-    response1 = client.post(f"/group/{group}/user", json={"user_id": user1})
-    response2 = client.post(f"/group/{group}/user", json={"user_id": user2})
-    response3 = client.post(f"/group/{group}/user", json={"user_id": user3})
+    response1 = client.patch(f"/user/{user1}", json={"groups": [group]})
+    response2 = client.patch(f"/user/{user2}", json={"groups": [group]})
+    response3 = client.patch(f"/user/{user3}", json={"groups": [group]})
     assert response1.status_code == 200
     assert response2.status_code == 200
     assert response3.status_code == 200
     gr = Group.get(group, session=dbsession)
-    response = client.get(f"/group/{group}/user")
-    assert response1.json()["user_id"] in [row["id"] for row in response.json()["items"]]
-    assert response2.json()["user_id"] in [row["id"] for row in response.json()["items"]]
-    assert response3.json()["user_id"] in [row["id"] for row in response.json()["items"]]
+    response = client.get(f"/group/{group}", params={"info": ["users"]})
+    user1_response = client.get(f"/user/{user1}", params={"info": ["groups"]})
+    user2_response = client.get(f"/user/{user2}", params={"info": ["groups"]})
+    user3_response = client.get(f"/user/{user3}", params={"info": ["groups"]})
+    assert user1_response.status_code == 200
+    assert user2_response.status_code == 200
+    assert user3_response.status_code == 200
+    assert group in [row["id"] for row in user1_response.json()["groups"]]
+    assert group in [row["id"] for row in user2_response.json()["groups"]]
+    assert group in [row["id"] for row in user3_response.json()["groups"]]
+    _response = client.get(f"/group", params={"info": ["users"]})
+    assert response.json()["id"] in [row["id"] for row in _response.json()["items"]]
+    assert response1.json()["id"] in [row["id"] for row in response.json()["users"]]
+    assert response2.json()["id"] in [row["id"] for row in response.json()["users"]]
+    assert response3.json()["id"] in [row["id"] for row in response.json()["users"]]
     assert len(gr.users) == 3
-    us1 = User.get(response1.json()["user_id"], session=dbsession)
-    us2 = User.get(response2.json()["user_id"], session=dbsession)
-    us3 = User.get(response3.json()["user_id"], session=dbsession)
+    us1 = User.get(response1.json()["id"], session=dbsession)
+    us2 = User.get(response2.json()["id"], session=dbsession)
+    us3 = User.get(response3.json()["id"], session=dbsession)
     assert us1 in gr.users
     assert us2 in gr.users
     assert us3 in gr.users
@@ -60,31 +71,28 @@ def test_del_user_from_group(client, dbsession, user_factory):
     user1 = user_factory(client)
     user2 = user_factory(client)
     user3 = user_factory(client)
-    response1 = client.post(f"/group/{group}/user", json={"user_id": user1})
-    response2 = client.post(f"/group/{group}/user", json={"user_id": user2})
-    response3 = client.post(f"/group/{group}/user", json={"user_id": user3})
+    response1 = client.patch(f"/user/{user1}", json={"groups": [group]})
+    response2 = client.patch(f"/user/{user2}", json={"groups": [group]})
+    response3 = client.patch(f"/user/{user3}", json={"groups": [group]})
     assert response1.status_code == 200
     assert response2.status_code == 200
     assert response3.status_code == 200
     gr = Group.get(group, session=dbsession)
-    response = client.get(f"/group/{group}/user")
+    response = client.get(f"/group/{group}", params={"info": ["users"]})
     assert response.status_code == 200
-    assert response1.json()["user_id"] in [row["id"] for row in response.json()["items"]]
-    assert response2.json()["user_id"] in [row["id"] for row in response.json()["items"]]
-    assert response3.json()["user_id"] in [row["id"] for row in response.json()["items"]]
-    response = client.delete(f"/group/{group}/user/{response2.json()['user_id']}")
+    assert response1.json()["id"] in [row["id"] for row in response.json()["users"]]
+    assert response2.json()["id"] in [row["id"] for row in response.json()["users"]]
+    assert response3.json()["id"] in [row["id"] for row in response.json()["users"]]
+    response_patch = client.patch(f"/user/{response2.json()['id']}", json={"groups": []})
+    assert response_patch.status_code == 200
+    response = client.get(f"/group/{group}", params={"info": ["users"]})
     assert response.status_code == 200
-    last_id_fail = dbsession.query(UserGroup).order_by(UserGroup.id.desc()).first().id + 1000
-    response_fail = client.delete(f"/group/{group}/user/{last_id_fail}")
-    assert response_fail.status_code == 404
-    response = client.get(f"/group/{group}/user")
-    assert response.status_code == 200
-    assert response1.json()["user_id"] in [row["id"] for row in response.json()["items"]]
-    assert response2.json()["user_id"] not in [row["id"] for row in response.json()["items"]]
-    assert response3.json()["user_id"] in [row["id"] for row in response.json()["items"]]
-    us1 = User.get(response1.json()["user_id"], session=dbsession)
-    us2 = User.get(response2.json()["user_id"], session=dbsession)
-    us3 = User.get(response3.json()["user_id"], session=dbsession)
+    assert response1.json()["id"] in [row["id"] for row in response.json()["users"]]
+    assert response2.json()["id"] not in [row["id"] for row in response.json()["users"]]
+    assert response3.json()["id"] in [row["id"] for row in response.json()["users"]]
+    us1 = User.get(response1.json()["id"], session=dbsession)
+    us2 = User.get(response2.json()["id"], session=dbsession)
+    us3 = User.get(response3.json()["id"], session=dbsession)
     assert us1 in gr.users
     assert us2 not in gr.users
     assert us3 in gr.users

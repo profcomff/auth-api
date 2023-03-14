@@ -5,7 +5,7 @@ from sqlalchemy import func
 
 from auth_backend.base import ResponseModel
 from auth_backend.models.db import UserSession, Scope
-from auth_backend.pydantic.models import ScopeGet, ScopePost, ScopePatch
+from auth_backend.schemas.models import ScopeGet, ScopePost, ScopePatch
 from auth_backend.utils.security import UnionAuth
 
 

@@ -7,8 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from starlette import status
 
-from auth_backend.models import AuthMethod, User
-from auth_backend.models.db import Group, UserSession, UserGroup
+from auth_backend.models.db import Group, UserSession, UserGroup, User, AuthMethod
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 

@@ -82,7 +82,7 @@ class User(BaseDbModel):
 
 class Group(BaseDbModel):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, unique=False, nullable=False)
     parent_id: Mapped[int] = mapped_column(Integer, ForeignKey("group.id"), nullable=True)
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -174,7 +174,7 @@ class UserSession(BaseDbModel):
 
 class Scope(BaseDbModel):
     creator_id: Mapped[int] = mapped_column(Integer, ForeignKey(User.id))
-    name: Mapped[str] = mapped_column(String, unique=True)
+    name: Mapped[str] = mapped_column(String, unique=False)
     comment: Mapped[str] = mapped_column(String, nullable=True)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     groups: Mapped[list[Group]] = relationship(
@@ -194,7 +194,11 @@ class Scope(BaseDbModel):
 
     @classmethod
     def get_by_name(cls, name: str, *, with_deleted: bool = False, session: Session) -> Scope:
-        scope = cls.query(with_deleted=with_deleted, session=session).filter(func.lower(cls.name) == name.lower()).one_or_none()
+        scope = (
+            cls.query(with_deleted=with_deleted, session=session)
+            .filter(func.lower(cls.name) == name.lower())
+            .one_or_none()
+        )
         if not scope:
             raise ObjectNotFound(cls, name)
         return scope

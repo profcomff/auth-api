@@ -35,9 +35,9 @@ class VkAuth(OauthMeta):
 
     @classmethod
     async def _register(
-            cls,
-            user_inp: OauthResponseSchema,
-            user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
+        cls,
+        user_inp: OauthResponseSchema,
+        user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
 
@@ -63,9 +63,10 @@ class VkAuth(OauthMeta):
                 token = token_result['access_token']
 
                 async with session.get(
-                    'https://api.vk.com/method/users.get?', params={"v": '5.131'},
-                    headers={"Authorization": f"Bearer {token}"}) as response:
-
+                    'https://api.vk.com/method/users.get?',
+                    params={"v": '5.131'},
+                    headers={"Authorization": f"Bearer {token}"},
+                ) as response:
                     userinfo = await response.json()
                     logger.debug(userinfo)
                     vk_user_id = userinfo['response'][0]['id']
@@ -110,9 +111,10 @@ class VkAuth(OauthMeta):
             token = token_result['access_token']
 
             async with session.get(
-                'https://api.vk.com/method/users.get?', params={"v": '5.131'},
-                headers={"Authorization": f"Bearer {token}"}) as response:
-
+                'https://api.vk.com/method/users.get?',
+                params={"v": '5.131'},
+                headers={"Authorization": f"Bearer {token}"},
+            ) as response:
                 userinfo = await response.json()
                 logger.debug(userinfo)
                 vk_user_id = userinfo['response'][0]['id']
