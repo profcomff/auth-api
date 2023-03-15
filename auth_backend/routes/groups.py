@@ -14,7 +14,8 @@ groups = APIRouter(prefix="/group", tags=["Groups"])
 
 @groups.get("/{id}", response_model=GroupGet, response_model_exclude_unset=True)
 async def get_group(
-    id: int, info: list[Literal["child", "scopes", "indirect_scopes", "users"]] = Query(default=[])
+    id: int, info: list[Literal["child", "scopes", "indirect_scopes", "users"]] = Query(default=[]),
+    user_session: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True))
 ) -> dict[str, str | int]:
     group = DbGroup.get(id, session=db.session)
     result = {}
@@ -99,7 +100,8 @@ async def delete_group(
 
 @groups.get("", response_model=GroupsGet, response_model_exclude_unset=True)
 async def get_groups(
-    info: list[Literal["", "scopes", "indirect_scopes", "child", "users"]] = Query(default=[])
+    info: list[Literal["", "scopes", "indirect_scopes", "child", "users"]] = Query(default=[]),
+    user_session: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True))
 ) -> dict[str, Any]:
     groups = DbGroup.query(session=db.session).all()
     result = {}
