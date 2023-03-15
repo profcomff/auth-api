@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import Field, validator
+from pydantic import Field
 
 from auth_backend.base import Base
 from auth_backend.schemas.types.scopes import Scope
@@ -97,18 +97,15 @@ class GroupUserListGet(Base):
     items: list[UserInfo]
 
 
-
 class ScopeGet(Base):
     id: int
     name: Scope
     comment: str | None
 
 
-
 class ScopePost(Base):
     name: Scope
     comment: str | None
-
 
 
 class ScopePatch(Base):

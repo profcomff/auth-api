@@ -34,7 +34,6 @@ class Session(Base):
     session_scopes: list[TypeScope]
 
 
-
 AUTH_METHODS: dict[str, type[AuthMethodMeta]] = {}
 
 
@@ -70,7 +69,9 @@ class AuthMethodMeta(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @staticmethod
-    async def _create_session(user: User, scopes_list_names: list[TypeScope] | None, *, db_session: DbSession) -> Session:
+    async def _create_session(
+        user: User, scopes_list_names: list[TypeScope] | None, *, db_session: DbSession
+    ) -> Session:
         """Создает сессию пользователя"""
         scopes = set()
         if scopes_list_names is None:
@@ -89,7 +90,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
             token=user_session.token,
             id=user_session.id,
             expires=user_session.expires,
-            session_scopes=[_scope.name for _scope in user_session.scopes]
+            session_scopes=[_scope.name for _scope in user_session.scopes],
         )
 
     @staticmethod

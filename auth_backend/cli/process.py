@@ -55,6 +55,7 @@ def process() -> None:
     session = Session()
     if args.command == "start":
         import uvicorn
+
         uvicorn.run(app)
     elif args.command == 'user' and args.subcommand == 'create':
         print(f'Creating user with params {args}')

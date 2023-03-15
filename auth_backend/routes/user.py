@@ -36,7 +36,7 @@ async def get_user(
         result = result | UserIndirectGroups(indirect_groups=[group.id for group in user.indirect_groups]).dict()
 
     if "scopes" in info:
-        result = result | UserScopes(user_scopes = [scope.id for scope in user.scopes]).dict()
+        result = result | UserScopes(user_scopes=[scope.id for scope in user.scopes]).dict()
     return UserGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
 

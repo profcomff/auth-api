@@ -7,10 +7,9 @@ from starlette.responses import JSONResponse
 
 from auth_backend.base import ResponseModel
 from auth_backend.exceptions import SessionExpired
-from auth_backend.models.db import UserSession, Group
+from auth_backend.models.db import UserSession
 from auth_backend.schemas.models import UserGroups, UserIndirectGroups, UserInfo, UserGet, UserScopes, SessionScopes
 from auth_backend.utils.security import UnionAuth
-
 
 logout_router = APIRouter(prefix="", tags=["Logout"])
 
@@ -42,7 +41,9 @@ async def me(
     if "groups" in info:
         result = result | UserGroups(groups=[group.id for group in session.user.groups]).dict()
     if "indirect_groups" in info:
-        result = result | UserIndirectGroups(indirect_groups=[group.id for group in session.user.indirect_groups]).dict()
+        result = (
+            result | UserIndirectGroups(indirect_groups=[group.id for group in session.user.indirect_groups]).dict()
+        )
     if "session_scopes" in info:
         result = result | SessionScopes(session_scopes=[scope.id for scope in session.scopes]).dict()
     if "user_scopes" in info:
