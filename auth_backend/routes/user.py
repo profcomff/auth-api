@@ -31,16 +31,12 @@ async def get_user(
         ).dict()
     )
     if "groups" in info:
-        result = result | UserGroups(groups=user.groups).dict()
+        result = result | UserGroups(groups=[group.id for group in user.groups]).dict()
     if "indirect_groups" in info:
-        groups = frozenset(user.groups)
-        indirect_groups: set[Group] = set()
-        for row in groups:
-            indirect_groups = indirect_groups | (set(row.parents))
-        result = result | UserIndirectGroups(indirect_groups=indirect_groups | groups).dict()
+        result = result | UserIndirectGroups(indirect_groups=[group.id for group in user.indirect_groups]).dict()
 
     if "scopes" in info:
-        result = result | UserScopes(user_scopes=list(user.indirect_scopes)).dict()
+        result = result | UserScopes(user_scopes = [scope.id for scope in user.scopes]).dict()
     return UserGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
 
@@ -58,11 +54,11 @@ async def get_users(
     for user in users:
         add = {"id": user.id, "email": user.auth_methods.email.value if hasattr(user.auth_methods, "email") else None}
         if "groups" in info:
-            add["groups"] = user.groups
-        if "indirect_scopes" in info:
-            add["indirect_scopes"] = user.indirect_scopes
+            add["groups"] = [group.id for group in user.groups]
+        if "indirect_groups" in info:
+            add["indirect_groups"] = [scope.id for scope in user.indirect_groups]
         if "scopes" in info:
-            add["scopes"] = user.scopes
+            add["scopes"] = [scope.id for scope in user.scopes]
         result["items"].append(add)
     return UsersGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 

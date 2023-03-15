@@ -123,14 +123,14 @@ def test_check_me_groups(client_auth: TestClient, user, dbsession):
     assert response.status_code == status.HTTP_200_OK
     response = client_auth.get(f"/me", headers={"Authorization": login["token"]}, params={"info": "groups"})
     assert response.status_code == status.HTTP_200_OK
-    assert _group3 in [row["id"] for row in response.json()["groups"]]
-    assert _group2 not in [row["id"] for row in response.json()["groups"]]
-    assert _group1 not in [row["id"] for row in response.json()["groups"]]
+    assert _group3 in response.json()["groups"]
+    assert _group2 not in response.json()["groups"]
+    assert _group1 not in response.json()["groups"]
     response = client_auth.get(f"/me", headers={"Authorization": login["token"]}, params={"info": "indirect_groups"})
     assert response.status_code == status.HTTP_200_OK
-    assert _group3 in [row["id"] for row in response.json()["indirect_groups"]]
-    assert _group2 in [row["id"] for row in response.json()["indirect_groups"]]
-    assert _group1 in [row["id"] for row in response.json()["indirect_groups"]]
+    assert _group3 in response.json()["indirect_groups"]
+    assert _group2 in response.json()["indirect_groups"]
+    assert _group1 in response.json()["indirect_groups"]
     dbsession.query(UserSessionScope).delete()
     dbsession.delete(user_session)
     dbsession.query(GroupScope).delete()

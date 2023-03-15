@@ -26,11 +26,11 @@ async def get_group(
     if "child" in info:
         result["child"] = group.child
     if "scopes" in info:
-        result["scopes"] = group.scopes
+        result["scopes"] = [scope.id for scope in group.scopes]
     if "indirect_scopes" in info:
-        result["indirect_scopes"] = group.indirect_scopes
+        result["indirect_scopes"] = [scope.id for scope in group.indirect_scopes]
     if "users" in info:
-        result["users"] = group.users
+        result["users"] = [user.id for user in group.users]
     return GroupGet(**result).dict(exclude_unset=True)
 
 
@@ -57,7 +57,7 @@ async def create_group(
     for scope in scopes:
         GroupScope.create(session=db.session, group_id=group.id, scope_id=scope.id)
     db.session.flush()
-    result["scopes"] = list(group.scopes)
+    result["scopes"] = [scope.id for scope in group.scopes]
     db.session.commit()
     return GroupGet(**result).dict(exclude_unset=True)
 
@@ -124,13 +124,13 @@ async def get_groups(
     for group in groups:
         add = {"id": group.id, "name": group.name, "parent_id": group.parent_id}
         if "scopes" in info:
-            add["scopes"] = group.scopes
+            add["scopes"] = [scope.id for scope in group.scopes]
         if "indirect_scopes" in info:
-            add["indirect_scopes"] = group.indirect_scopes
+            add["indirect_scopes"] = [scope.id for scope in group.scopes]
         if "child" in info:
             add["child"] = group.child
         if "users" in info:
-            add["users"] = group.users
+            add["users"] = [user.id for user in group.users]
         result["items"].append(add)
 
     return GroupsGet(**result).dict(exclude_unset=True)

@@ -74,7 +74,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
         """Создает сессию пользователя"""
         scopes = set()
         if scopes_list_names is None:
-            scopes = user.indirect_scopes
+            scopes = user.scopes
         else:
             scopes = await AuthMethodMeta.create_scopes_set_by_ids(scopes_list_names)
             await AuthMethodMeta._check_scopes(scopes, user)
@@ -102,12 +102,12 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     @staticmethod
     async def _check_scopes(scopes: set[Scope], user: User) -> None:
-        if len(scopes & user.indirect_scopes) != len(scopes):
+        if len(scopes & user.scopes) != len(scopes):
             raise HTTPException(
                 status_code=403,
                 detail=ResponseModel(
                     status="Error",
-                    message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in scopes - user.indirect_scopes]} ",
+                    message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in scopes - user.scopes]} ",
                 ).json(),
             )
 

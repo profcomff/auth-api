@@ -13,7 +13,7 @@ class Group(Base):
 
 
 class GroupScopes(Base):
-    scopes: list[ScopeGet] | None
+    scopes: list[int] | None
 
 
 class GroupChilds(Base):
@@ -21,11 +21,11 @@ class GroupChilds(Base):
 
 
 class GroupIndirectScopes(Base):
-    indirect_scopes: list[ScopeGet] | None
+    indirect_scopes: list[int] | None
 
 
 class GroupUserList(Base):
-    users: list[UserInfo] | None
+    users: list[int] | None
 
 
 class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes, GroupUserList):
@@ -38,19 +38,19 @@ class UserInfo(Base):
 
 
 class UserGroups(Base):
-    groups: list[Group] | None
+    groups: list[int] | None
 
 
 class UserIndirectGroups(Base):
-    indirect_groups: list[Group] | None
+    indirect_groups: list[int] | None
 
 
 class UserScopes(Base):
-    user_scopes: list[ScopeGet] | None
+    user_scopes: list[int] | None
 
 
 class SessionScopes(Base):
-    session_scopes: list[ScopeGet] | None
+    session_scopes: list[int] | None
 
 
 class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScopes):
