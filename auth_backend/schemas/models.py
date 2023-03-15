@@ -6,6 +6,10 @@ from auth_backend.base import Base
 from auth_backend.schemas.types.scopes import Scope
 
 
+class PinchedScope(Base):
+    id: int
+    name: Scope
+
 class Group(Base):
     id: int = Field(..., gt=0)
     name: str
@@ -13,7 +17,7 @@ class Group(Base):
 
 
 class GroupScopes(Base):
-    scopes: list[int] | None
+    scopes: list[PinchedScope] | None
 
 
 class GroupChilds(Base):
@@ -21,7 +25,7 @@ class GroupChilds(Base):
 
 
 class GroupIndirectScopes(Base):
-    indirect_scopes: list[int] | None
+    indirect_scopes: list[PinchedScope] | None
 
 
 class GroupUserList(Base):
@@ -30,6 +34,7 @@ class GroupUserList(Base):
 
 class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes, GroupUserList):
     pass
+
 
 
 class UserInfo(Base):
@@ -46,11 +51,11 @@ class UserIndirectGroups(Base):
 
 
 class UserScopes(Base):
-    user_scopes: list[int] | None
+    user_scopes: list[PinchedScope] | None
 
 
 class SessionScopes(Base):
-    session_scopes: list[int] | None
+    session_scopes: list[PinchedScope] | None
 
 
 class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScopes):
@@ -111,6 +116,7 @@ class ScopePost(Base):
 class ScopePatch(Base):
     name: Scope | None
     comment: str | None
+
 
 
 Group.update_forward_refs()

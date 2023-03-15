@@ -58,7 +58,7 @@ async def get_users(
         if "indirect_groups" in info:
             add["indirect_groups"] = [scope.id for scope in user.indirect_groups]
         if "scopes" in info:
-            add["scopes"] = [scope.id for scope in user.scopes]
+            add["scopes"] = user.scopes
         result["items"].append(add)
     return UsersGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
@@ -67,7 +67,7 @@ async def get_users(
 async def patch_user(
     user_id: int,
     user_inp: UserPatch,
-    user_session: UserSession = Depends(UnionAuth(scopes=["auth.user.update"], allow_none=False, auto_error=True)),
+    _: UserSession = Depends(UnionAuth(scopes=["auth.user.update"], allow_none=False, auto_error=True)),
 ) -> UserInfo:
     """
     Scopes: ["auth.user.update"]

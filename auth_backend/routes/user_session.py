@@ -45,7 +45,7 @@ async def me(
             result | UserIndirectGroups(indirect_groups=[group.id for group in session.user.indirect_groups]).dict()
         )
     if "session_scopes" in info:
-        result = result | SessionScopes(session_scopes=[scope.id for scope in session.scopes]).dict()
+        result = result | SessionScopes(session_scopes=session.scopes).dict()
     if "user_scopes" in info:
-        result = result | UserScopes(user_scopes=[scope.id for scope in session.user.scopes]).dict()
+        result = result | UserScopes(user_scopes=session.user.scopes).dict()
     return UserGet(**result).dict(exclude_unset=True)

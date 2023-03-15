@@ -33,41 +33,41 @@ def test_scopes_groups(client_auth, dbsession, user):
     response = client_auth.get(f"/group/{_group1}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
-    assert scope1.id in response.json()["scopes"]
-    assert scope1.id in response.json()["indirect_scopes"]
+    assert scope1.id in [row["id"] for row in response.json()["scopes"]]
+    assert scope1.id in  [row["id"] for row in response.json()["indirect_scopes"]]
     response = client_auth.get(f"/group/{_group2}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
-    assert scope1.id not in response.json()["scopes"]
-    assert scope1.id in response.json()["indirect_scopes"]
+    assert scope1.id not in [row["id"] for row in response.json()["scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
     response = client_auth.get(f"/group/{_group3}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
-    assert scope1.id not in response.json()["scopes"]
-    assert scope1.id in response.json()["indirect_scopes"]
+    assert scope1.id not in [row["id"] for row in response.json()["scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
     response = client_auth.patch(f"/group/{_group3}", json={"scopes": [scope2.id]}, headers=headers)
     assert response.status_code == 200
     response = client_auth.get(f"/group/{_group1}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
-    assert scope1.id in response.json()["scopes"]
-    assert scope1.id in response.json()["indirect_scopes"]
-    assert scope2.id not in response.json()["scopes"]
-    assert scope2.id not in response.json()["indirect_scopes"]
+    assert scope1.id in [row["id"] for row in response.json()["scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
+    assert scope2.id not in [row["id"] for row in response.json()["scopes"]]
+    assert scope2.id not in [row["id"] for row in response.json()["indirect_scopes"]]
     response = client_auth.get(f"/group/{_group2}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
-    assert scope1.id not in response.json()["scopes"]
-    assert scope1.id in response.json()["indirect_scopes"]
-    assert scope2.id not in response.json()["scopes"]
-    assert scope2.id not in response.json()["indirect_scopes"]
+    assert scope1.id not in [row["id"] for row in response.json()["scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
+    assert scope2.id not in [row["id"] for row in response.json()["scopes"]]
+    assert scope2.id not in [row["id"] for row in response.json()["indirect_scopes"]]
     response = client_auth.get(f"/group/{_group3}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
-    assert scope1.id not in response.json()["scopes"]
-    assert scope1.id in response.json()["indirect_scopes"]
-    assert scope2.id in response.json()["scopes"]
-    assert scope2.id in response.json()["indirect_scopes"]
+    assert scope1.id not in [row["id"] for row in response.json()["scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["indirect_scopes"]]
     dbsession.query(UserSessionScope).delete()
     dbsession.delete(user_session)
     dbsession.query(GroupScope).delete()
@@ -112,10 +112,10 @@ def test_scopes_user_session(client_auth, dbsession, user):
     assert response.status_code == 404
     response = client_auth.get("/me", headers={"Authorization": token}, params={"info": ["session_scopes"]})
     assert response.status_code == 200
-    assert scope1.id in response.json()["session_scopes"]
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
     response = client_auth.get("/me", headers={"Authorization": login["token"]}, params={"info": ["session_scopes"]})
     assert response.status_code == 200
-    assert scope2.id not in response.json()["session_scopes"]
+    assert scope2.id not in [row["id"] for row in response.json()["session_scopes"]]
     response = client_auth.patch(f"/group/{_group3}", json={"scopes": [scope1.id, scope2.id]}, headers=headers)
     assert response.status_code == 200
     response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.name, scope2.name]})
@@ -131,34 +131,34 @@ def test_scopes_user_session(client_auth, dbsession, user):
         "/me", headers={"Authorization": token1}, params={"info": ["session_scopes", "user_scopes"]}
     )
     assert response.status_code == 200
-    assert scope2.id in response.json()["session_scopes"]
-    assert scope1.id in response.json()["session_scopes"]
-    assert scope2.id in response.json()["user_scopes"]
-    assert scope1.id in response.json()["user_scopes"]
+    assert scope2.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
     response = client_auth.get(
         "/me", headers={"Authorization": token2}, params={"info": ["session_scopes", "user_scopes"]}
     )
     assert response.status_code == 200
-    assert scope2.id in response.json()["session_scopes"]
-    assert scope1.id not in response.json()["session_scopes"]
-    assert scope2.id in response.json()["user_scopes"]
-    assert scope1.id in response.json()["user_scopes"]
+    assert scope2.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope1.id not in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
     response = client_auth.get(
         "/me", headers={"Authorization": token3}, params={"info": ["session_scopes", "user_scopes"]}
     )
     assert response.status_code == 200
-    assert scope1.id in response.json()["session_scopes"]
-    assert scope2.id not in response.json()["session_scopes"]
-    assert scope2.id in response.json()["user_scopes"]
-    assert scope1.id in response.json()["user_scopes"]
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id not in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
     response = client_auth.get(
         "/me", headers={"Authorization": login["token"]}, params={"info": ["session_scopes", "user_scopes"]}
     )
     assert response.status_code == 200
-    assert scope2.id not in response.json()["session_scopes"]
-    assert scope1.id not in response.json()["session_scopes"]
-    assert scope2.id in response.json()["user_scopes"]
-    assert scope1.id in response.json()["user_scopes"]
+    assert scope2.id not in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope1.id not in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
     dbsession.query(UserSessionScope).delete()
     dbsession.delete(user_session)
     dbsession.query(GroupScope).delete()

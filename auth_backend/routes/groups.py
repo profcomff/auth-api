@@ -27,9 +27,9 @@ async def get_group(
     if "child" in info:
         result["child"] = group.child
     if "scopes" in info:
-        result["scopes"] = [scope.id for scope in group.scopes]
+        result["scopes"] = group.scopes
     if "indirect_scopes" in info:
-        result["indirect_scopes"] = [scope.id for scope in group.indirect_scopes]
+        result["indirect_scopes"] = group.indirect_scopes
     if "users" in info:
         result["users"] = [user.id for user in group.users]
     return GroupGet(**result).dict(exclude_unset=True)
@@ -58,7 +58,7 @@ async def create_group(
     for scope in scopes:
         GroupScope.create(session=db.session, group_id=group.id, scope_id=scope.id)
     db.session.flush()
-    result["scopes"] = [scope.id for scope in group.scopes]
+    result["scopes"] = group.scopes
     db.session.commit()
     return GroupGet(**result).dict(exclude_unset=True)
 
@@ -114,7 +114,7 @@ async def delete_group(
 @groups.get("", response_model=GroupsGet, response_model_exclude_unset=True)
 async def get_groups(
     info: list[Literal["", "scopes", "indirect_scopes", "child", "users"]] = Query(default=[]),
-    user_session: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True)),
+    _: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True)),
 ) -> dict[str, Any]:
     """
     Scopes: ["auth.group.read"]
@@ -125,9 +125,9 @@ async def get_groups(
     for group in groups:
         add = {"id": group.id, "name": group.name, "parent_id": group.parent_id}
         if "scopes" in info:
-            add["scopes"] = [scope.id for scope in group.scopes]
+            add["scopes"] = group.scopes
         if "indirect_scopes" in info:
-            add["indirect_scopes"] = [scope.id for scope in group.scopes]
+            add["indirect_scopes"] = group.indirect_scopes
         if "child" in info:
             add["child"] = group.child
         if "users" in info:
