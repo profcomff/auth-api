@@ -3,6 +3,7 @@ from __future__ import annotations
 from pydantic import Field, validator
 
 from auth_backend.base import Base
+from auth_backend.schemas.types.scopes import Scope
 
 
 class Group(Base):
@@ -96,42 +97,23 @@ class GroupUserListGet(Base):
     items: list[UserInfo]
 
 
-def scope_validator(v: str) -> str:
-    if " " in v:
-        raise ValueError
-    if v.count(".") != 2:
-        raise ValueError
-    if not all(v.split(".")):
-        raise ValueError
-    return v
-
-
-def patch_scope_validator(v: str) -> str:
-    if not v:
-        return v
-    return scope_validator(v)
-
 
 class ScopeGet(Base):
     id: int
-    name: str
+    name: Scope
     comment: str | None
 
-    validator_name = validator("name", allow_reuse=True)(scope_validator)
 
 
 class ScopePost(Base):
-    name: str
+    name: Scope
     comment: str | None
 
-    validator_name = validator("name", allow_reuse=True)(scope_validator)
 
 
 class ScopePatch(Base):
-    name: str | None
+    name: Scope | None
     comment: str | None
-
-    validator_name = validator("name", allow_reuse=True)(patch_scope_validator)
 
 
 Group.update_forward_refs()
