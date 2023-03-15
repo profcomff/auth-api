@@ -13,10 +13,11 @@ def test_add_user(client: TestClient, dbsession: Session, user_factory):
     group = client.post(url="/group", json=body).json()["id"]
     user1 = user_factory(client)
     response = client.patch(f"/user/{user1}", json={"groups": [group]})
+    response_get = client.get(f"/user/{user1}", params={"info": ["groups"]})
     assert response.status_code == status.HTTP_200_OK
     usergroup = (
         dbsession.query(UserGroup)
-        .filter(UserGroup.user_id == response.json()["id"], UserGroup.group_id == response.json()["groups"][0]["id"])
+        .filter(UserGroup.user_id == response.json()["id"], UserGroup.group_id == response_get.json()["groups"][0]["id"])
         .one_or_none()
     )
     assert usergroup

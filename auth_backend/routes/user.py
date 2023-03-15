@@ -67,12 +67,12 @@ async def get_users(
     return UsersGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
 
-@user.patch("/{user_id}", response_model=UserGet)
+@user.patch("/{user_id}", response_model=UserInfo)
 async def patch_user(
     user_id: int,
     user_inp: UserPatch,
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.user.update"], allow_none=False, auto_error=True)),
-) -> dict[str, Any]:
+) -> UserInfo:
     """
     Scopes: ["auth.user.update"]
     """
@@ -94,7 +94,7 @@ async def patch_user(
         )
         UserGroup.delete(user_group.id, session=db.session)
     db.session.commit()
-    return UserGet.from_orm(user).dict(exclude={"session_scopes"})
+    return UserInfo.from_orm(user)
 
 
 @user.delete("/{user_id}", response_model=None)
