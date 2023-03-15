@@ -8,6 +8,7 @@ from .group import create_group
 from .scope import create_scope
 from .user import create_user
 from .user_group import create_user_group
+from ..routes import app
 
 settings = get_settings()
 engine = create_engine(settings.DB_DSN)
@@ -17,6 +18,8 @@ Session = sessionmaker(bind=engine)
 def get_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command')
+
+    start = subparsers.add_parser("start")
 
     user = subparsers.add_parser("user")
     user_subparsers = user.add_subparsers(dest='subcommand')
@@ -50,7 +53,10 @@ def get_args():
 def process() -> None:
     args = get_args()
     session = Session()
-    if args.command == 'user' and args.subcommand == 'create':
+    if args.command == "start":
+        import uvicorn
+        uvicorn.run(app)
+    elif args.command == 'user' and args.subcommand == 'create':
         print(f'Creating user with params {args}')
         create_user(args.email, args.password, session)
     elif args.command == 'group' and args.subcommand == 'create':

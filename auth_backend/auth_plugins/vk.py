@@ -13,6 +13,7 @@ from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from .auth_method import OauthMeta, Session
 from ..schemas.types.scopes import Scope
+from sqlalchemy.orm import Session as DbSession
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ class VkAuth(OauthMeta):
         )
 
     @classmethod
-    async def _get_user(cls, vkuser_id: str | int, *, db_session: Session) -> User | None:
+    async def _get_user(cls, vkuser_id: str | int, *, db_session: DbSession) -> User | None:
         auth_method: AuthMethod = (
             AuthMethod.query(session=db_session)
             .filter(
@@ -153,7 +154,7 @@ class VkAuth(OauthMeta):
             return auth_method.user
 
     @classmethod
-    async def _register_auth_method(cls, vk_user_id: str | int, user: User, *, db_session):
+    async def _register_auth_method(cls, vk_user_id: str | int, user: User, *, db_session: DbSession):
         """Добавление пользователю новый AuthMethod"""
         AuthMethod.create(
             user_id=user.id,

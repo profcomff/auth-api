@@ -28,3 +28,4 @@ def create_user(email: str, password: str, session: Session) -> None:
     )
     session.add_all([email, password, salt, confirmed, confirmation_token])
     session.commit()
+    print(f"Created user: {user.id=}, {email.value=}")

@@ -7,3 +7,4 @@ def create_scope(name: str, creator_id: int, comment: str, session: Session) -> 
     scope = Scope(name=name, creator_id=creator_id, comment=comment)
     session.add(scope)
     session.commit()
+    print(f"Created scope: {scope}")

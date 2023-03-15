@@ -9,3 +9,4 @@ def create_group(name: str, scopes: str, parent_id: int, session: Session) -> No
     for id in scopes:
         session.add(GroupScope(group_id=group.id, scope_id=id))
     session.commit()
+    print(f"Created group: {group}, with scopes: {scopes}")

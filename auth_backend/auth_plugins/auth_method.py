@@ -15,6 +15,7 @@ from auth_backend.base import Base, ResponseModel
 from auth_backend.models.db import User, UserSession, Scope, UserSessionScope
 from auth_backend.settings import get_settings
 from auth_backend.schemas.types.scopes import Scope as TypeScope
+from sqlalchemy.orm import Session as DbSession
 
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,8 @@ class Session(Base):
     expires: datetime
     id: int
     user_id: int
+    session_scopes: list[TypeScope]
+
 
 
 AUTH_METHODS: dict[str, type[AuthMethodMeta]] = {}
@@ -67,7 +70,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @staticmethod
-    async def _create_session(user: User, scopes_list_names: list[TypeScope] | None, *, db_session: Session) -> Session:
+    async def _create_session(user: User, scopes_list_names: list[TypeScope] | None, *, db_session: DbSession) -> Session:
         """Создает сессию пользователя"""
         scopes = set()
         if scopes_list_names is None:
@@ -86,6 +89,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
             token=user_session.token,
             id=user_session.id,
             expires=user_session.expires,
+            session_scopes=[_scope.name for _scope in user_session.scopes]
         )
 
     @staticmethod
@@ -108,7 +112,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
             )
 
     @staticmethod
-    async def _create_user(*, db_session: Session) -> User:
+    async def _create_user(*, db_session: DbSession) -> User:
         """Создает пользователя"""
         user = User()
         db_session.add(user)
@@ -117,7 +121,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     async def _get_user(
         *,
-        db_session: Session,
+        db_session: DbSession,
         user_session: UserSession = None,
         session_token: str = None,
         user_id: int = None,

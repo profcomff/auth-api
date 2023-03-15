@@ -13,6 +13,7 @@ from auth_backend.models.db import UserSession, User, AuthMethod
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
+from sqlalchemy.orm import Session as DbSession
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +144,7 @@ class YandexAuth(OauthMeta):
         )
 
     @classmethod
-    async def _get_user(cls, yandex_id: str | int, *, db_session: Session) -> User | None:
+    async def _get_user(cls, yandex_id: str | int, *, db_session: DbSession) -> User | None:
         auth_method: AuthMethod = (
             AuthMethod.query(session=db_session)
             .filter(
@@ -157,7 +158,7 @@ class YandexAuth(OauthMeta):
             return auth_method.user
 
     @classmethod
-    async def _register_auth_method(cls, yandex_id: str | int, user: User, *, db_session):
+    async def _register_auth_method(cls, yandex_id: str | int, user: User, *, db_session: DbSession):
         """Добавление пользователю новый AuthMethod"""
 
         AuthMethod.create(

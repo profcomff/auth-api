@@ -12,6 +12,7 @@ from auth_backend.utils.security import UnionAuth
 from auth_backend.settings import Settings
 import hashlib
 from urllib.parse import unquote
+from sqlalchemy.orm import Session as DbSession
 
 
 logger = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ class TelegramAuth(OauthMeta):
         )
 
     @classmethod
-    async def _get_user(cls, telegram_id: str | int, *, db_session: Session) -> User | None:
+    async def _get_user(cls, telegram_id: str | int, *, db_session: DbSession) -> User | None:
         auth_method: AuthMethod = (
             AuthMethod.query(session=db_session)
             .filter(
