@@ -17,6 +17,9 @@ async def create_scope(
     scope: ScopePost,
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.scope.create"], allow_none=False, auto_error=True)),
 ) -> ScopeGet:
+    """
+    Scopes: ["auth.scope.create"]
+    """
     if Scope.query(session=db.session).filter(func.lower(Scope.name) == scope.name.lower()).all():
         raise HTTPException(status_code=409, detail=ResponseModel(status="Error", message="Already exists").json())
     scope.name = scope.name.lower()
@@ -27,6 +30,9 @@ async def create_scope(
 async def get_scope(
     id: int, _: UserSession = Depends(UnionAuth(scopes=["auth.scope.read"], allow_none=False, auto_error=True))
 ) -> ScopeGet:
+    """
+    Scopes: ["auth.scope.read"]
+    """
     return ScopeGet.from_orm(Scope.get(id, session=db.session))
 
 
@@ -34,6 +40,9 @@ async def get_scope(
 async def get_scopes(
     _: UserSession = Depends(UnionAuth(scopes=["auth.scope.read"], allow_none=False, auto_error=True))
 ) -> list[ScopeGet]:
+    """
+    Scopes: ["auth.scope.read"]
+    """
     return parse_obj_as(list[ScopeGet], Scope.query(session=db.session).all())
 
 
@@ -43,6 +52,9 @@ async def update_scope(
     scope_inp: ScopePatch,
     _: UserSession = Depends(UnionAuth(scopes=["auth.scope.update"], allow_none=False, auto_error=True)),
 ) -> ScopeGet:
+    """
+    Scopes: ["auth.scope.update"]
+    """
     scope = Scope.get(id, session=db.session)
     return ScopeGet.from_orm(Scope.update(scope.id, **scope_inp.dict(), session=db.session))
 
@@ -51,5 +63,8 @@ async def update_scope(
 async def delete_scope(
     id: int, _: UserSession = Depends(UnionAuth(scopes=["auth.scope.delete"], allow_none=False, auto_error=True))
 ):
+    """
+    Scopes: ["auth.scope.delete"]
+    """
     Scope.delete(session=db.session, id=id)
     return ResponseModel(status="Success", message="Scope has been deleted")

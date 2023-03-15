@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Any
 
 from fastapi import APIRouter, Query, Depends
 from fastapi_sqlalchemy import db
@@ -17,7 +17,10 @@ async def get_user(
     user_id: int,
     info: list[Literal["groups", "indirect_groups", "scopes", ""]] = Query(default=[]),
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.user.read"], allow_none=False, auto_error=True)),
-) -> UserGet:
+) -> dict[str, Any]:
+    """
+    Scopes: ["auth.user.read"]
+    """
     result: dict[str, str | int] = {}
     user = User.get(user_id, session=db.session)
     result = (
@@ -38,14 +41,17 @@ async def get_user(
 
     if "scopes" in info:
         result = result | UserScopes(user_scopes=list(user.indirect_scopes)).dict()
-    return UserGet(**result).dict(exclude_unset=True)
+    return UserGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
 
 @user.get("", response_model=UsersGet, response_model_exclude_unset=True)
 async def get_users(
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.user.read"], allow_none=False, auto_error=True)),
     info: list[Literal["groups", "indirect_groups", "scopes", ""]] = Query(default=[]),
-) -> UserGet:
+) -> dict[str, Any]:
+    """
+    Scopes: ["auth.user.read"]
+    """
     users = User.query(session=db.session).all()
     result = {}
     result["items"] = []
@@ -58,7 +64,7 @@ async def get_users(
         if "scopes" in info:
             add["scopes"] = user.scopes
         result["items"].append(add)
-    return UsersGet(**result).dict(exclude_unset=True)
+    return UsersGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
 
 @user.patch("/{user_id}", response_model=UserGet)
@@ -66,7 +72,10 @@ async def patch_user(
     user_id: int,
     user_inp: UserPatch,
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.user.update"], allow_none=False, auto_error=True)),
-) -> UserGet:
+) -> dict[str, Any]:
+    """
+    Scopes: ["auth.user.update"]
+    """
     user = User.get(user_id, session=db.session)
     groups = set()
     for group_id in user_inp.groups:
@@ -85,7 +94,7 @@ async def patch_user(
         )
         UserGroup.delete(user_group.id, session=db.session)
     db.session.commit()
-    return UserGet.from_orm(user)
+    return UserGet.from_orm(user).dict(exclude={"session_scopes"})
 
 
 @user.delete("/{user_id}", response_model=None)
@@ -93,6 +102,9 @@ async def delete_user(
     user_id: int,
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.user.delete"], allow_none=False, auto_error=True)),
 ) -> None:
+    """
+    Scopes: ["auth.user.delete"]
+    """
     User.get(user_id, session=db.session)
     User.delete(user_id, session=db.session)
     return None

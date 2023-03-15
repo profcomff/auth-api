@@ -17,6 +17,9 @@ async def get_group(
     id: int, info: list[Literal["child", "scopes", "indirect_scopes", "users"]] = Query(default=[]),
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True))
 ) -> dict[str, str | int]:
+    """
+    Scopes: ["auth.group.read"]
+    """
     group = DbGroup.get(id, session=db.session)
     result = {}
     result = result | Group.from_orm(group).dict()
@@ -36,6 +39,9 @@ async def create_group(
     group_inp: GroupPost,
     _: UserSession = Depends(UnionAuth(scopes=["auth.group.create"], allow_none=False, auto_error=True)),
 ) -> dict[str, str | int]:
+    """
+    Scopes: ["auth.group.create"]
+    """
     if group_inp.parent_id and not db.session.query(DbGroup).get(group_inp.parent_id):
         raise ObjectNotFound(Group, group_inp.parent_id)
     if DbGroup.query(session=db.session).filter(DbGroup.name == group_inp.name).one_or_none():
@@ -62,6 +68,9 @@ async def patch_group(
     group_inp: GroupPatch,
     _: UserSession = Depends(UnionAuth(scopes=["auth.group.update"], allow_none=False, auto_error=True)),
 ) -> Group:
+    """
+    Scopes: ["auth.group.update"]
+    """
     if (
         exists_check := DbGroup.query(session=db.session)
         .filter(DbGroup.name == group_inp.name, DbGroup.id != id)
@@ -88,6 +97,9 @@ async def patch_group(
 async def delete_group(
     id: int, _: UserSession = Depends(UnionAuth(scopes=["auth.scope.delete"], allow_none=False, auto_error=True))
 ) -> None:
+    """
+    Scopes: ["auth.scope.delete"]
+    """
     group: DbGroup = DbGroup.get(id, session=db.session)
     if child := group.child:
         for children in child:
@@ -103,6 +115,9 @@ async def get_groups(
     info: list[Literal["", "scopes", "indirect_scopes", "child", "users"]] = Query(default=[]),
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True))
 ) -> dict[str, Any]:
+    """
+    Scopes: ["auth.group.read"]
+    """
     groups = DbGroup.query(session=db.session).all()
     result = {}
     result["items"] = []
