@@ -1,9 +1,14 @@
 from __future__ import annotations
 
-from pydantic import Field, validator
+from pydantic import Field
 
 from auth_backend.base import Base
+from auth_backend.schemas.types.scopes import Scope
 
+
+class PinchedScope(Base):
+    id: int
+    name: Scope
 
 class Group(Base):
     id: int = Field(..., gt=0)
@@ -12,7 +17,7 @@ class Group(Base):
 
 
 class GroupScopes(Base):
-    scopes: list[ScopeGet] | None
+    scopes: list[PinchedScope] | None
 
 
 class GroupChilds(Base):
@@ -20,15 +25,16 @@ class GroupChilds(Base):
 
 
 class GroupIndirectScopes(Base):
-    indirect_scopes: list[ScopeGet] | None
+    indirect_scopes: list[PinchedScope] | None
 
 
 class GroupUserList(Base):
-    users: list[UserInfo] | None
+    users: list[int] | None
 
 
 class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes, GroupUserList):
     pass
+
 
 
 class UserInfo(Base):
@@ -37,19 +43,19 @@ class UserInfo(Base):
 
 
 class UserGroups(Base):
-    groups: list[Group] | None
+    groups: list[int] | None
 
 
 class UserIndirectGroups(Base):
-    indirect_groups: list[Group] | None
+    indirect_groups: list[int] | None
 
 
 class UserScopes(Base):
-    user_scopes: list[ScopeGet] | None
+    user_scopes: list[PinchedScope] | None
 
 
 class SessionScopes(Base):
-    session_scopes: list[ScopeGet] | None
+    session_scopes: list[PinchedScope] | None
 
 
 class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScopes):
@@ -96,42 +102,21 @@ class GroupUserListGet(Base):
     items: list[UserInfo]
 
 
-def scope_validator(v: str) -> str:
-    if " " in v:
-        raise ValueError
-    if v.count(".") != 2:
-        raise ValueError
-    if not all(v.split(".")):
-        raise ValueError
-    return v
-
-
-def patch_scope_validator(v: str) -> str:
-    if not v:
-        return v
-    return scope_validator(v)
-
-
 class ScopeGet(Base):
     id: int
-    name: str
+    name: Scope
     comment: str | None
-
-    validator_name = validator("name", allow_reuse=True)(scope_validator)
 
 
 class ScopePost(Base):
-    name: str
+    name: Scope
     comment: str | None
-
-    validator_name = validator("name", allow_reuse=True)(scope_validator)
 
 
 class ScopePatch(Base):
-    name: str | None
+    name: Scope | None
     comment: str | None
 
-    validator_name = validator("name", allow_reuse=True)(patch_scope_validator)
 
 
 Group.update_forward_refs()

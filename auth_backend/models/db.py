@@ -60,11 +60,19 @@ class User(BaseDbModel):
     )
 
     @hybrid_property
-    def indirect_scopes(self) -> set[Scope]:
+    def scopes(self) -> set[Scope]:
         _scopes = set()
         for group in self.groups:
             _scopes.update(group.indirect_scopes)
         return _scopes
+
+    @hybrid_property
+    def indirect_groups(self) -> list[Group]:
+        _groups = set()
+        _groups.update(set(self.groups))
+        for group in self.groups:
+            _groups.update(group.parents)
+        return _groups
 
     @hybrid_property
     def active_sessions(self) -> list:

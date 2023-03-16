@@ -13,6 +13,7 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from .auth_method import OauthMeta, Session
+from sqlalchemy.orm import Session as DbSession
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +141,7 @@ class LkmsuAuth(OauthMeta):
         )
 
     @classmethod
-    async def _get_user(cls, lkuser_id: str | int, *, db_session: Session) -> User | None:
+    async def _get_user(cls, lkuser_id: str | int, *, db_session: DbSession) -> User | None:
         auth_method: AuthMethod = (
             AuthMethod.query(session=db_session)
             .filter(

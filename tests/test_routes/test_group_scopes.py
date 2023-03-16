@@ -10,11 +10,13 @@ def test_scopes_groups(client_auth, dbsession, user):
     user_id, body, login = user["user_id"], user["body"], user["login_json"]
     dbsession.add(scope1 := Scope(name="auth.group.create", creator_id=user_id))
     dbsession.add(scope2 := Scope(name="auth.group.update", creator_id=user_id))
+    dbsession.add(scope3 := Scope(name="auth.group.read", creator_id=user_id))
     token = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token))
     dbsession.flush()
     dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
     dbsession.add(UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
+    dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
     dbsession.commit()
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
@@ -28,38 +30,38 @@ def test_scopes_groups(client_auth, dbsession, user):
     _group3 = client_auth.post(url="/group", json=body, headers=headers).json()["id"]
     response = client_auth.patch(f"/group/{_group1}", json={"scopes": [scope1.id]}, headers=headers)
     assert response.status_code == 200
-    response = client_auth.get(f"/group/{_group1}", params={"info": ["indirect_scopes", "scopes"]})
+    response = client_auth.get(f"/group/{_group1}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
     assert scope1.id in [row["id"] for row in response.json()["scopes"]]
-    assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
-    response = client_auth.get(f"/group/{_group2}", params={"info": ["indirect_scopes", "scopes"]})
+    assert scope1.id in  [row["id"] for row in response.json()["indirect_scopes"]]
+    response = client_auth.get(f"/group/{_group2}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
     assert scope1.id not in [row["id"] for row in response.json()["scopes"]]
     assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
-    response = client_auth.get(f"/group/{_group3}", params={"info": ["indirect_scopes", "scopes"]})
+    response = client_auth.get(f"/group/{_group3}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
     assert scope1.id not in [row["id"] for row in response.json()["scopes"]]
     assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
     response = client_auth.patch(f"/group/{_group3}", json={"scopes": [scope2.id]}, headers=headers)
     assert response.status_code == 200
-    response = client_auth.get(f"/group/{_group1}", params={"info": ["indirect_scopes", "scopes"]})
+    response = client_auth.get(f"/group/{_group1}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
     assert scope1.id in [row["id"] for row in response.json()["scopes"]]
     assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
     assert scope2.id not in [row["id"] for row in response.json()["scopes"]]
     assert scope2.id not in [row["id"] for row in response.json()["indirect_scopes"]]
-    response = client_auth.get(f"/group/{_group2}", params={"info": ["indirect_scopes", "scopes"]})
+    response = client_auth.get(f"/group/{_group2}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
     assert scope1.id not in [row["id"] for row in response.json()["scopes"]]
     assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
     assert scope2.id not in [row["id"] for row in response.json()["scopes"]]
     assert scope2.id not in [row["id"] for row in response.json()["indirect_scopes"]]
-    response = client_auth.get(f"/group/{_group3}", params={"info": ["indirect_scopes", "scopes"]})
+    response = client_auth.get(f"/group/{_group3}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
     assert scope1.id not in [row["id"] for row in response.json()["scopes"]]

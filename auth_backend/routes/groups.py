@@ -14,8 +14,13 @@ groups = APIRouter(prefix="/group", tags=["Groups"])
 
 @groups.get("/{id}", response_model=GroupGet, response_model_exclude_unset=True)
 async def get_group(
-    id: int, info: list[Literal["child", "scopes", "indirect_scopes", "users"]] = Query(default=[])
+    id: int,
+    info: list[Literal["child", "scopes", "indirect_scopes", "users"]] = Query(default=[]),
+    user_session: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True)),
 ) -> dict[str, str | int]:
+    """
+    Scopes: ["auth.group.read"]
+    """
     group = DbGroup.get(id, session=db.session)
     result = {}
     result = result | Group.from_orm(group).dict()
@@ -26,7 +31,7 @@ async def get_group(
     if "indirect_scopes" in info:
         result["indirect_scopes"] = group.indirect_scopes
     if "users" in info:
-        result["users"] = group.users
+        result["users"] = [user.id for user in group.users]
     return GroupGet(**result).dict(exclude_unset=True)
 
 
@@ -35,6 +40,9 @@ async def create_group(
     group_inp: GroupPost,
     _: UserSession = Depends(UnionAuth(scopes=["auth.group.create"], allow_none=False, auto_error=True)),
 ) -> dict[str, str | int]:
+    """
+    Scopes: ["auth.group.create"]
+    """
     if group_inp.parent_id and not db.session.query(DbGroup).get(group_inp.parent_id):
         raise ObjectNotFound(Group, group_inp.parent_id)
     if DbGroup.query(session=db.session).filter(DbGroup.name == group_inp.name).one_or_none():
@@ -50,7 +58,7 @@ async def create_group(
     for scope in scopes:
         GroupScope.create(session=db.session, group_id=group.id, scope_id=scope.id)
     db.session.flush()
-    result["scopes"] = list(group.scopes)
+    result["scopes"] = group.scopes
     db.session.commit()
     return GroupGet(**result).dict(exclude_unset=True)
 
@@ -61,6 +69,9 @@ async def patch_group(
     group_inp: GroupPatch,
     _: UserSession = Depends(UnionAuth(scopes=["auth.group.update"], allow_none=False, auto_error=True)),
 ) -> Group:
+    """
+    Scopes: ["auth.group.update"]
+    """
     if (
         exists_check := DbGroup.query(session=db.session)
         .filter(DbGroup.name == group_inp.name, DbGroup.id != id)
@@ -87,6 +98,9 @@ async def patch_group(
 async def delete_group(
     id: int, _: UserSession = Depends(UnionAuth(scopes=["auth.scope.delete"], allow_none=False, auto_error=True))
 ) -> None:
+    """
+    Scopes: ["auth.scope.delete"]
+    """
     group: DbGroup = DbGroup.get(id, session=db.session)
     if child := group.child:
         for children in child:
@@ -99,8 +113,12 @@ async def delete_group(
 
 @groups.get("", response_model=GroupsGet, response_model_exclude_unset=True)
 async def get_groups(
-    info: list[Literal["", "scopes", "indirect_scopes", "child", "users"]] = Query(default=[])
+    info: list[Literal["", "scopes", "indirect_scopes", "child", "users"]] = Query(default=[]),
+    _: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True)),
 ) -> dict[str, Any]:
+    """
+    Scopes: ["auth.group.read"]
+    """
     groups = DbGroup.query(session=db.session).all()
     result = {}
     result["items"] = []
@@ -113,7 +131,7 @@ async def get_groups(
         if "child" in info:
             add["child"] = group.child
         if "users" in info:
-            add["users"] = group.users
+            add["users"] = [user.id for user in group.users]
         result["items"].append(add)
 
     return GroupsGet(**result).dict(exclude_unset=True)

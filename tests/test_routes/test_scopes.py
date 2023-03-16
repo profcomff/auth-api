@@ -69,7 +69,7 @@ def test_patch_scope(client_auth, dbsession, user):
     assert response_get_2.status_code == 200
     assert response_get_2.json() != response_get_1.json()
     assert response_get_2.json() == response_update.json()
-    assert response_get_2.json()["name"] == f"gh.gh.gh{rand2}"
+    assert response_get_2.json()["name"] == f"gh.gh.gh{rand2}".lower()
     assert response_get_2.json()["comment"] == "test2"
     dbsession.query(UserSessionScope).delete()
     dbsession.delete(user_session)
