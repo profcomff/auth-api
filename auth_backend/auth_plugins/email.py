@@ -232,7 +232,7 @@ class Email(AuthMethodMeta):
             .one_or_none()
         )
         if not auth_method:
-            raise HTTPException(status_code=403, detail=ResponseModel(status="Error", message="Incorrect link").json())
+            raise HTTPException(status_code=403, detail=ResponseModel(status="Error", message="Incorrect link").dict())
         auth_method.user.auth_methods.confirmed.value = "true"
         db.session.commit()
         return ResponseModel(status="Success", message="Email approved")
@@ -252,7 +252,7 @@ class Email(AuthMethodMeta):
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
         if user_session.user.auth_methods.email.value == scheme.email:
-            raise HTTPException(status_code=401, detail=ResponseModel(status="Error", message="Email incorrect").json())
+            raise HTTPException(status_code=401, detail=ResponseModel(status="Error", message="Email incorrect").dict())
         tmp_email = AuthMethod(
             user_id=user_session.user_id, auth_method=Email.get_name(), param="tmp_email", value=scheme.email
         )
@@ -284,7 +284,7 @@ class Email(AuthMethodMeta):
         )
         if not auth:
             raise HTTPException(
-                status_code=403, detail=ResponseModel(status="Error", message="Incorrect confirmation token").json()
+                status_code=403, detail=ResponseModel(status="Error", message="Incorrect confirmation token").dict()
             )
         user: User = auth.user
         if user.auth_methods.confirmed.value == "false":
@@ -310,7 +310,7 @@ class Email(AuthMethodMeta):
             if not user_session.user.auth_methods.email:
                 raise HTTPException(
                     status_code=401,
-                    detail=ResponseModel(status="Error", message="Auth method restricted for this user").json(),
+                    detail=ResponseModel(status="Error", message="Auth method restricted for this user").dict(),
                 )
             if not Email._validate_password(
                 schema.password,
@@ -329,7 +329,7 @@ class Email(AuthMethodMeta):
             )
             if auth_method_email.user_id != user_session.user_id:
                 raise HTTPException(
-                    status_code=403, detail=ResponseModel(status="Error", message="Incorrect user session").json()
+                    status_code=403, detail=ResponseModel(status="Error", message="Incorrect user session").dict()
                 )
             user_session.user.auth_methods.hashed_password.value = Email._hash_password(schema.new_password, salt)
             user_session.user.auth_methods.salt.value = salt
@@ -348,12 +348,12 @@ class Email(AuthMethodMeta):
             )
             if not auth_method_email:
                 raise HTTPException(
-                    status_code=404, detail=ResponseModel(status="Error", message="Email not found").json()
+                    status_code=404, detail=ResponseModel(status="Error", message="Email not found").dict()
                 )
             if not auth_method_email.user.auth_methods.email:
                 raise HTTPException(
                     status_code=401,
-                    detail=ResponseModel(status="Error", message="Auth method restricted for this user").json(),
+                    detail=ResponseModel(status="Error", message="Auth method restricted for this user").dict(),
                 )
             if auth_method_email.user.auth_methods.confirmed.value.lower() == "false":
                 raise AuthFailed(
@@ -375,9 +375,9 @@ class Email(AuthMethodMeta):
             )
             return ResponseModel(status="Success", message="Reset link has been successfully mailed")
         elif not user_session and schema.password and schema.new_password:
-            raise HTTPException(status_code=403, detail=ResponseModel(status="Error", message="Missing session").json())
+            raise HTTPException(status_code=403, detail=ResponseModel(status="Error", message="Missing session").dict())
         raise HTTPException(
-            status_code=422, detail=ResponseModel(status="Error", message="Unprocessable entity").json()
+            status_code=422, detail=ResponseModel(status="Error", message="Unprocessable entity").dict()
         )
 
     @staticmethod
@@ -399,7 +399,7 @@ class Email(AuthMethodMeta):
         ):
             raise HTTPException(
                 status_code=403,
-                detail=ResponseModel(status="Error", message="Incorrect reset token").json(),
+                detail=ResponseModel(status="Error", message="Incorrect reset token").dict(),
             )
         salt = random_string()
         auth_method.user.auth_methods.hashed_password.value = Email._hash_password(schema.new_password, salt)
