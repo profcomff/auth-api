@@ -57,10 +57,8 @@ async def create_group(
     result = result | {"name": group.name, "id": group.id, "parent_id": group.parent_id}
     for scope in scopes:
         GroupScope.create(session=db.session, group_id=group.id, scope_id=scope.id)
-    db.session.flush()
-    result["scopes"] = group.scopes
     db.session.commit()
-    return GroupGet(**result).dict(exclude_unset=True)
+    return Group(**result).dict(exclude_unset=True)
 
 
 @groups.patch("/{id}", response_model=Group)
@@ -133,5 +131,4 @@ async def get_groups(
         if "users" in info:
             add["users"] = [user.id for user in group.users]
         result["items"].append(add)
-
     return GroupsGet(**result).dict(exclude_unset=True)
