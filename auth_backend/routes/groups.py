@@ -19,7 +19,7 @@ async def get_group(
     user_session: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True)),
 ) -> dict[str, str | int]:
     """
-    Scopes: ["auth.group.read"]
+    Scopes: `["auth.group.read"]`
     """
     group = DbGroup.get(id, session=db.session)
     result = {}
@@ -41,7 +41,7 @@ async def create_group(
     _: UserSession = Depends(UnionAuth(scopes=["auth.group.create"], allow_none=False, auto_error=True)),
 ) -> dict[str, str | int]:
     """
-    Scopes: ["auth.group.create"]
+    Scopes: `["auth.group.create"]`
     """
     if group_inp.parent_id and not db.session.query(DbGroup).get(group_inp.parent_id):
         raise ObjectNotFound(Group, group_inp.parent_id)
@@ -68,7 +68,7 @@ async def patch_group(
     _: UserSession = Depends(UnionAuth(scopes=["auth.group.update"], allow_none=False, auto_error=True)),
 ) -> Group:
     """
-    Scopes: ["auth.group.update"]
+    Scopes: `["auth.group.update"]`
     """
     if (
         exists_check := DbGroup.query(session=db.session)
@@ -97,7 +97,7 @@ async def delete_group(
     id: int, _: UserSession = Depends(UnionAuth(scopes=["auth.scope.delete"], allow_none=False, auto_error=True))
 ) -> None:
     """
-    Scopes: ["auth.scope.delete"]
+    Scopes: `["auth.scope.delete"]`
     """
     group: DbGroup = DbGroup.get(id, session=db.session)
     if child := group.child:
@@ -115,7 +115,7 @@ async def get_groups(
     _: UserSession = Depends(UnionAuth(scopes=["auth.group.read"], allow_none=False, auto_error=True)),
 ) -> dict[str, Any]:
     """
-    Scopes: ["auth.group.read"]
+    Scopes: `["auth.group.read"]`
     """
     groups = DbGroup.query(session=db.session).all()
     result = {}

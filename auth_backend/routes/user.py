@@ -19,7 +19,7 @@ async def get_user(
     _: UserSession = Depends(UnionAuth(scopes=["auth.user.read"], allow_none=False, auto_error=True)),
 ) -> dict[str, Any]:
     """
-    Scopes: ["auth.user.read"]
+    Scopes: `["auth.user.read"]`
     """
     result: dict[str, str | int] = {}
     user = User.get(user_id, session=db.session)
@@ -46,7 +46,7 @@ async def get_users(
     info: list[Literal["groups", "indirect_groups", "scopes", ""]] = Query(default=[]),
 ) -> dict[str, Any]:
     """
-    Scopes: ["auth.user.read"]
+    Scopes: `["auth.user.read"]`
     """
     users = User.query(session=db.session).all()
     result = {}
@@ -70,7 +70,7 @@ async def patch_user(
     _: UserSession = Depends(UnionAuth(scopes=["auth.user.update"], allow_none=False, auto_error=True)),
 ) -> UserInfo:
     """
-    Scopes: ["auth.user.update"]
+    Scopes: `["auth.user.update"]`
     """
     user = User.get(user_id, session=db.session)
     groups = set()
@@ -99,7 +99,7 @@ async def delete_user(
     _: UserSession = Depends(UnionAuth(scopes=["auth.user.delete"], allow_none=False, auto_error=True)),
 ) -> None:
     """
-    Scopes: ["auth.user.delete"]
+    Scopes: `["auth.user.delete"]`
     """
     User.get(user_id, session=db.session)
     User.delete(user_id, session=db.session)
