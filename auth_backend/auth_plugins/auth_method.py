@@ -109,7 +109,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
                 detail=ResponseModel(
                     status="Error",
                     message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in scopes - user.scopes]} ",
-                ).json(),
+                ).dict(),
             )
 
     @staticmethod
