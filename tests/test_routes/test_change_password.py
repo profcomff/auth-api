@@ -40,7 +40,9 @@ def test_unprocessable_jsons_no_token(client_auth: TestClient, dbsession: Sessio
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = client_auth.post(
-        f"{url}", headers={"reset-token": ""}, json={"email": token.user.auth_methods.email.email.value, "new_password": ""}
+        f"{url}",
+        headers={"reset-token": ""},
+        json={"email": token.user.auth_methods.email.email.value, "new_password": ""},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -130,7 +132,8 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
     assert response.status_code == status.HTTP_200_OK
 
     response = client_auth.post(
-        "/email/login", json={"email": reset_token.user.auth_methods.email.email.value, "password": "string", "scopes": []}
+        "/email/login",
+        json={"email": reset_token.user.auth_methods.email.email.value, "password": "string", "scopes": []},
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 

@@ -140,7 +140,9 @@ class Email(AuthMethodMeta):
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
         if query.user.auth_methods.email.email.value.lower() != user_inp.email.lower() or not Email._validate_password(
-            user_inp.password, query.user.auth_methods.email.hashed_password.value, query.user.auth_methods.email.salt.value
+            user_inp.password,
+            query.user.auth_methods.email.hashed_password.value,
+            query.user.auth_methods.email.salt.value,
         ):
             raise AuthFailed(error="Incorrect login or password")
         return await cls._create_session(query.user, user_inp.scopes, db_session=db.session)
@@ -333,7 +335,9 @@ class Email(AuthMethodMeta):
                 )
             user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
             user_session.user.auth_methods.email.salt.value = salt
-            background_tasks.add_task(send_changes_password_notification, user_session.user.auth_methods.email.email.value)
+            background_tasks.add_task(
+                send_changes_password_notification, user_session.user.auth_methods.email.email.value
+            )
             db.session.commit()
             return ResponseModel(status="Success", message="Password has been successfully changed")
         elif not user_session and not schema.password and not schema.new_password:

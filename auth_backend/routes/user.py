@@ -52,7 +52,10 @@ async def get_users(
     result = {}
     result["items"] = []
     for user in users:
-        add = {"id": user.id, "email": user.auth_methods.email.email.value if hasattr(user.auth_methods, "email") else None}
+        add = {
+            "id": user.id,
+            "email": user.auth_methods.email.email.value if hasattr(user.auth_methods, "email") else None,
+        }
         if "groups" in info:
             add["groups"] = [group.id for group in user.groups]
         if "indirect_groups" in info:

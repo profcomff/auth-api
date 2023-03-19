@@ -1,7 +1,9 @@
-from .db_aggregators import Email, GoogleAuth, PhysicsAuth, LkmsuAuth
+from .lkmsu import LkmsuAuth
+from .google import GoogleAuth
+from .physics import PhysicsAuth
+from .email import Email
 from auth_backend.models.db import AuthMethod
 from .db_aggregators_meta import MethodMeta
-
 
 
 class MethodsDict:

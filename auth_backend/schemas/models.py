@@ -10,6 +10,7 @@ class PinchedScope(Base):
     id: int
     name: Scope
 
+
 class Group(Base):
     id: int = Field(..., gt=0)
     name: str
@@ -34,7 +35,6 @@ class GroupUserList(Base):
 
 class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes, GroupUserList):
     pass
-
 
 
 class UserInfo(Base):
@@ -116,7 +116,6 @@ class ScopePost(Base):
 class ScopePatch(Base):
     name: Scope | None
     comment: str | None
-
 
 
 Group.update_forward_refs()

@@ -10,11 +10,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, backref, Session
 
 from auth_backend.exceptions import ObjectNotFound
 from auth_backend.settings import get_settings
+
 settings = get_settings()
 
 
 from auth_backend.models.base import BaseDbModel
-
 
 
 class User(BaseDbModel):
@@ -55,7 +55,6 @@ class User(BaseDbModel):
     def active_sessions(self) -> list[UserSession]:
         return [row for row in self.sessions if not row.expired]
 
-
     @hybrid_property
     def auth_methods(self):
         """
@@ -65,6 +64,7 @@ class User(BaseDbModel):
         :return: MethodsDict
         """
         from auth_backend.auth_plugins.db_plugins import MethodsDict
+
         return MethodsDict.__new__(MethodsDict, self._auth_methods)
 
 

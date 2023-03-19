@@ -34,7 +34,7 @@ def test_scopes_groups(client_auth, dbsession, user):
     assert response.json()
     assert response.status_code == 200
     assert scope1.id in [row["id"] for row in response.json()["scopes"]]
-    assert scope1.id in  [row["id"] for row in response.json()["indirect_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
     response = client_auth.get(f"/group/{_group2}", params={"info": ["indirect_scopes", "scopes"]}, headers=headers)
     assert response.json()
     assert response.status_code == 200
