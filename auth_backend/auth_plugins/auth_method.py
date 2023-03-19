@@ -7,15 +7,17 @@ import string
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi_sqlalchemy import db
 from pydantic import constr
 
 from auth_backend.base import Base, ResponseModel
-from auth_backend.models.db import User, UserSession, Scope, UserSessionScope
+from auth_backend.models.db import AuthMethod, User, UserSession, Scope, UserSessionScope
 from auth_backend.settings import get_settings
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from sqlalchemy.orm import Session as DbSession
+
+from auth_backend.utils.security import UnionAuth
 
 
 logger = logging.getLogger(__name__)
@@ -153,6 +155,7 @@ class OauthMeta(AuthMethodMeta):
         super().__init__()
         self.router.add_api_route("/redirect_url", self._redirect_url, methods=["GET"], response_model=self.UrlSchema)
         self.router.add_api_route("/auth_url", self._auth_url, methods=["GET"], response_model=self.UrlSchema)
+        self.router.add_api_route("", self._unregister, methods=["DELETE"])
 
     @staticmethod
     @abstractmethod
@@ -165,3 +168,51 @@ class OauthMeta(AuthMethodMeta):
     async def _auth_url(*args, **kwargs) -> UrlSchema:
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
         raise NotImplementedError()
+
+    @classmethod
+    async def _unregister(cls, user_session: UserSession = Depends(UnionAuth(scopes=[], auto_error=True))):
+        """Отключает для пользователя метод входа"""
+        await cls._delete_auth_methods(user_session.user, db_session=db.session)
+        return None
+
+    @classmethod
+    async def _get_user(cls, key: str, value: str | int, *, db_session: DbSession) -> User | None:
+        auth_method: AuthMethod = (
+            AuthMethod.query(session=db_session)
+            .filter(
+                AuthMethod.param == key,
+                AuthMethod.value == str(value),
+                AuthMethod.auth_method == cls.get_name(),
+            )
+            .limit(1)
+            .one_or_none()
+        )
+        if auth_method:
+            return auth_method.user
+
+    @classmethod
+    async def _register_auth_method(cls, key: str, value: str | int, user: User, *, db_session):
+        """Добавление пользователю новый AuthMethod"""
+        AuthMethod.create(
+            user_id=user.id,
+            auth_method=cls.get_name(),
+            param=key,
+            value=str(value),
+            session=db_session,
+        )
+
+    @classmethod
+    async def _delete_auth_methods(cls, user: User, *, db_session):
+        """Удаляет пользователю все AuthMethod конкретной авторизации"""
+        auth_methods = (
+            AuthMethod.query(session=db_session)
+            .filter(
+                AuthMethod.user_id == user.id,
+                AuthMethod.auth_method == cls.get_name(),
+            )
+            .all()
+        )
+        logger.debug(auth_methods)
+        for method in auth_methods:
+            method.is_deleted = True
+        db_session.flush()

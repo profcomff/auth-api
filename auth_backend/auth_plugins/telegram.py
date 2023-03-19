@@ -57,7 +57,7 @@ class TelegramAuth(OauthMeta):
             telegram_user_id = userinfo['id']
             logger.debug(userinfo)
 
-        user = await cls._get_user(telegram_user_id, db_session=db.session)
+        user = await cls._get_user('user_id', telegram_user_id, db_session=db.session)
 
         if user is not None:
             raise AlreadyExists(user, user.id)
@@ -65,7 +65,7 @@ class TelegramAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method(telegram_user_id, user, db_session=db.session)
+        await cls._register_auth_method('user_id', telegram_user_id, user, db_session=db.session)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
@@ -81,7 +81,7 @@ class TelegramAuth(OauthMeta):
         telegram_user_id = user_inp.id
         logger.debug(userinfo)
 
-        user = await cls._get_user(telegram_user_id, db_session=db.session)
+        user = await cls._get_user('user_id', telegram_user_id, db_session=db.session)
 
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
@@ -99,32 +99,6 @@ class TelegramAuth(OauthMeta):
 
         return OauthMeta.UrlSchema(
             url=f"https://oauth.telegram.org/auth?bot_id={cls.settings.TELEGRAM_BOT_TOKEN.split(':')[0]}6&origin={cls.settings.TELEGRAM_REDIRECT_URL}&return_to={cls.settings.TELEGRAM_REDIRECT_URL}"
-        )
-
-    @classmethod
-    async def _get_user(cls, telegram_id: str | int, *, db_session: DbSession) -> User | None:
-        auth_method: AuthMethod = (
-            AuthMethod.query(session=db_session)
-            .filter(
-                AuthMethod.param == "user_id",
-                AuthMethod.value == str(telegram_id),
-                AuthMethod.auth_method == cls.get_name(),
-            )
-            .limit(1)
-            .one_or_none()
-        )
-        if auth_method:
-            return auth_method.user
-
-    @classmethod
-    async def _register_auth_method(cls, telegram_user_id: str | int, user: User, *, db_session):
-        """Добавление пользователю новый AuthMethod"""
-        AuthMethod.create(
-            user_id=user.id,
-            auth_method=cls.get_name(),
-            param='user_id',
-            value=str(telegram_user_id),
-            session=db_session,
         )
 
     @classmethod
