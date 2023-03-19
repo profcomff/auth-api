@@ -78,7 +78,7 @@ jobs:
             alembic upgrade head
 
       - name: Run new version
-        id: run_test
+        id: run_prod
         run: |
           docker stop ${{ env.CONTAITER_NAME }} || true && docker rm ${{ env.CONTAITER_NAME }} || true
           docker run \
@@ -97,10 +97,24 @@ jobs:
             --env PHYSICS_REDIRECT_URL='${{ vars.PHYSICS_REDIRECT_URL }}' \
             --env PHYSICS_CREDENTIALS='${{ secrets.PHYSICS_CREDENTIALS }}' \
             --env LKMSU_REDIRECT_URL='${{ vars.LKMSU_REDIRECT_URL }}' \
-            --env GUNICORN_CMD_ARGS='--log-config  logging_test.conf' \
-            --env LKMSU_CLIENT_ID='app.test.profcomff.com' \
+            --env LKMSU_CLIENT_ID='${{ secrets.LKMSU_CLIENT_ID }}' \
             --env LKMSU_CLIENT_SECRET='${{ secrets.LKMSU_CLIENT_SECRET }}' \
-            --env LKMSU_TEMPTOKEN='${{ secrets.LKMSU_TEMPTOKEN }}' \
+            --env YANDEX_REDIRECT_URL='${{ vars.YANDEX_REDIRECT_URL }}' \
+            --env YANDEX_CLIENT_ID='${{ secrets.YANDEX_CLIENT_ID }}' \
+            --env YANDEX_CLIENT_SECRET='${{ secrets.YANDEX_CLIENT_SECRET }}' \
+            --env MY_MSU_REDIRECT_URL='${{ vars.MY_MSU_REDIRECT_URL }}' \
+            --env MY_MSU_CLIENT_ID='${{ secrets.MY_MSU_CLIENT_ID }}' \
+            --env MY_MSU_CLIENT_SECRET='${{ secrets.MY_MSU_CLIENT_SECRET }}' \
+            --env GITHUB_REDIRECT_URL='${{ vars.GH_REDIRECT_URL }}' \
+            --env GITHUB_CLIENT_ID='${{ secrets.GH_CLIENT_ID }}' \
+            --env GITHUB_CLIENT_SECRET='${{ secrets.GH_CLIENT_SECRET }}' \
+            --env TELEGRAM_REDIRECT_URL='${{ vars.TELEGRAM_REDIRECT_URL }}' \
+            --env TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' \
+            --env VK_REDIRECT_URL='${{ vars.VK_REDIRECT_URL }}' \
+            --env VK_CLIENT_ID='${{ secrets.VK_CLIENT_ID }}' \
+            --env VK_CLIENT_SECRET='${{ secrets.VK_CLIENT_SECRET }}' \
+            --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
+            --env GUNICORN_CMD_ARGS='--log-config  logging_test.conf' \
             --name ${{ env.CONTAITER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
 
@@ -148,14 +162,28 @@ jobs:
             --env SMTP_HOST='mail.profcomff.com' \
             --env SMTP_PORT='465' \
             --env APPLICATION_HOST='${{ secrets.HOST }}' \
-            --env GUNICORN_CMD_ARGS='--log-config  logging_prod.conf' \
             --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
             --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
             --env PHYSICS_REDIRECT_URL='${{ vars.PHYSICS_REDIRECT_URL }}' \
             --env PHYSICS_CREDENTIALS='${{ secrets.PHYSICS_CREDENTIALS }}' \
             --env LKMSU_REDIRECT_URL='${{ vars.LKMSU_REDIRECT_URL }}' \
-            --env LKMSU_CLIENT_ID='app.profcomff.com' \
+            --env LKMSU_CLIENT_ID='${{ secrets.LKMSU_CLIENT_ID }}' \
             --env LKMSU_CLIENT_SECRET='${{ secrets.LKMSU_CLIENT_SECRET }}' \
-            --env LKMSU_TEMPTOKEN='${{ secrets.LKMSU_TEMPTOKEN }}' \
+            --env YANDEX_REDIRECT_URL='${{ vars.YANDEX_REDIRECT_URL }}' \
+            --env YANDEX_CLIENT_ID='${{ secrets.YANDEX_CLIENT_ID }}' \
+            --env YANDEX_CLIENT_SECRET='${{ secrets.YANDEX_CLIENT_SECRET }}' \
+            --env MY_MSU_REDIRECT_URL='${{ vars.MY_MSU_REDIRECT_URL }}' \
+            --env MY_MSU_CLIENT_ID='${{ secrets.MY_MSU_CLIENT_ID }}' \
+            --env MY_MSU_CLIENT_SECRET='${{ secrets.MY_MSU_CLIENT_SECRET }}' \
+            --env GITHUB_REDIRECT_URL='${{ vars.GH_REDIRECT_URL }}' \
+            --env GITHUB_CLIENT_ID='${{ secrets.GH_CLIENT_ID }}' \
+            --env GITHUB_CLIENT_SECRET='${{ secrets.GH_CLIENT_SECRET }}' \
+            --env TELEGRAM_REDIRECT_URL='${{ vars.TELEGRAM_REDIRECT_URL }}' \
+            --env TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' \
+            --env VK_REDIRECT_URL='${{ vars.VK_REDIRECT_URL }}' \
+            --env VK_CLIENT_ID='${{ secrets.VK_CLIENT_ID }}' \
+            --env VK_CLIENT_SECRET='${{ secrets.VK_CLIENT_SECRET }}' \
+            --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
+            --env GUNICORN_CMD_ARGS='--log-config  logging_prod.conf' \
             --name ${{ env.CONTAITER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
