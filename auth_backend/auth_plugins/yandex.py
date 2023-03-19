@@ -80,7 +80,7 @@ class YandexAuth(OauthMeta):
             yandex_user_id = userinfo['id']
             logger.debug(yandex_user_id)
 
-        user = await cls._get_user(yandex_user_id, db_session=db.session)
+        user = await cls._get_user('user_id', yandex_user_id, db_session=db.session)
 
         if user:
             raise AlreadyExists(user, user.id)
@@ -88,7 +88,7 @@ class YandexAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method(yandex_user_id, user, db_session=db.session)
+        await cls._register_auth_method('user_id', yandex_user_id, user, db_session=db.session)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
@@ -122,7 +122,7 @@ class YandexAuth(OauthMeta):
                 logger.debug(userinfo)
                 yandex_user_id = userinfo['id']
 
-        user = await cls._get_user(yandex_user_id, db_session=db.session)
+        user = await cls._get_user('user_id', yandex_user_id, db_session=db.session)
 
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
@@ -141,31 +141,4 @@ class YandexAuth(OauthMeta):
 
         return OauthMeta.UrlSchema(
             url=f"https://oauth.yandex.ru/authorize?response_type=code&client_id={cls.settings.YANDEX_CLIENT_ID}&redirect_uri={quote(cls.settings.YANDEX_REDIRECT_URL)}"
-        )
-
-    @classmethod
-    async def _get_user(cls, yandex_id: str | int, *, db_session: DbSession) -> User | None:
-        auth_method: AuthMethod = (
-            AuthMethod.query(session=db_session)
-            .filter(
-                AuthMethod.param == "user_id",
-                AuthMethod.value == str(yandex_id),
-                AuthMethod.auth_method == cls.get_name(),
-            )
-            .limit(1)
-            .one_or_none()
-        )
-        if auth_method:
-            return auth_method.user
-
-    @classmethod
-    async def _register_auth_method(cls, yandex_id: str | int, user: User, *, db_session: DbSession):
-        """Добавление пользователю новый AuthMethod"""
-
-        AuthMethod.create(
-            user_id=user.id,
-            auth_method=cls.get_name(),
-            param='user_id',
-            value=str(yandex_id),
-            session=db_session,
         )

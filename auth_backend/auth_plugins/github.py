@@ -86,7 +86,7 @@ class GithubAuth(OauthMeta):
             github_user_id = userinfo['user_id']
             logger.debug(userinfo)
 
-        user = await cls._get_user(github_user_id, db_session=db.session)
+        user = await cls._get_user('user_id', github_user_id, db_session=db.session)
 
         if user is not None:
             raise AlreadyExists(user, user.id)
@@ -94,7 +94,7 @@ class GithubAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method(github_user_id, user, db_session=db.session)
+        await cls._register_auth_method('user_id', github_user_id, user, db_session=db.session)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
@@ -136,7 +136,7 @@ class GithubAuth(OauthMeta):
                 logger.error(userinfo)
                 github_user_id = userinfo['id']
 
-        user = await cls._get_user(github_user_id, db_session=db.session)
+        user = await cls._get_user('user_id', github_user_id, db_session=db.session)
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
@@ -152,30 +152,4 @@ class GithubAuth(OauthMeta):
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
         return OauthMeta.UrlSchema(
             url=f'https://github.com/login/oauth/authorize?client_id={cls.settings.GITHUB_CLIENT_ID}&redirect_uri={quote(cls.settings.GITHUB_REDIRECT_URL)}&scope=read:user%20user:email'
-        )
-
-    @classmethod
-    async def _get_user(cls, github_user_id: str | int, *, db_session: DbSession) -> User | None:
-        auth_method: AuthMethod = (
-            AuthMethod.query(session=db_session)
-            .filter(
-                AuthMethod.param == "user_id",
-                AuthMethod.value == str(github_user_id),
-                AuthMethod.auth_method == cls.get_name(),
-            )
-            .limit(1)
-            .one_or_none()
-        )
-        if auth_method:
-            return auth_method.user
-
-    @classmethod
-    async def _register_auth_method(cls, github_user_id: str | int, user: User, *, db_session):
-        """Добавление пользователю новый AuthMethod"""
-        AuthMethod.create(
-            user_id=user.id,
-            auth_method=cls.get_name(),
-            param='user_id',
-            value=str(github_user_id),
-            session=db_session,
         )

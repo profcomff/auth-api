@@ -53,12 +53,15 @@ class UserIndirectGroups(Base):
 class UserScopes(Base):
     user_scopes: list[PinchedScope] | None
 
+class UserAuthMethods(Base):
+    auth_methods: list[str] | None
+
 
 class SessionScopes(Base):
     session_scopes: list[PinchedScope] | None
 
 
-class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScopes):
+class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScopes, UserAuthMethods):
     pass
 
 

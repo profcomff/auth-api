@@ -69,7 +69,7 @@ class GoogleAuth(OauthMeta):
             )
         except GoogleAuthError as exc:
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
-        user = await cls._get_user(guser_id, db_session=db.session)
+        user = await cls._get_user('unique_google_id', guser_id, db_session=db.session)
         if user is not None:
             raise AlreadyExists(User, user.id)
 
@@ -77,7 +77,7 @@ class GoogleAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method(guser_id, user, db_session=db.session)
+        await cls._register_auth_method('unique_google_id', guser_id, user, db_session=db.session)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
@@ -101,7 +101,7 @@ class GoogleAuth(OauthMeta):
             )
         except GoogleAuthError as exc:
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
-        user = await cls._get_user(guser_id, db_session=db.session)
+        user = await cls._get_user('unique_google_id', guser_id, db_session=db.session)
         if not user:
             raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
@@ -130,29 +130,3 @@ class GoogleAuth(OauthMeta):
         )
         flow.redirect_uri = cls.settings.GOOGLE_REDIRECT_URL
         return flow
-
-    @classmethod
-    async def _register_auth_method(cls, guser_id, user: User, *, db_session):
-        """Добавление пользователю новый AuthMethod"""
-        AuthMethod.create(
-            user_id=user.id,
-            auth_method=cls.get_name(),
-            param='unique_google_id',
-            value=guser_id['sub'],
-            session=db_session,
-        )
-
-    @classmethod
-    async def _get_user(cls, guser_id: dict[str], *, db_session: DbSession) -> User | None:
-        auth_method: AuthMethod = (
-            AuthMethod.query(session=db_session)
-            .filter(
-                AuthMethod.param == "unique_google_id",
-                AuthMethod.value == guser_id['sub'],  # An identifier for the user, unique among all Google accounts
-                AuthMethod.auth_method == cls.get_name(),
-            )
-            .limit(1)
-            .one_or_none()
-        )
-        if auth_method:
-            return auth_method.user

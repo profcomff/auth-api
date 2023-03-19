@@ -6,7 +6,7 @@ from fastapi_sqlalchemy import db
 
 from auth_backend.models.db import User, UserGroup, AuthMethod
 from auth_backend.models.db import UserSession, Group
-from auth_backend.schemas.models import UserGroups, UserIndirectGroups, UserInfo, UserGet, UserScopes
+from auth_backend.schemas.models import UserGroups, UserIndirectGroups, UserInfo, UserGet, UserScopes, UserAuthMethods
 from auth_backend.schemas.models import UsersGet, UserPatch
 from auth_backend.utils.security import UnionAuth
 
@@ -18,7 +18,7 @@ user = APIRouter(prefix="/user", tags=["User"])
 @user.get("/{user_id}", response_model=UserGet)
 async def get_user(
     user_id: int,
-    info: list[Literal["groups", "indirect_groups", "scopes", ""]] = Query(default=[]),
+    info: list[Literal["groups", "indirect_groups", "scopes", "auth_methods"]] = Query(default=[]),
     _: UserSession = Depends(UnionAuth(scopes=["auth.user.read"], allow_none=False, auto_error=True)),
 ) -> dict[str, Any]:
     """
@@ -37,9 +37,19 @@ async def get_user(
         result = result | UserGroups(groups=[group.id for group in user.groups]).dict()
     if "indirect_groups" in info:
         result = result | UserIndirectGroups(indirect_groups=[group.id for group in user.indirect_groups]).dict()
-
     if "scopes" in info:
         result = result | UserScopes(user_scopes=user.scopes).dict()
+    if "auth_methods" in info:
+        auth_methods = (
+            db.session.query(AuthMethod.auth_method)
+            .filter(
+                AuthMethod.is_deleted == False,
+                AuthMethod.user_id == user.id,
+            )
+            .distinct()
+            .all()
+        )
+        result = result | UserAuthMethods(auth_methods=(a[0] for a in auth_methods)).dict()
     return UserGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
 

@@ -77,7 +77,7 @@ class VkAuth(OauthMeta):
             vk_user_id = userinfo['response'][0]['id']
             logger.debug(userinfo)
 
-        user = await cls._get_user(vk_user_id, db_session=db.session)
+        user = await cls._get_user('user_id', vk_user_id, db_session=db.session)
 
         if user:
             raise AlreadyExists(User, user.id)
@@ -85,7 +85,7 @@ class VkAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method(vk_user_id, user, db_session=db.session)
+        await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
@@ -121,7 +121,7 @@ class VkAuth(OauthMeta):
                 logger.debug(userinfo)
                 vk_user_id = userinfo['response'][0]['id']
 
-        user = await cls._get_user(vk_user_id, db_session=db.session)
+        user = await cls._get_user('user_id', vk_user_id, db_session=db.session)
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for vk account', id_token)
@@ -137,30 +137,4 @@ class VkAuth(OauthMeta):
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
         return OauthMeta.UrlSchema(
             url=f'https://oauth.vk.com/authorize?client_id={cls.settings.VK_CLIENT_ID}&redirect_uri={quote(cls.settings.VK_REDIRECT_URL)}'
-        )
-
-    @classmethod
-    async def _get_user(cls, vkuser_id: str | int, *, db_session: DbSession) -> User | None:
-        auth_method: AuthMethod = (
-            AuthMethod.query(session=db_session)
-            .filter(
-                AuthMethod.param == "user_id",
-                AuthMethod.value == str(vkuser_id),
-                AuthMethod.auth_method == cls.get_name(),
-            )
-            .limit(1)
-            .one_or_none()
-        )
-        if auth_method:
-            return auth_method.user
-
-    @classmethod
-    async def _register_auth_method(cls, vk_user_id: str | int, user: User, *, db_session: DbSession):
-        """Добавление пользователю новый AuthMethod"""
-        AuthMethod.create(
-            user_id=user.id,
-            auth_method=cls.get_name(),
-            param='user_id',
-            value=str(vk_user_id),
-            session=db_session,
         )
