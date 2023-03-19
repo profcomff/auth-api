@@ -58,6 +58,12 @@ class User(BaseDbModel):
 
     @hybrid_property
     def auth_methods(self):
+        """
+        Эта функция возвращает экземпляр класса MethodsDict, который создает внутри себя поля, соотвествуюшие:
+        user.auth_methods.<param> = Соответствущему объекту MethodsMeta
+        Пример: user.auth_methods.email.email.value
+        :return: MethodsDict
+        """
         from auth_backend.auth_plugins.db_plugins import MethodsDict
         return MethodsDict.__new__(MethodsDict, self._auth_methods)
 
