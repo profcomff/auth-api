@@ -10,34 +10,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, backref, Session
 
 from auth_backend.exceptions import ObjectNotFound
 from auth_backend.settings import get_settings
-
 settings = get_settings()
 
 
 from auth_backend.models.base import BaseDbModel
 
-
-class ParamDict:
-    # Type hints
-    email: AuthMethod
-    hashed_password: AuthMethod
-    salt: AuthMethod
-    confirmed: AuthMethod
-    confirmation_token: AuthMethod
-    tmp_email: AuthMethod
-    reset_token: AuthMethod
-    tmp_email_confirmation_token: AuthMethod
-    unique_google_id: AuthMethod  # Google auth method field
-    user_id: AuthMethod  # LK MSU auth method field
-
-    def __new__(cls, methods: list[AuthMethod], *args, **kwargs):
-        obj = super(ParamDict, cls).__new__(cls)
-        for row in methods:
-            if attr := getattr(obj, row.param, None):
-                if not isinstance(attr, AuthMethod):
-                    raise AttributeError
-            setattr(obj, row.param, row)
-        return obj
 
 
 class User(BaseDbModel):
@@ -67,7 +44,7 @@ class User(BaseDbModel):
         return _scopes
 
     @hybrid_property
-    def indirect_groups(self) -> list[Group]:
+    def indirect_groups(self) -> set[Group]:
         _groups = set()
         _groups.update(set(self.groups))
         for group in self.groups:
@@ -75,17 +52,14 @@ class User(BaseDbModel):
         return _groups
 
     @hybrid_property
-    def active_sessions(self) -> list:
+    def active_sessions(self) -> list[UserSession]:
         return [row for row in self.sessions if not row.expired]
 
+
     @hybrid_property
-    def auth_methods(self) -> ParamDict:
-        """
-        Эта функция возвращает экземпляр класса ParamDict, который создает внутри себя поля, соотвествуюшие:
-        user.auth_methods.<param> = Соответствущему объекту AuthMethod
-        :return: ParamDict
-        """
-        return ParamDict.__new__(ParamDict, self._auth_methods)
+    def auth_methods(self):
+        from auth_backend.auth_plugins.db_plugins import MethodsDict
+        return MethodsDict.__new__(MethodsDict, self._auth_methods)
 
 
 class Group(BaseDbModel):
