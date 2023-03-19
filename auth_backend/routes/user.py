@@ -1,14 +1,17 @@
+import logging
 from typing import Literal, Any
 
 from fastapi import APIRouter, Query, Depends
 from fastapi_sqlalchemy import db
 
-from auth_backend.models.db import User, UserGroup
+from auth_backend.models.db import User, UserGroup, AuthMethod
 from auth_backend.models.db import UserSession, Group
 from auth_backend.schemas.models import UserGroups, UserIndirectGroups, UserInfo, UserGet, UserScopes
 from auth_backend.schemas.models import UsersGet, UserPatch
 from auth_backend.utils.security import UnionAuth
 
+
+logger = logging.getLogger(__name__)
 user = APIRouter(prefix="/user", tags=["User"])
 
 
@@ -96,11 +99,18 @@ async def patch_user(
 @user.delete("/{user_id}", response_model=None)
 async def delete_user(
     user_id: int,
-    _: UserSession = Depends(UnionAuth(scopes=["auth.user.delete"], allow_none=False, auto_error=True)),
+    current_user: UserSession = Depends(UnionAuth(scopes=["auth.user.delete"], allow_none=False, auto_error=True)),
 ) -> None:
     """
     Scopes: `["auth.user.delete"]`
     """
-    User.get(user_id, session=db.session)
+    logger.debug(f'User id={current_user.id} triggered delete_user')
+    user: User = User.get(user_id, session=db.session)
+    for method in user._auth_methods:
+        AuthMethod.delete(method.id, session=db.session)
+        logger.info(f'{method=} for {user.id=} deleted')
+
     User.delete(user_id, session=db.session)
+    logger.info(f'{user=} deleted')
+
     return None
