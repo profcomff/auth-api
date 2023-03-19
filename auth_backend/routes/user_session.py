@@ -7,8 +7,16 @@ from starlette.responses import JSONResponse
 
 from auth_backend.base import ResponseModel
 from auth_backend.exceptions import SessionExpired
-from auth_backend.models.db import UserSession
-from auth_backend.schemas.models import UserGroups, UserIndirectGroups, UserInfo, UserGet, UserScopes, SessionScopes
+from auth_backend.models.db import AuthMethod, UserSession
+from auth_backend.schemas.models import (
+    UserAuthMethods,
+    UserGroups,
+    UserIndirectGroups,
+    UserInfo,
+    UserGet,
+    UserScopes,
+    SessionScopes,
+)
 from auth_backend.utils.security import UnionAuth
 
 logout_router = APIRouter(prefix="", tags=["Logout"])
@@ -28,7 +36,9 @@ async def logout(
 @logout_router.get("/me", response_model_exclude_unset=True, response_model=UserGet)
 async def me(
     session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
-    info: list[Literal["groups", "indirect_groups", "session_scopes", "user_scopes", ""]] = Query(default=[]),
+    info: list[Literal["groups", "indirect_groups", "session_scopes", "user_scopes", "auth_methods"]] = Query(
+        default=[]
+    ),
 ) -> dict[str, str | int]:
     result: dict[str, str | int] = {}
     result = (
@@ -48,4 +58,16 @@ async def me(
         result = result | SessionScopes(session_scopes=session.scopes).dict()
     if "user_scopes" in info:
         result = result | UserScopes(user_scopes=session.user.scopes).dict()
+    if "auth_methods" in info:
+        auth_methods = (
+            db.session.query(AuthMethod.auth_method)
+            .filter(
+                AuthMethod.is_deleted == False,
+                AuthMethod.user_id == session.user.id,
+            )
+            .distinct()
+            .all()
+        )
+        result = result | UserAuthMethods(auth_methods=(a[0] for a in auth_methods)).dict()
+
     return UserGet(**result).dict(exclude_unset=True)
