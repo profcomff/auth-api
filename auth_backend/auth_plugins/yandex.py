@@ -152,6 +152,7 @@ class YandexAuth(OauthMeta):
                 AuthMethod.value == str(yandex_id),
                 AuthMethod.auth_method == cls.get_name(),
             )
+            .limit(1)
             .one_or_none()
         )
         if auth_method:

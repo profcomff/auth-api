@@ -149,6 +149,7 @@ class LkmsuAuth(OauthMeta):
                 AuthMethod.value == str(lkuser_id),
                 AuthMethod.auth_method == cls.get_name(),
             )
+            .limit(1)
             .one_or_none()
         )
         if auth_method:

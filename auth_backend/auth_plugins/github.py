@@ -9,30 +9,32 @@ from pydantic import BaseModel, Field
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from .auth_method import OauthMeta, Session
-from ..schemas.types.scopes import Scope
 from sqlalchemy.orm import Session as DbSession
 
 logger = logging.getLogger(__name__)
 
 
-class VkSettings(Settings):
-    VK_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/vk'
-    VK_CLIENT_ID: int | None
-    VK_CLIENT_SECRET: str | None
+class GithubSettings(Settings):
+    GITHUB_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/github'
+    GITHUB_CLIENT_ID: str | None
+    GITHUB_CLIENT_SECRET: str | None
 
 
-class VkAuth(OauthMeta):
-    prefix = '/vk'
-    tags = ['vk']
+class GithubAuth(OauthMeta):
+    """Вход в приложение по аккаунту гугл"""
+
+    prefix = '/github'
+    tags = ['github']
     fields = []
-    settings = VkSettings()
+    settings = GithubSettings()
 
     class OauthResponseSchema(BaseModel):
         code: str | None
-        id_token: str | None = Field(help="VK JWT token identifier")
+        id_token: str | None = Field(help="LK MSU JWT token identifier")
         scopes: list[Scope] | None
 
     @classmethod
@@ -43,109 +45,122 @@ class VkAuth(OauthMeta):
     ) -> Session:
         """Создает аккаунт или привязывает существующий
 
-        Если передана активная сессия пользователя, то привязывает аккаунт https://vk.com к
-        аккаунту в активной сессии. Иначе, создает новый пользователь и делает https://vk.com
+        Если передана активная сессия пользователя, то привязывает аккаунт https://github.com к
+        аккаунту в активной сессии. Иначе, создает новый пользователь и делает https://github.com
         первым методом входа.
         """
         payload = {
             "code": user_inp.code,
-            "client_id": cls.settings.VK_CLIENT_ID,
-            "client_secret": cls.settings.VK_CLIENT_SECRET,
-            "redirect_uri": cls.settings.VK_REDIRECT_URL,
+            "client_id": cls.settings.GITHUB_CLIENT_ID,
+            "client_secret": cls.settings.GITHUB_CLIENT_SECRET,
+            "redirect_uri": cls.settings.GITHUB_REDIRECT_URL,
         }
-        vk_user_id = None
+        github_user_id = None
         userinfo = None
+
         if user_inp.id_token is None:
             async with aiohttp.ClientSession() as session:
-                async with session.get('https://oauth.vk.com/access_token', params=payload) as response:
+                async with session.post(
+                    'https://github.com/login/oauth/access_token',
+                    json=payload,
+                    headers={"Accept": "application/json"},
+                ) as response:
                     token_result = await response.json()
                     logger.debug(token_result)
                 if 'access_token' not in token_result:
-                    raise OauthAuthFailed('Invalid credentials for vk account')
+                    raise OauthAuthFailed('Invalid credentials for github account')
                 token = token_result['access_token']
 
                 async with session.get(
-                    'https://api.vk.com/method/users.get?',
-                    params={"v": '5.131'},
-                    headers={"Authorization": f"Bearer {token}"},
+                    'https://api.github.com/user',
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Accept": "application/json",
+                    },
                 ) as response:
                     userinfo = await response.json()
-                    logger.debug(userinfo)
-                    vk_user_id = userinfo['response'][0]['id']
+                    logger.error(userinfo)
+                    github_user_id = userinfo['id']
         else:
             userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
-            vk_user_id = userinfo['response'][0]['id']
+            github_user_id = userinfo['user_id']
             logger.debug(userinfo)
 
-        user = await cls._get_user(vk_user_id, db_session=db.session)
+        user = await cls._get_user(github_user_id, db_session=db.session)
 
-        if user:
-            raise AlreadyExists(User, user.id)
+        if user is not None:
+            raise AlreadyExists(user, user.id)
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method(vk_user_id, user, db_session=db.session)
+        await cls._register_auth_method(github_user_id, user, db_session=db.session)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema) -> Session:
-        """Вход в пользователя с помощью аккаунта https://lk.msu.ru
+        """Вход в пользователя с помощью аккаунта https://github.com
 
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
         найден, возвращает ошибка.
         """
         payload = {
             "code": user_inp.code,
-            "client_id": cls.settings.VK_CLIENT_ID,
-            "client_secret": cls.settings.VK_CLIENT_SECRET,
-            "redirect_uri": cls.settings.VK_REDIRECT_URL,
+            "client_id": cls.settings.GITHUB_CLIENT_ID,
+            "client_secret": cls.settings.GITHUB_CLIENT_SECRET,
+            "redirect_uri": cls.settings.GITHUB_REDIRECT_URL,
         }
-        vk_user_id = None
+        github_user_id = None
         userinfo = None
         async with aiohttp.ClientSession() as session:
-            async with session.get('https://oauth.vk.com/access_token', params=payload) as response:
+            async with session.post(
+                'https://github.com/login/oauth/access_token',
+                json=payload,
+                headers={"Accept": "application/json"},
+            ) as response:
                 token_result = await response.json()
                 logger.debug(token_result)
             if 'access_token' not in token_result:
-                raise OauthAuthFailed('Invalid credentials for VK account')
+                raise OauthAuthFailed('Invalid credentials for github account')
             token = token_result['access_token']
 
             async with session.get(
-                'https://api.vk.com/method/users.get?',
-                params={"v": '5.131'},
-                headers={"Authorization": f"Bearer {token}"},
+                'https://api.github.com/user',
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                },
             ) as response:
                 userinfo = await response.json()
-                logger.debug(userinfo)
-                vk_user_id = userinfo['response'][0]['id']
+                logger.error(userinfo)
+                github_user_id = userinfo['id']
 
-        user = await cls._get_user(vk_user_id, db_session=db.session)
+        user = await cls._get_user(github_user_id, db_session=db.session)
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
-            raise OauthAuthFailed('No users found for vk account', id_token)
+            raise OauthAuthFailed('No users found for lk msu account', id_token)
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
     @classmethod
     async def _redirect_url(cls):
         """URL на который происходит редирект после завершения входа на стороне провайдера"""
-        return OauthMeta.UrlSchema(url=cls.settings.VK_REDIRECT_URL)
+        return OauthMeta.UrlSchema(url=cls.settings.GITHUB_REDIRECT_URL)
 
     @classmethod
     async def _auth_url(cls):
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
         return OauthMeta.UrlSchema(
-            url=f'https://oauth.vk.com/authorize?client_id={cls.settings.VK_CLIENT_ID}&redirect_uri={quote(cls.settings.VK_REDIRECT_URL)}'
+            url=f'https://github.com/login/oauth/authorize?client_id={cls.settings.GITHUB_CLIENT_ID}&redirect_uri={quote(cls.settings.GITHUB_REDIRECT_URL)}&scope=read:user%20user:email'
         )
 
     @classmethod
-    async def _get_user(cls, vkuser_id: str | int, *, db_session: DbSession) -> User | None:
+    async def _get_user(cls, github_user_id: str | int, *, db_session: DbSession) -> User | None:
         auth_method: AuthMethod = (
             AuthMethod.query(session=db_session)
             .filter(
                 AuthMethod.param == "user_id",
-                AuthMethod.value == str(vkuser_id),
+                AuthMethod.value == str(github_user_id),
                 AuthMethod.auth_method == cls.get_name(),
             )
             .limit(1)
@@ -155,12 +170,12 @@ class VkAuth(OauthMeta):
             return auth_method.user
 
     @classmethod
-    async def _register_auth_method(cls, vk_user_id: str | int, user: User, *, db_session: DbSession):
+    async def _register_auth_method(cls, github_user_id: str | int, user: User, *, db_session):
         """Добавление пользователю новый AuthMethod"""
         AuthMethod.create(
             user_id=user.id,
             auth_method=cls.get_name(),
             param='user_id',
-            value=str(vk_user_id),
+            value=str(github_user_id),
             session=db_session,
         )
