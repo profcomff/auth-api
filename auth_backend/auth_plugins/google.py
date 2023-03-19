@@ -151,6 +151,7 @@ class GoogleAuth(OauthMeta):
                 AuthMethod.value == guser_id['sub'],  # An identifier for the user, unique among all Google accounts
                 AuthMethod.auth_method == cls.get_name(),
             )
+            .limit(1)
             .one_or_none()
         )
         if auth_method:
