@@ -7,6 +7,7 @@ from starlette.responses import JSONResponse
 
 from auth_backend.base import ResponseModel
 from auth_backend.exceptions import SessionExpired
+from auth_backend.schemas.models import Session
 from auth_backend.models.db import AuthMethod, UserSession
 from auth_backend.schemas.models import (
     UserAuthMethods,
@@ -18,7 +19,7 @@ from auth_backend.schemas.models import (
     SessionScopes,
 )
 from auth_backend.utils.security import UnionAuth
-from auth_backend.utils import user_session
+from auth_backend.utils import user_session_control
 
 user_session = APIRouter(prefix="", tags=["Logout"])
 
@@ -73,12 +74,7 @@ async def me(
 
     return UserGet(**result).dict(exclude_unset=True)
 
-@user_session.post("/new", response_model=UserSession)
-async def new(
-    session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
-):
-    return await user_session._create_session(session.user, session.scopes, db_session=db.session)
 
-
-
-
+@user_session.post("/new", response_model=Session)
+async def new(session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))):
+    return user_session_control._create_session(session.user, session.scopes, db_session=db.session)

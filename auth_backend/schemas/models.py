@@ -7,9 +7,12 @@ from auth_backend.schemas.types.scopes import Scope
 from pydantic import constr
 from datetime import datetime
 from auth_backend.schemas.types.scopes import Scope as TypeScope
+
+
 class PinchedScope(Base):
     id: int
     name: Scope
+
 
 class Group(Base):
     id: int = Field(..., gt=0)
@@ -37,7 +40,6 @@ class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes, GroupUserLi
     pass
 
 
-
 class UserInfo(Base):
     id: int
     email: str | None
@@ -53,6 +55,7 @@ class UserIndirectGroups(Base):
 
 class UserScopes(Base):
     user_scopes: list[PinchedScope] | None
+
 
 class UserAuthMethods(Base):
     auth_methods: list[str] | None
@@ -120,6 +123,7 @@ class ScopePost(Base):
 class ScopePatch(Base):
     name: Scope | None
     comment: str | None
+
 
 class Session(Base):
     token: constr(min_length=1)
