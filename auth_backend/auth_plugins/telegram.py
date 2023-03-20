@@ -11,7 +11,7 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.utils.security import UnionAuth
 from auth_backend.settings import Settings
 import hashlib
-from urllib.parse import unquote
+from urllib.parse import unquote, quote
 from sqlalchemy.orm import Session as DbSession
 
 
@@ -98,7 +98,7 @@ class TelegramAuth(OauthMeta):
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
 
         return OauthMeta.UrlSchema(
-            url=f"https://oauth.telegram.org/auth?bot_id={cls.settings.TELEGRAM_BOT_TOKEN.split(':')[0]}6&origin={cls.settings.TELEGRAM_REDIRECT_URL}&return_to={cls.settings.TELEGRAM_REDIRECT_URL}"
+            url=f"https://oauth.telegram.org/auth?bot_id={cls.settings.TELEGRAM_BOT_TOKEN.split(':')[0]}&origin={quote(cls.settings.TELEGRAM_REDIRECT_URL)}&return_to={quote(cls.settings.TELEGRAM_REDIRECT_URL)}"
         )
 
     @classmethod
