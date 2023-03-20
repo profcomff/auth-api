@@ -10,6 +10,8 @@ class MyMsuSettings(Settings):
     )
     YANDEX_CLIENT_ID: str = Field(None, env='MY_MSU_CLIENT_ID')
     YANDEX_CLIENT_SECRET: str = Field(None, env='MY_MSU_CLIENT_SECRET')
+    YANDEX_WHITELIST_DOMAINS: list[str] | None = ['my.msu.ru']
+    YANDEX_BLACKLIST_DOMAINS: list[str] | None = None
 
 
 class MyMsuAuth(YandexAuth):

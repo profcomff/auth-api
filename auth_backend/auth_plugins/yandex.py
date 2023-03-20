@@ -22,6 +22,8 @@ class YandexSettings(Settings):
     YANDEX_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
     YANDEX_CLIENT_ID: str | None
     YANDEX_CLIENT_SECRET: str | None
+    YANDEX_WHITELIST_DOMAINS: list[str] | None = None
+    YANDEX_BLACKLIST_DOMAINS: list[str] | None = ['my.msu.ru']
 
 
 class YandexAuth(OauthMeta):
@@ -33,7 +35,7 @@ class YandexAuth(OauthMeta):
     class OauthResponseSchema(BaseModel):
         code: str | None
         id_token: str | None = Field(help="Yandex JWT token identifier")
-        scopes: list[Scope]
+        scopes: list[Scope] | None
 
     @classmethod
     async def _register(
@@ -46,9 +48,7 @@ class YandexAuth(OauthMeta):
         Если передана активная сессия пользователя, то привязывает аккаунт Yandex к
         аккаунту в активной сессии. Иначе, создает новый пользователь и делает Yandex
         первым методом входа.
-
         """
-
         header = {"content-type": "application/x-www-form-urlencoded"}
         payload = {
             "grant_type": "authorization_code",
@@ -81,9 +81,22 @@ class YandexAuth(OauthMeta):
             logger.debug(yandex_user_id)
 
         user = await cls._get_user('user_id', yandex_user_id, db_session=db.session)
-
         if user:
-            raise AlreadyExists(user, user.id)
+            raise AlreadyExists(User, user.id)
+
+        # Проверяем email на blacklist/whitelist
+        email: str = userinfo['default_email']
+        assert isinstance(email, str), "Почта не строка WTF"
+        _, domain = email.split('@', 2)
+        if cls.settings.YANDEX_WHITELIST_DOMAINS is not None and domain not in cls.settings.YANDEX_WHITELIST_DOMAINS:
+            raise OauthAuthFailed(
+                f'Yandex account must be {cls.settings.YANDEX_WHITELIST_DOMAINS}, got {domain}', status_code=422
+            )
+        if cls.settings.YANDEX_BLACKLIST_DOMAINS is not None and domain in cls.settings.YANDEX_BLACKLIST_DOMAINS:
+            raise OauthAuthFailed(
+                f'Yandex account must be not {cls.settings.YANDEX_BLACKLIST_DOMAINS}, got {domain}', status_code=422
+            )
+
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
@@ -140,5 +153,5 @@ class YandexAuth(OauthMeta):
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
 
         return OauthMeta.UrlSchema(
-            url=f"https://oauth.yandex.ru/authorize?response_type=code&client_id={cls.settings.YANDEX_CLIENT_ID}&redirect_uri={quote(cls.settings.YANDEX_REDIRECT_URL)}"
+            url=f"https://oauth.yandex.ru/authorize?response_type=code&client_id={cls.settings.YANDEX_CLIENT_ID}&redirect_uri={quote(cls.settings.YANDEX_REDIRECT_URL)}&force_confirm=true"
         )
