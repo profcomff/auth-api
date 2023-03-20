@@ -1,4 +1,4 @@
-from auth_backend.models.db import AuthMethod, User, UserSession, Scope, UserSessionScope
+from auth_backend.models.db import User, UserSession, Scope, UserSessionScope
 from auth_backend.schemas.models import Session
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from sqlalchemy.orm import Session as DbSession
@@ -8,6 +8,9 @@ from auth_backend.base import ResponseModel
 from auth_backend.settings import Settings
 import random
 import string
+from auth_backend.settings import get_settings
+
+settings = get_settings()
 
 
 def random_string(length: int = 32) -> str:
@@ -22,7 +25,7 @@ async def create_session(user: User, scopes_list_names: list[TypeScope] | None, 
     else:
         scopes = await create_scopes_set_by_names(scopes_list_names)
         await _check_scopes(scopes, user)
-    user_session = UserSession(user_id=user.id, token=random_string(length=Settings.TOKEN_LENGTH))
+    user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
     db_session.add(user_session)
     db_session.flush()
     for scope in scopes:
