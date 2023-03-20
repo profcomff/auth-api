@@ -9,10 +9,16 @@ class PhysicsSettings(Settings):
         env='PHYSICS_REDIRECT_URL',
     )
     GOOGLE_SCOPES: list[str] = Field(
-        ['openid', 'https://www.googleapis.com/auth/userinfo.profile'],
+        [
+            'openid',
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email',
+        ],
         env='PHYSICS_SCOPES',
     )
     GOOGLE_CREDENTIALS: Json = Field('{}', env='PHYSICS_CREDENTIALS')
+    GOOGLE_WHITELIST_DOMAINS: list[str] | None = ['physics.msu.ru']
+    GOOGLE_BLACKLIST_DOMAINS: list[str] | None = None
 
 
 class PhysicsAuth(GoogleAuth):

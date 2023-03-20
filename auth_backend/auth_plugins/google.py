@@ -22,8 +22,14 @@ logger = logging.getLogger(__name__)
 
 class GoogleSettings(Settings):
     GOOGLE_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/google'
-    GOOGLE_SCOPES: list[str] = ['openid', 'https://www.googleapis.com/auth/userinfo.profile']
+    GOOGLE_SCOPES: list[str] = [
+        'openid',
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+    ]
     GOOGLE_CREDENTIALS: Json = '{}'
+    GOOGLE_WHITELIST_DOMAINS: list[str] | None = None
+    GOOGLE_BLACKLIST_DOMAINS: list[str] | None = ['physics.msu.ru']
 
 
 class GoogleAuth(OauthMeta):
@@ -72,6 +78,19 @@ class GoogleAuth(OauthMeta):
         user = await cls._get_user('unique_google_id', guser_id, db_session=db.session)
         if user is not None:
             raise AlreadyExists(User, user.id)
+
+        # Проверяем, что домен почты есть в GOOGLE_ALLOWED_DOMAINS
+        email: str = guser_id['email']
+        assert isinstance(email, str), "Почта не строка WTF"
+        _, domain = email.split('@', 2)
+        if cls.settings.GOOGLE_WHITELIST_DOMAINS is not None and domain not in cls.settings.GOOGLE_WHITELIST_DOMAINS:
+            raise OauthAuthFailed(
+                f'Google account must be {cls.settings.GOOGLE_WHITELIST_DOMAINS}, got {domain}', status_code=422
+            )
+        if cls.settings.GOOGLE_BLACKLIST_DOMAINS is not None and domain in cls.settings.GOOGLE_BLACKLIST_DOMAINS:
+            raise OauthAuthFailed(
+                f'Google account must be not {cls.settings.GOOGLE_BLACKLIST_DOMAINS}, got {domain}', status_code=422
+            )
 
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
