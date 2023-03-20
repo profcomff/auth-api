@@ -79,7 +79,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
         if scopes_list_names is None:
             scopes = user.scopes
         else:
-            scopes = await AuthMethodMeta.create_scopes_set_by_ids(scopes_list_names)
+            scopes = await AuthMethodMeta.create_scopes_set_by_names(scopes_list_names)
             await AuthMethodMeta._check_scopes(scopes, user)
         user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
         db_session.add(user_session)
@@ -96,7 +96,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
         )
 
     @staticmethod
-    async def create_scopes_set_by_ids(scopes_list_names: list[TypeScope]) -> set[Scope]:
+    async def create_scopes_set_by_names(scopes_list_names: list[TypeScope]) -> set[Scope]:
         scopes = set()
         for scope_name in scopes_list_names:
             scope = Scope.get_by_name(scope_name, session=db.session)

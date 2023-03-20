@@ -4,8 +4,9 @@ from pydantic import Field
 
 from auth_backend.base import Base
 from auth_backend.schemas.types.scopes import Scope
-
-
+from pydantic import constr
+from datetime import datetime
+from auth_backend.schemas.types.scopes import Scope as TypeScope
 class PinchedScope(Base):
     id: int
     name: Scope
@@ -120,6 +121,12 @@ class ScopePatch(Base):
     name: Scope | None
     comment: str | None
 
+class Session(Base):
+    token: constr(min_length=1)
+    expires: datetime
+    id: int
+    user_id: int
+    session_scopes: list[TypeScope]
 
 
 Group.update_forward_refs()

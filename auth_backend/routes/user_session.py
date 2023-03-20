@@ -18,11 +18,12 @@ from auth_backend.schemas.models import (
     SessionScopes,
 )
 from auth_backend.utils.security import UnionAuth
+from auth_backend.utils import user_session
 
-logout_router = APIRouter(prefix="", tags=["Logout"])
+user_session = APIRouter(prefix="", tags=["Logout"])
 
 
-@logout_router.post("/logout", response_model=str)
+@user_session.post("/logout", response_model=str)
 async def logout(
     session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
 ) -> JSONResponse:
@@ -33,7 +34,7 @@ async def logout(
     return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Logout successful").dict())
 
 
-@logout_router.get("/me", response_model_exclude_unset=True, response_model=UserGet)
+@user_session.get("/me", response_model_exclude_unset=True, response_model=UserGet)
 async def me(
     session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
     info: list[Literal["groups", "indirect_groups", "session_scopes", "user_scopes", "auth_methods"]] = Query(
@@ -71,3 +72,13 @@ async def me(
         result = result | UserAuthMethods(auth_methods=(a[0] for a in auth_methods)).dict()
 
     return UserGet(**result).dict(exclude_unset=True)
+
+@user_session.post("/new", response_model=UserSession)
+async def new(
+    session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
+):
+    return await user_session._create_session(session.user, session.scopes, db_session=db.session)
+
+
+
+
