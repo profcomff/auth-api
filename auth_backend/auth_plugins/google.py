@@ -79,7 +79,7 @@ class GoogleAuth(OauthMeta):
         if user is not None:
             raise AlreadyExists(User, user.id)
 
-        # Проверяем, что домен почты есть в GOOGLE_ALLOWED_DOMAINS
+        # Проверяем email на blacklist/whitelist
         email: str = guser_id['email']
         assert isinstance(email, str), "Почта не строка WTF"
         _, domain = email.split('@', 2)
