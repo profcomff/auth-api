@@ -77,4 +77,4 @@ async def me(
 
 @user_session.post("/new", response_model=Session)
 async def new(session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))):
-    return user_session_control._create_session(session.user, session.scopes, db_session=db.session)
+    return user_session_control.create_session(session.user, session.scopes, db_session=db.session)

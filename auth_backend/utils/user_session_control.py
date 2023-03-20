@@ -14,7 +14,7 @@ def random_string(length: int = 32) -> str:
     return "".join([random.choice(string.ascii_letters) for _ in range(length)])
 
 
-async def _create_session(user: User, scopes_list_names: list[TypeScope] | None, *, db_session: DbSession) -> Session:
+async def create_session(user: User, scopes_list_names: list[TypeScope] | None, *, db_session: DbSession) -> Session:
     """Создает сессию пользователя"""
     scopes = set()
     if scopes_list_names is None:
