@@ -138,6 +138,7 @@ class GoogleAuth(OauthMeta):
         authorization_url, _ = flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
+            prompt='select_account'
         )
         return OauthMeta.UrlSchema(url=authorization_url)
 
