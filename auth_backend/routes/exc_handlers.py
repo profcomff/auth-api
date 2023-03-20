@@ -47,7 +47,7 @@ async def oauth_failed_handler(req: starlette.requests.Request, exc: OauthAuthFa
             message=f"{exc}",
             id_token=exc.id_token,
         ).dict(exclude_none=True),
-        status_code=401,
+        status_code=exc.status_code,
     )
 
 

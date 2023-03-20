@@ -24,8 +24,9 @@ class AuthFailed(Exception):
 
 
 class OauthAuthFailed(Exception):
-    def __init__(self, error: str, id_token: str | None = None):
+    def __init__(self, error: str, id_token: str | None = None, status_code=401):
         self.id_token = id_token
+        self.status_code = status_code
         super().__init__(error)
 
 
