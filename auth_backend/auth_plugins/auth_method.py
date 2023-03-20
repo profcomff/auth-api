@@ -18,7 +18,7 @@ from auth_backend.schemas.types.scopes import Scope as TypeScope
 from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.utils.security import UnionAuth
-
+from auth_backend.utils.user_session_control import create_scopes_set_by_names, _check_scopes
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -79,8 +79,8 @@ class AuthMethodMeta(metaclass=ABCMeta):
         if scopes_list_names is None:
             scopes = user.scopes
         else:
-            scopes = await AuthMethodMeta.create_scopes_set_by_names(scopes_list_names)
-            await AuthMethodMeta._check_scopes(scopes, user)
+            scopes = await create_scopes_set_by_names(scopes_list_names)
+            await _check_scopes(scopes, user)
         user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
         db_session.add(user_session)
         db_session.flush()
@@ -94,25 +94,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
             expires=user_session.expires,
             session_scopes=[_scope.name for _scope in user_session.scopes],
         )
-
-    @staticmethod
-    async def create_scopes_set_by_names(scopes_list_names: list[TypeScope]) -> set[Scope]:
-        scopes = set()
-        for scope_name in scopes_list_names:
-            scope = Scope.get_by_name(scope_name, session=db.session)
-            scopes.add(scope)
-        return scopes
-
-    @staticmethod
-    async def _check_scopes(scopes: set[Scope], user: User) -> None:
-        if len(scopes & user.scopes) != len(scopes):
-            raise HTTPException(
-                status_code=403,
-                detail=ResponseModel(
-                    status="Error",
-                    message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in scopes - user.scopes]} ",
-                ).dict(),
-            )
 
     @staticmethod
     async def _create_user(*, db_session: DbSession) -> User:
