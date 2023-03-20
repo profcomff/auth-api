@@ -14,8 +14,9 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from .auth_method import OauthMeta, Session
+from .auth_method import OauthMeta, Session, AuthMethodMeta
 from sqlalchemy.orm import Session as DbSession
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,12 @@ class GoogleAuth(OauthMeta):
 
     prefix = '/google'
     tags = ['Google']
-    fields = ["code", "scope"]
+
+    class GoogleAuth(AuthMethodMeta.MethodMeta):
+        unique_google_id: AuthMethod = None
+
+
+    fields = GoogleAuth
     settings = GoogleSettings()
 
     class OauthResponseSchema(BaseModel):

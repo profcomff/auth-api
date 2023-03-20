@@ -45,7 +45,7 @@ async def me(
         result
         | UserInfo(
             id=session.user_id,
-            email=session.user.auth_methods.email.email.value if hasattr(session.user.auth_methods, "email") else None,
+            email=session.user.auth_methods.email.email.value if session.user.auth_methods.email.email else None,
         ).dict()
     )
     if "groups" in info:

@@ -95,16 +95,23 @@ class ResetPassword(Base):
 
 class Email(AuthMethodMeta):
     prefix = "/email"
-    fields = [
-        "email",
-        "hashed_password",
-        "salt",
-        "confirmed",
-        "confirmation_token",
-        "tmp_email_confirmation_token",
-        "tmp_email",
-        "reset_token",
-    ]
+
+    class Email(AuthMethodMeta.MethodMeta):
+
+        __fields__ = ("email", "hashed_password", "salt",
+                     "confirmed", "confirmation_token", "tmp_email", "reset_token", "tmp_email_confirmation_token")
+
+        email: AuthMethod = None
+        hashed_password: AuthMethod = None
+        salt: AuthMethod = None
+        confirmed: AuthMethod = None
+        confirmation_token: AuthMethod = None
+        tmp_email: AuthMethod = None
+        reset_token: AuthMethod = None
+        tmp_email_confirmation_token: AuthMethod = None
+
+
+    fields = Email
 
     def __init__(self):
         super().__init__()
@@ -255,17 +262,9 @@ class Email(AuthMethodMeta):
             )
         if user_session.user.auth_methods.email.email.value == scheme.email:
             raise HTTPException(status_code=401, detail=ResponseModel(status="Error", message="Email incorrect").dict())
-        tmp_email = AuthMethod(
-            user_id=user_session.user_id, auth_method=Email.get_name(), param="tmp_email", value=scheme.email
-        )
         token = random_string()
-        tmp_email_confirmation_token = AuthMethod(
-            user_id=user_session.user_id,
-            auth_method=Email.get_name(),
-            param="tmp_email_confirmation_token",
-            value=token,
-        )
-        db.session.add_all([tmp_email, tmp_email_confirmation_token])
+        user_session.user.auth_methods.email.create("tmp_email_confirmation_token", token)
+        user_session.user.auth_methods.email.create("tmp_email", scheme.email)
         background_tasks.add_task(
             send_reset_email,
             to_addr=scheme.email,

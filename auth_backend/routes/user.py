@@ -30,7 +30,7 @@ async def get_user(
         result
         | UserInfo(
             id=user_id,
-            email=user.auth_methods.email.email.value if hasattr(user.auth_methods, "email") else None,
+            email=user.auth_methods.email.email.value if user.auth_methods.email.email else None,
         ).dict()
     )
     if "groups" in info:
@@ -67,7 +67,7 @@ async def get_users(
     for user in users:
         add = {
             "id": user.id,
-            "email": user.auth_methods.email.email.value if hasattr(user.auth_methods, "email") else None,
+            "email": user.auth_methods.email.email.value if user.auth_methods.email.email else None,
         }
         if "groups" in info:
             add["groups"] = [group.id for group in user.groups]

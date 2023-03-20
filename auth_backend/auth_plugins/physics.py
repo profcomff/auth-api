@@ -1,6 +1,7 @@
 from pydantic import Json, Field
-from .google import GoogleAuth
+from .google import GoogleAuth, AuthMethodMeta
 from auth_backend.settings import Settings
+from ..models import AuthMethod
 
 
 class PhysicsSettings(Settings):
@@ -24,5 +25,9 @@ class PhysicsSettings(Settings):
 class PhysicsAuth(GoogleAuth):
     """Вход в приложение по почте @physics.msu.ru"""
 
+    class PhysicsAuth(AuthMethodMeta.MethodMeta):
+        unique_google_id: AuthMethod = None
+
     prefix = '/physics-msu'
     settings = PhysicsSettings()
+    fields = PhysicsAuth

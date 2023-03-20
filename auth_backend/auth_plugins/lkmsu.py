@@ -12,7 +12,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from .auth_method import OauthMeta, Session
+from .auth_method import OauthMeta, Session, AuthMethodMeta
 from sqlalchemy.orm import Session as DbSession
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,11 @@ class LkmsuAuth(OauthMeta):
 
     prefix = '/lk-msu'
     tags = ['lk_msu']
-    fields = []
+
+    class LkmsuAuth(AuthMethodMeta.MethodMeta):
+        user_id: AuthMethod = None
+
+    fields = LkmsuAuth
     settings = LkmsuSettings()
 
     class OauthResponseSchema(BaseModel):

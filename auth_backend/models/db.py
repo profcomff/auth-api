@@ -63,9 +63,9 @@ class User(BaseDbModel):
         Пример: user.auth_methods.email.email.value
         :return: MethodsDict
         """
-        from auth_backend.auth_plugins.db_plugins import MethodsDict
+        from auth_backend.auth_plugins.methods_dict import MethodsDict
 
-        return MethodsDict.__new__(MethodsDict, self._auth_methods)
+        return MethodsDict.__new__(MethodsDict, self._auth_methods, self)
 
 
 class Group(BaseDbModel):

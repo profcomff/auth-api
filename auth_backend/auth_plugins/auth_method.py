@@ -12,6 +12,7 @@ from fastapi_sqlalchemy import db
 from pydantic import constr
 
 from auth_backend.base import Base, ResponseModel
+from auth_backend.exceptions import AlreadyExists
 from auth_backend.models.db import AuthMethod, User, UserSession, Scope, UserSessionScope
 from auth_backend.settings import get_settings
 from auth_backend.schemas.types.scopes import Scope as TypeScope
@@ -43,7 +44,36 @@ class AuthMethodMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
-    fields: list[str] = []
+
+    class MethodMeta(metaclass=ABCMeta):
+
+        __fields__ = set()
+        __user: User
+
+        def __init__(self, methods: list[AuthMethod] | None, user: User):
+            self.__user = user
+            for method in methods:
+                assert method.param in self.__fields__
+                setattr(self, method.param, method)
+
+
+        def create(self, param: str, value: str) -> AuthMethod:
+            assert not (attr := getattr(self, param)), "Already exists"
+            if attr := getattr(self, param):
+                raise AlreadyExists(attr, attr.id)
+            _method = AuthMethod(user_id=self.__user.id, param=param, value=value, auth_method=self.__class__.get_name())
+            assert param in self.__fields__, "You cant create auth_method which not daclared"
+            db.session.add(_method)
+            db.session.commit()
+            setattr(self, param, _method)
+            return _method
+
+        @classmethod
+        def get_name(cls) -> str:
+            return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
+
+    fields: type[AuthMethodMeta] = MethodMeta
+
 
     @classmethod
     def get_name(cls) -> str:
