@@ -262,8 +262,10 @@ class Email(AuthMethodMeta):
         if user_session.user.auth_methods.email.email.value == scheme.email:
             raise HTTPException(status_code=401, detail=ResponseModel(status="Error", message="Email incorrect").dict())
         token = random_string()
-        await user_session.user.auth_methods.email.create("tmp_email_confirmation_token", token)
-        await user_session.user.auth_methods.email.create("tmp_email", scheme.email)
+        await user_session.user.auth_methods.email.bulk_create({
+            "tmp_email_confirmation_token": token,
+            "tmp_email": scheme.email
+        })
         background_tasks.add_task(
             send_reset_email,
             to_addr=scheme.email,
