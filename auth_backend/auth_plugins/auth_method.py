@@ -46,8 +46,8 @@ class AuthMethodMeta(metaclass=ABCMeta):
     class MethodMeta(metaclass=ABCMeta):
         """
         Параметры метода аввторизации пользователя
-        __fields__ - множество параметров данного метода авторизации
-        __required_fields__ - множество обязательных парамтеров данного метода авторизации
+        `__fields__` - множество параметров данного метода авторизации
+        `__required_fields__` - множество обязательных парамтеров данного метода авторизации
         """
 
         __fields__ = frozenset()
@@ -63,6 +63,10 @@ class AuthMethodMeta(metaclass=ABCMeta):
                 setattr(self, method.param, method)
 
         async def create(self, param: str, value: str) -> AuthMethod:
+            """
+            Создает AuthMethod у данного юзера, auth_method берется из
+            названия класса
+            """
             assert param in self.__fields__, "You cant create auth_method which not declared in __fields__"
             if attr := getattr(self, param):
                 raise AlreadyExists(attr, attr.id)
@@ -77,6 +81,10 @@ class AuthMethodMeta(metaclass=ABCMeta):
             return _method
 
         async def bulk_create(self, map: dict[str, str]) -> list[AuthMethod]:
+            """
+            Создает несколько AuthMethod'ов по мапе param-value,
+            auth_method берется из названия класса
+            """
             for k in map.keys():
                 assert k in self.__fields__, "You cant create auth_method which not declared in __fields__"
                 if attr := getattr(self, k):

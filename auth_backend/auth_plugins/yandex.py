@@ -30,7 +30,8 @@ class YandexAuth(OauthMeta):
     tags = ['Yandex']
 
     class YandexAuth(AuthMethodMeta.MethodMeta):
-        __required_fields__ = __fields__ = frozenset(("user_id",))
+        __fields__ = frozenset(("user_id",))
+        __required_fields__ = frozenset(("user_id",))
 
         user_id: AuthMethod = None
 
