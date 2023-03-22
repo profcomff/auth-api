@@ -59,6 +59,8 @@ class User(BaseDbModel):
     @hybrid_property
     def auth_methods(self):
         """
+        Все доступные методы авторизации юзера
+
         user.auth_method.<auth_method>.<param> === AuthMethod instance
 
         Эта функция возвращает экземпляр класса MethodsDict, который создает внутри себя поля, соотвествуюшие:
