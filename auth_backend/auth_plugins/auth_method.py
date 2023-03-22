@@ -44,6 +44,12 @@ class AuthMethodMeta(metaclass=ABCMeta):
     tags: list[str] = []
 
     class MethodMeta(metaclass=ABCMeta):
+        """
+        Параметры метода аввторизации пользователя
+        __fields__ - множество параметров данного метода авторизации
+        __required_fields__ - множество обязательных парамтеров данного метода авторизации
+        """
+
         __fields__ = frozenset()
         __required_fields__ = frozenset()
         __user: User
