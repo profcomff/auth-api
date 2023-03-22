@@ -13,15 +13,15 @@ from .vk import VkAuth
 
 class MethodsDict:
     __user: User
-    email: Email.fields = Email.fields
-    google_auth: GoogleAuth.fields = GoogleAuth.fields
-    physics_auth: PhysicsAuth.fields = PhysicsAuth.fields
-    lkmsu_auth: LkmsuAuth.fields = LkmsuAuth.fields
-    my_msu_auth: MyMsuAuth.fields = MyMsuAuth.fields
-    telegram_auth: TelegramAuth.fields = TelegramAuth.fields
-    vk_auth: VkAuth.fields = VkAuth.fields
-    github_auth: GithubAuth.fields = GithubAuth.fields
-    yandex_auth: YandexAuth.fields = YandexAuth.fields
+    email: Email.fields = None
+    google_auth: GoogleAuth.fields = None
+    physics_auth: PhysicsAuth.fields = None
+    lkmsu_auth: LkmsuAuth.fields = None
+    my_msu_auth: MyMsuAuth.fields = None
+    telegram_auth: TelegramAuth.fields = None
+    vk_auth: VkAuth.fields = None
+    github_auth: GithubAuth.fields = None
+    yandex_auth: YandexAuth.fields = None
 
 
     def __new__(cls, methods: list[AuthMethod], user: User, *args, **kwargs):
