@@ -12,6 +12,29 @@ from .vk import VkAuth
 
 
 class MethodsDict:
+    """
+    Как это использовать? Когда создаете новый метод авторизации,
+    определите внутри класса метода класс с таким же именем, наследника
+    MethodMeta. Там есть поля __fields__ - поля, которые вы создаете
+    в таблице AuthMethod в колонке param, __required_fields__ -
+    обязательные поля, при отсутствии которых можно считать, что у юзера
+    нет этого способа входа. Эти поля определите как классовые переменные
+    с дефолтным значением None. Определите в классе авторизации
+    fields = тому классу, который вы создали.
+    Далее добавляете в MethodsDict поле, алиас которого это то, что
+    возвращает <созданный выше класс>.get_name(), определите его с дефлотным
+    значением None, поставьте тайп хинт.
+
+    Примеры:
+    email = user.auth_methods.email.email.value
+
+    user.auth_methods.email.tmp_token.is_deleted = True
+    session.commit()
+
+    user.auth_methods.email.create('tmp_token', random_string())
+
+    user.auth_methods.email.bulk_create(k-v map)
+    """
     __user: User
     email: Email.fields = None
     google_auth: GoogleAuth.fields = None
@@ -39,6 +62,5 @@ class MethodsDict:
                 continue
             _obj = Method(methods=_methods_dict[Method.get_name()],  user=obj.__user)
             setattr(obj, Method.get_name(), _obj)
-
         return obj
 
