@@ -65,7 +65,8 @@ class AuthMethodMeta(metaclass=ABCMeta):
             )
             assert param in self.__fields__, "You cant create auth_method which not daclared"
             db.session.add(_method)
-            db.session.commit()
+            db.session.flush()
+            db.session.refresh(self.__user)
             setattr(self, param, _method)
             return _method
 
@@ -82,7 +83,8 @@ class AuthMethodMeta(metaclass=ABCMeta):
                     )
                 )
                 db.session.add(method)
-            db.session.commit()
+            db.session.flush()
+            db.session.refresh(self.__user)
             return methods
 
         def __bool__(self) -> bool:

@@ -18,6 +18,7 @@ from auth_backend.models.base import BaseDbModel
 
 
 class User(BaseDbModel):
+    __auth_methods_cached = None
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     _auth_methods: Mapped[list[AuthMethod]] = relationship(
@@ -64,8 +65,9 @@ class User(BaseDbModel):
         :return: MethodsDict
         """
         from auth_backend.auth_plugins.methods_dict import MethodsDict
+        self.__auth_methods_cached = self.__auth_methods_cached or MethodsDict.__new__(MethodsDict, self._auth_methods, self)
 
-        return MethodsDict.__new__(MethodsDict, self._auth_methods, self)
+        return self.__auth_methods_cached
 
 
 class Group(BaseDbModel):
