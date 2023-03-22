@@ -9,3 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
+      - name: Comment
+        if: ${{ failure() }}
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            :exclamation: Use black to format code :exclamation:
