@@ -24,7 +24,7 @@ async def create_session(user: User, scopes_list_names: list[TypeScope] | None, 
         scopes = user.scopes
     else:
         scopes = await create_scopes_set_by_names(scopes_list_names)
-        await _check_scopes(scopes, user)
+        await check_scopes(scopes, user)
     user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
     db_session.add(user_session)
     db_session.flush()
@@ -48,7 +48,7 @@ async def create_scopes_set_by_names(scopes_list_names: list[TypeScope]) -> set[
     return scopes
 
 
-async def _check_scopes(scopes: set[Scope], user: User) -> None:
+async def check_scopes(scopes: set[Scope], user: User) -> None:
     if len(scopes & user.scopes) != len(scopes):
         raise HTTPException(
             status_code=403,

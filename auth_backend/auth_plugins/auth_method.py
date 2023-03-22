@@ -74,6 +74,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
     async def _create_session(
         user: User, scopes_list_names: list[TypeScope] | None, *, db_session: DbSession
     ) -> Session:
+        """Создает сессию пользователя"""
         return await create_session(user, scopes_list_names, db_session=db_session)
 
     @staticmethod

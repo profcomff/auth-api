@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 from sqlalchemy import not_
 from auth_backend.base import ResponseModel
 from auth_backend.exceptions import SessionExpired, ObjectNotFound
-from auth_backend.schemas.models import Session
+from auth_backend.schemas.models import Session, UserSessionLogout
 from auth_backend.models.db import AuthMethod, UserSession, User
 from auth_backend.schemas.models import (
     UserAuthMethods,
@@ -22,7 +22,7 @@ from auth_backend.schemas.models import (
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils import user_session_control
 
-user_session = APIRouter(prefix="", tags=["Logout"])
+user_session = APIRouter(prefix="", tags=["User session"])
 logger = logging.getLogger(__name__)
 
 
@@ -79,7 +79,7 @@ async def me(
 
 @user_session.post("/session", response_model=Session)
 async def new(session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))):
-    return user_session_control.create_session(session.user, session.scopes, db_session=db.session)
+    return await user_session_control.create_session(session.user, session.scopes, db_session=db.session)
 
 
 @user_session.delete("/session/{token}")
@@ -101,12 +101,12 @@ async def delete_session(
 
 @user_session.delete("/session")
 async def delete_sessions(
-    delete_current: bool = False,
+    delete_current: bool = Query(default=False),
     current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
 ):
     other_sessions = current_session.user.active_sessions
     for session in other_sessions:
-        if session.token == session.token and not delete_current:
+        if session.token == current_session.token and not delete_current:
             continue
         if session.expired:
             raise SessionExpired(session.token)

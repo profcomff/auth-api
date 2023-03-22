@@ -6,7 +6,7 @@ from auth_backend.base import Base
 from auth_backend.schemas.types.scopes import Scope
 from pydantic import constr
 from datetime import datetime
-from auth_backend.schemas.types.scopes import Scope as TypeScope
+
 
 
 class PinchedScope(Base):
@@ -130,7 +130,13 @@ class Session(Base):
     expires: datetime
     id: int
     user_id: int
-    session_scopes: list[TypeScope]
+    session_scopes: list[Scope]
+
+
+class UserSessionLogout(Base):
+    status_code: int
+    status: str
+    message: str
 
 
 Group.update_forward_refs()

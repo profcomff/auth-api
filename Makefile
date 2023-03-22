@@ -45,5 +45,3 @@ login-user:
 
 login-admin:
 	curl -X 'POST' 'http://localhost:8000/email/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"email": "test-admin@profcomff.com", "password": "string"}'
-
-# eYdTwyiEPNAxGriMPUwJdrdVkxEFmwfRYmVwAiksSyMeogqZqRLHhCviZlUBSnmS"
