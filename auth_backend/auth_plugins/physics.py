@@ -1,7 +1,7 @@
 from pydantic import Json, Field
-from .google import GoogleAuth, AuthMethodMeta
+
 from auth_backend.settings import Settings
-from ..models import AuthMethod
+from .google import GoogleAuth
 
 
 class PhysicsSettings(Settings):
