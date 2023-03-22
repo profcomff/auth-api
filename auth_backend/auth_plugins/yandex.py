@@ -35,7 +35,6 @@ class YandexAuth(OauthMeta):
 
         user_id: AuthMethod = None
 
-
     fields = YandexAuth
     settings = YandexSettings()
 

@@ -32,7 +32,6 @@ class VkAuth(OauthMeta):
 
         user_id: AuthMethod = None
 
-
     fields = VkAuth
     settings = VkSettings()
 

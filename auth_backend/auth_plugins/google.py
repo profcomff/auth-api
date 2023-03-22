@@ -44,7 +44,6 @@ class GoogleAuth(OauthMeta):
 
         unique_google_id: AuthMethod = None
 
-
     fields = GoogleAuth
     settings = GoogleSettings()
 
@@ -144,9 +143,7 @@ class GoogleAuth(OauthMeta):
         # Docs: https://developers.google.com/identity/protocols/oauth2/web-server#python_1
         flow = await cls._default_flow()
         authorization_url, _ = flow.authorization_url(
-            access_type='offline',
-            include_granted_scopes='true',
-            prompt='select_account'
+            access_type='offline', include_granted_scopes='true', prompt='select_account'
         )
         return OauthMeta.UrlSchema(url=authorization_url)
 

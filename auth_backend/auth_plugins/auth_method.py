@@ -44,11 +44,9 @@ class AuthMethodMeta(metaclass=ABCMeta):
     tags: list[str] = []
 
     class MethodMeta(metaclass=ABCMeta):
-
         __fields__ = frozenset()
         __required_fields__ = frozenset()
         __user: User
-
 
         def __init__(self, user: User, methods: list[AuthMethod] = None):
             if methods is None:
@@ -58,11 +56,13 @@ class AuthMethodMeta(metaclass=ABCMeta):
                 assert method.param in self.__fields__
                 setattr(self, method.param, method)
 
-
         async def create(self, param: str, value: str) -> AuthMethod:
+            assert param in self.__fields__, "You cant create auth_method which not declared in __fields__"
             if attr := getattr(self, param):
                 raise AlreadyExists(attr, attr.id)
-            _method = AuthMethod(user_id=self.__user.id, param=param, value=value, auth_method=self.__class__.get_name())
+            _method = AuthMethod(
+                user_id=self.__user.id, param=param, value=value, auth_method=self.__class__.get_name()
+            )
             assert param in self.__fields__, "You cant create auth_method which not daclared"
             db.session.add(_method)
             db.session.commit()
@@ -71,11 +71,16 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
         async def bulk_create(self, map: dict[str, str]) -> list[AuthMethod]:
             for k in map.keys():
+                assert k in self.__fields__, "You cant create auth_method which not declared in __fields__"
                 if attr := getattr(self, k):
                     raise AlreadyExists(attr, attr.id)
             methods: list[AuthMethod] = []
             for k, v in map.items():
-                methods.append(method := AuthMethod(user_id=self.__user.id, param=k, value=v, auth_method=self.__class__.get_name()))
+                methods.append(
+                    method := AuthMethod(
+                        user_id=self.__user.id, param=k, value=v, auth_method=self.__class__.get_name()
+                    )
+                )
                 db.session.add(method)
             db.session.commit()
             return methods
@@ -86,17 +91,11 @@ class AuthMethodMeta(metaclass=ABCMeta):
                     return False
             return True
 
-
-
-
-
-
         @classmethod
         def get_name(cls) -> str:
             return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
 
     fields: type[AuthMethodMeta] = MethodMeta
-
 
     @classmethod
     def get_name(cls) -> str:

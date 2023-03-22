@@ -30,7 +30,7 @@ class TelegramAuth(OauthMeta):
     class TelegramAuth(AuthMethodMeta.MethodMeta):
         __required_fields__ = __fields__ = frozenset(("user_id"))
 
-        user_id: AuthMethod= None
+        user_id: AuthMethod = None
 
     fields = TelegramAuth
     settings = TelegramSettings()

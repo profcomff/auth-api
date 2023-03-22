@@ -35,6 +35,7 @@ class MethodsDict:
 
     user.auth_methods.email.bulk_create(k-v map)
     """
+
     __user: User
     email: Email.fields = None
     google_auth: GoogleAuth.fields = None
@@ -45,7 +46,6 @@ class MethodsDict:
     vk_auth: VkAuth.fields = None
     github_auth: GithubAuth.fields = None
     yandex_auth: YandexAuth.fields = None
-
 
     def __new__(cls, methods: list[AuthMethod], user: User, *args, **kwargs):
         obj = super(MethodsDict, cls).__new__(cls)
@@ -60,7 +60,6 @@ class MethodsDict:
                 _obj = Method(user=obj.__user)
                 setattr(obj, Method.get_name(), _obj)
                 continue
-            _obj = Method(methods=_methods_dict[Method.get_name()],  user=obj.__user)
+            _obj = Method(methods=_methods_dict[Method.get_name()], user=obj.__user)
             setattr(obj, Method.get_name(), _obj)
         return obj
-

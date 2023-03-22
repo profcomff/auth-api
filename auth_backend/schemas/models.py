@@ -53,6 +53,7 @@ class UserIndirectGroups(Base):
 class UserScopes(Base):
     user_scopes: list[PinchedScope] | None
 
+
 class UserAuthMethods(Base):
     auth_methods: list[str] | None
 

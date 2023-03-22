@@ -97,12 +97,20 @@ class Email(AuthMethodMeta):
     prefix = "/email"
 
     class Email(AuthMethodMeta.MethodMeta):
+        __fields__ = frozenset(
+            (
+                "email",
+                "hashed_password",
+                "salt",
+                "confirmed",
+                "confirmation_token",
+                "tmp_email",
+                "reset_token",
+                "tmp_email_confirmation_token",
+            )
+        )
 
-        __fields__ = frozenset(("email", "hashed_password", "salt",
-                     "confirmed", "confirmation_token", "tmp_email", "reset_token", "tmp_email_confirmation_token"))
-
-        __required_fields__ = frozenset(("email", "hashed_password", "salt",
-                     "confirmed", "confirmation_token"))
+        __required_fields__ = frozenset(("email", "hashed_password", "salt", "confirmed", "confirmation_token"))
 
         email: AuthMethod = None
         hashed_password: AuthMethod = None
@@ -112,7 +120,6 @@ class Email(AuthMethodMeta):
         tmp_email: AuthMethod = None
         reset_token: AuthMethod = None
         tmp_email_confirmation_token: AuthMethod = None
-
 
     fields = Email
 
@@ -161,12 +168,13 @@ class Email(AuthMethodMeta):
     async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> None:
         salt = random_string()
         hashed_password = Email._hash_password(user_inp.password, salt)
-        map ={"email": user_inp.email,
-              "hashed_password": hashed_password,
-              "salt": salt,
-              "confirmed": str(False),
-              "confirmation_token": confirmation_token
-              }
+        map = {
+            "email": user_inp.email,
+            "hashed_password": hashed_password,
+            "salt": salt,
+            "confirmed": str(False),
+            "confirmation_token": confirmation_token,
+        }
         d = user.auth_methods.email
         await user.auth_methods.email.bulk_create(map)
 
@@ -262,10 +270,9 @@ class Email(AuthMethodMeta):
         if user_session.user.auth_methods.email.email.value == scheme.email:
             raise HTTPException(status_code=401, detail=ResponseModel(status="Error", message="Email incorrect").dict())
         token = random_string()
-        await user_session.user.auth_methods.email.bulk_create({
-            "tmp_email_confirmation_token": token,
-            "tmp_email": scheme.email
-        })
+        await user_session.user.auth_methods.email.bulk_create(
+            {"tmp_email_confirmation_token": token, "tmp_email": scheme.email}
+        )
         background_tasks.add_task(
             send_reset_email,
             to_addr=scheme.email,
