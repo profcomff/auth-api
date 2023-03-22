@@ -47,7 +47,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     class MethodMeta(metaclass=ABCMeta):
 
-        __fields__ = set()
+        __fields__ = frozenset()
         __user: User
 
         def __init__(self, methods: list[AuthMethod] | None, user: User):
@@ -58,7 +58,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
 
         def create(self, param: str, value: str) -> AuthMethod:
-            assert not (attr := getattr(self, param)), "Already exists"
             if attr := getattr(self, param):
                 raise AlreadyExists(attr, attr.id)
             _method = AuthMethod(user_id=self.__user.id, param=param, value=value, auth_method=self.__class__.get_name())

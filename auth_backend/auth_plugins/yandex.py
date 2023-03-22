@@ -7,7 +7,7 @@ from fastapi import Depends
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_plugins.auth_method import OauthMeta, Session
+from auth_backend.auth_plugins.auth_method import OauthMeta, Session, AuthMethodMeta
 from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
 from auth_backend.models.db import UserSession, User, AuthMethod
 from auth_backend.schemas.types.scopes import Scope
@@ -29,7 +29,14 @@ class YandexSettings(Settings):
 class YandexAuth(OauthMeta):
     prefix = '/yandex'
     tags = ['Yandex']
-    fields = ["code", "scope"]
+
+    class YandexAuth(AuthMethodMeta.MethodMeta):
+        __fields__ = frozenset(("user_id"))
+
+        user_id: AuthMethod = None
+
+
+    fields = YandexAuth
     settings = YandexSettings()
 
     class OauthResponseSchema(BaseModel):

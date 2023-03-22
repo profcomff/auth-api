@@ -8,12 +8,11 @@ from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import UserSession, AuthMethod
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from .auth_method import OauthMeta, Session
-from sqlalchemy.orm import Session as DbSession
+from .auth_method import OauthMeta, Session, AuthMethodMeta
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +24,16 @@ class GithubSettings(Settings):
 
 
 class GithubAuth(OauthMeta):
-    """Вход в приложение по аккаунту гугл"""
+    """Вход в приложение по аккаунту GitHub"""
 
     prefix = '/github'
     tags = ['github']
+
+    class GithubAuth(AuthMethodMeta.MethodMeta):
+        __fields__ = frozenset(("user_id"))
+
+        user_id: AuthMethod = None
+
     fields = []
     settings = GithubSettings()
 

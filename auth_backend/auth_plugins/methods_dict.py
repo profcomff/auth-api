@@ -4,6 +4,11 @@ from .email import Email
 from .google import GoogleAuth
 from .lkmsu import LkmsuAuth
 from .physics import PhysicsAuth
+from .mymsu import MyMsuAuth
+from .yandex import YandexAuth
+from .github import GithubAuth
+from .telegram import TelegramAuth
+from .vk import VkAuth
 
 
 class MethodsDict:
@@ -12,6 +17,12 @@ class MethodsDict:
     google_auth: GoogleAuth.fields = GoogleAuth.fields
     physics_auth: PhysicsAuth.fields = PhysicsAuth.fields
     lkmsu_auth: LkmsuAuth.fields = LkmsuAuth.fields
+    my_msu_auth: MyMsuAuth.fields = MyMsuAuth.fields
+    telegram_auth: TelegramAuth.fields = TelegramAuth.fields
+    vk_auth: VkAuth.fields = VkAuth.fields
+    github_auth: GithubAuth.fields = GithubAuth.fields
+    yandex_auth: YandexAuth.fields = YandexAuth.fields
+
 
     def __new__(cls, methods: list[AuthMethod], user: User, *args, **kwargs):
         obj = super(MethodsDict, cls).__new__(cls)

@@ -17,5 +17,9 @@ class MyMsuSettings(Settings):
 class MyMsuAuth(YandexAuth):
     """Вход в приложение по почте @my.msu.ru"""
 
+    class MyMsuAuth(YandexAuth.YandexAuth):
+        pass
+
     prefix = '/my-msu'
+    fields = MyMsuAuth
     settings = MyMsuSettings()

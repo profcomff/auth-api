@@ -98,8 +98,8 @@ class Email(AuthMethodMeta):
 
     class Email(AuthMethodMeta.MethodMeta):
 
-        __fields__ = ("email", "hashed_password", "salt",
-                     "confirmed", "confirmation_token", "tmp_email", "reset_token", "tmp_email_confirmation_token")
+        __fields__ = frozenset(("email", "hashed_password", "salt",
+                     "confirmed", "confirmation_token", "tmp_email", "reset_token", "tmp_email_confirmation_token"))
 
         email: AuthMethod = None
         hashed_password: AuthMethod = None

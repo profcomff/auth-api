@@ -40,6 +40,8 @@ class GoogleAuth(OauthMeta):
     tags = ['Google']
 
     class GoogleAuth(AuthMethodMeta.MethodMeta):
+        __fields__ = frozenset(("unique_google_id"))
+
         unique_google_id: AuthMethod = None
 
 

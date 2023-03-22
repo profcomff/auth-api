@@ -4,7 +4,7 @@ import jwt
 from fastapi import Depends
 from pydantic import BaseModel, Field
 import logging
-from auth_backend.auth_plugins.auth_method import OauthMeta, Session
+from auth_backend.auth_plugins.auth_method import OauthMeta, Session, AuthMethodMeta
 from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
 from auth_backend.models.db import UserSession, User, AuthMethod
 from auth_backend.schemas.types.scopes import Scope
@@ -26,7 +26,13 @@ class TelegramSettings(Settings):
 class TelegramAuth(OauthMeta):
     prefix = '/telegram'
     tags = ['Telegram']
-    fields = ["code", "scope"]
+
+    class TelegramAuth(AuthMethodMeta.MethodMeta):
+        __fields__ = frozenset(())
+
+        user_id: AuthMethod= None
+
+    fields = TelegramAuth
     settings = TelegramSettings()
 
     class OauthResponseSchema(BaseModel):

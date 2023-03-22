@@ -25,8 +25,8 @@ class PhysicsSettings(Settings):
 class PhysicsAuth(GoogleAuth):
     """Вход в приложение по почте @physics.msu.ru"""
 
-    class PhysicsAuth(AuthMethodMeta.MethodMeta):
-        unique_google_id: AuthMethod = None
+    class PhysicsAuth(GoogleAuth.GoogleAuth):
+        pass
 
     prefix = '/physics-msu'
     settings = PhysicsSettings()

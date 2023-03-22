@@ -8,12 +8,11 @@ from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import User, UserSession, AuthMethod
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from .auth_method import OauthMeta, Session
+from .auth_method import OauthMeta, Session, AuthMethodMeta
 from ..schemas.types.scopes import Scope
-from sqlalchemy.orm import Session as DbSession
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +26,14 @@ class VkSettings(Settings):
 class VkAuth(OauthMeta):
     prefix = '/vk'
     tags = ['vk']
-    fields = []
+
+    class VkAuth(AuthMethodMeta.MethodMeta):
+        __fields__ = frozenset(("user_id"))
+
+        user_id: AuthMethod = None
+
+
+    fields = VkAuth
     settings = VkSettings()
 
     class OauthResponseSchema(BaseModel):
