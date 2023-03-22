@@ -31,6 +31,7 @@ class LkmsuAuth(OauthMeta):
     tags = ['lk_msu']
 
     class LkmsuAuth(AuthMethodMeta.MethodMeta):
+        __required_fields__ = __fields__ = frozenset(("user_id"))
         user_id: AuthMethod = None
 
     fields = LkmsuAuth

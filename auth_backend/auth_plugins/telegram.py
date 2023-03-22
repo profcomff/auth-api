@@ -28,7 +28,7 @@ class TelegramAuth(OauthMeta):
     tags = ['Telegram']
 
     class TelegramAuth(AuthMethodMeta.MethodMeta):
-        __fields__ = frozenset(())
+        __required_fields__ = __fields__ = frozenset(("user_id"))
 
         user_id: AuthMethod= None
 

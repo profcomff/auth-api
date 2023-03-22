@@ -10,16 +10,14 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_sqlalchemy import db
 from pydantic import constr
+from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.base import Base, ResponseModel
 from auth_backend.exceptions import AlreadyExists
 from auth_backend.models.db import AuthMethod, User, UserSession, Scope, UserSessionScope
-from auth_backend.settings import get_settings
 from auth_backend.schemas.types.scopes import Scope as TypeScope
-from sqlalchemy.orm import Session as DbSession
-
+from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
-
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -48,16 +46,20 @@ class AuthMethodMeta(metaclass=ABCMeta):
     class MethodMeta(metaclass=ABCMeta):
 
         __fields__ = frozenset()
+        __required_fields__ = frozenset()
         __user: User
 
-        def __init__(self, methods: list[AuthMethod] | None, user: User):
+
+        def __init__(self, user: User, methods: list[AuthMethod] = None):
+            if methods is None:
+                methods = []
             self.__user = user
             for method in methods:
                 assert method.param in self.__fields__
                 setattr(self, method.param, method)
 
 
-        def create(self, param: str, value: str) -> AuthMethod:
+        async def create(self, param: str, value: str) -> AuthMethod:
             if attr := getattr(self, param):
                 raise AlreadyExists(attr, attr.id)
             _method = AuthMethod(user_id=self.__user.id, param=param, value=value, auth_method=self.__class__.get_name())
@@ -66,6 +68,28 @@ class AuthMethodMeta(metaclass=ABCMeta):
             db.session.commit()
             setattr(self, param, _method)
             return _method
+
+        async def bulk_create(self, map: dict[str, str]) -> list[AuthMethod]:
+            for k in map.keys():
+                if attr := getattr(self, k):
+                    raise AlreadyExists(attr, attr.id)
+            methods: list[AuthMethod] = []
+            for k, v in map.items():
+                methods.append(method := AuthMethod(user_id=self.__user.id, param=k, value=v, auth_method=self.__class__.get_name()))
+                db.session.add(method)
+            db.session.commit()
+            return methods
+
+        def __bool__(self) -> bool:
+            for field in self.__required_fields__:
+                if not getattr(self, field):
+                    return False
+            return True
+
+
+
+
+
 
         @classmethod
         def get_name(cls) -> str:

@@ -34,8 +34,11 @@ class MethodsDict:
             _methods_dict[method.auth_method].append(method)
         for Method in AuthMethodMeta.MethodMeta.__subclasses__():
             if Method.get_name() not in _methods_dict.keys():
+                _obj = Method(user=obj.__user)
+                setattr(obj, Method.get_name(), _obj)
                 continue
-            _obj = Method(_methods_dict[Method.get_name()],  user=obj.__user)
+            _obj = Method(methods=_methods_dict[Method.get_name()],  user=obj.__user)
             setattr(obj, Method.get_name(), _obj)
+
         return obj
 
