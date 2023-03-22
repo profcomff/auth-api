@@ -8,7 +8,7 @@ from starlette.responses import JSONResponse
 from sqlalchemy import not_
 from auth_backend.base import ResponseModel
 from auth_backend.exceptions import SessionExpired, ObjectNotFound
-from auth_backend.schemas.models import Session, UserSessionLogout
+from auth_backend.schemas.models import Session
 from auth_backend.models.db import AuthMethod, UserSession, User
 from auth_backend.schemas.models import (
     UserAuthMethods,
@@ -22,11 +22,12 @@ from auth_backend.schemas.models import (
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils import user_session_control
 
+
 user_session = APIRouter(prefix="", tags=["User session"])
 logger = logging.getLogger(__name__)
 
 
-@user_session.post("/logout", response_model=str)
+@user_session.post("/logout", response_model=ResponseModel)
 async def logout(
     session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
 ) -> JSONResponse:
@@ -78,7 +79,7 @@ async def me(
 
 
 @user_session.post("/session", response_model=Session)
-async def new(session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))):
+async def create_session(session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))):
     return await user_session_control.create_session(session.user, session.scopes, db_session=db.session)
 
 

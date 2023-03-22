@@ -133,10 +133,6 @@ class Session(Base):
     session_scopes: list[Scope]
 
 
-class UserSessionLogout(Base):
-    status_code: int
-    status: str
-    message: str
 
 
 Group.update_forward_refs()
