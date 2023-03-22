@@ -175,7 +175,6 @@ class Email(AuthMethodMeta):
             "confirmed": str(False),
             "confirmation_token": confirmation_token,
         }
-        d = user.auth_methods.email
         await user.auth_methods.email.bulk_create(map)
 
     @staticmethod
