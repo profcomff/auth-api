@@ -1,19 +1,18 @@
 from auth_backend.models.db import AuthMethod, User
-from .auth_method import AuthMethodMeta
+from .auth_method import MethodMeta
 from .email import Email
+from .github import GithubAuth
 from .google import GoogleAuth
 from .lkmsu import LkmsuAuth
-from .physics import PhysicsAuth
 from .mymsu import MyMsuAuth
-from .yandex import YandexAuth
-from .github import GithubAuth
+from .physics import PhysicsAuth
 from .telegram import TelegramAuth
 from .vk import VkAuth
+from .yandex import YandexAuth
 
 
 class MethodsDict:
-    """
-    Доступные методы авторизации пользователя
+    """Доступные методы авторизации пользователя
 
     Как это использовать? Когда создаете новый метод авторизации,
     определите внутри класса метода класс с таким же именем, наследника
@@ -36,6 +35,7 @@ class MethodsDict:
     user.auth_methods.email.create('tmp_token', random_string())
 
     user.auth_methods.email.bulk_create(k-v map)
+
     """
 
     __user: User
@@ -57,11 +57,11 @@ class MethodsDict:
             if method.auth_method not in _methods_dict.keys():
                 _methods_dict[method.auth_method] = []
             _methods_dict[method.auth_method].append(method)
-        for Method in AuthMethodMeta.MethodMeta.__subclasses__():
-            if Method.get_name() not in _methods_dict.keys():
+        for Method in MethodMeta.__subclasses__():
+            if Method.get_auth_method_name() not in _methods_dict.keys():
                 _obj = Method(user=obj.__user)
-                setattr(obj, Method.get_name(), _obj)
+                setattr(obj, Method.get_auth_method_name(), _obj)
                 continue
-            _obj = Method(methods=_methods_dict[Method.get_name()], user=obj.__user)
-            setattr(obj, Method.get_name(), _obj)
+            _obj = Method(methods=_methods_dict[Method.get_auth_method_name()], user=obj.__user)
+            setattr(obj, Method.get_auth_method_name(), _obj)
         return obj

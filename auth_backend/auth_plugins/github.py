@@ -12,7 +12,7 @@ from auth_backend.models.db import UserSession, AuthMethod
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from .auth_method import OauthMeta, Session, AuthMethodMeta
+from .auth_method import OauthMeta, Session, AuthMethodMeta, MethodMeta
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +23,21 @@ class GithubSettings(Settings):
     GITHUB_CLIENT_SECRET: str | None
 
 
+class GithubAuthParams(MethodMeta):
+    __auth_method__ = "GithubAuth"
+    __fields__ = frozenset(("user_id",))
+    __required_fields__ = frozenset(("user_id",))
+
+    user_id: AuthMethod = None
+
+
 class GithubAuth(OauthMeta):
     """Вход в приложение по аккаунту GitHub"""
 
     prefix = '/github'
     tags = ['github']
 
-    class GithubAuth(AuthMethodMeta.MethodMeta):
-        __fields__ = frozenset(("user_id",))
-        __required_fields__ = frozenset(("user_id",))
-
-        user_id: AuthMethod = None
-
-    fields = []
+    fields = GithubAuthParams
     settings = GithubSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -100,7 +102,7 @@ class GithubAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', github_user_id, user, db_session=db.session)
+        await user.auth_methods.github_auth.create("user_id", github_user_id)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

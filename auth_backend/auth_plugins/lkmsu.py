@@ -12,7 +12,7 @@ from auth_backend.models.db import AuthMethod, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from .auth_method import OauthMeta, Session, AuthMethodMeta
+from .auth_method import OauthMeta, Session, AuthMethodMeta, MethodMeta
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +23,21 @@ class LkmsuSettings(Settings):
     LKMSU_CLIENT_SECRET: str | None
 
 
+class LkmsuAuthParams(MethodMeta):
+    __auth_method__ = "LkmsuAuth"
+    __fields__ = frozenset(("user_id",))
+    __required_fields__ = frozenset(("user_id",))
+
+    user_id: AuthMethod = None
+
+
 class LkmsuAuth(OauthMeta):
     """Вход в приложение по аккаунту гугл"""
 
     prefix = '/lk-msu'
     tags = ['lk_msu']
 
-    class LkmsuAuth(AuthMethodMeta.MethodMeta):
-        __fields__ = frozenset(("user_id",))
-        __required_fields__ = frozenset(("user_id",))
-
-        user_id: AuthMethod = None
-
-    fields = LkmsuAuth
+    fields = LkmsuAuthParams
     settings = LkmsuSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -93,7 +95,7 @@ class LkmsuAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', lk_user_id, user, db_session=db.session)
+        await user.auth_methods.lkmsu_auth.create("user_id", lk_user_id)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

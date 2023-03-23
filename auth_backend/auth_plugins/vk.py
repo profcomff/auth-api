@@ -11,7 +11,7 @@ from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.models.db import User, UserSession, AuthMethod
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from .auth_method import OauthMeta, Session, AuthMethodMeta
+from .auth_method import OauthMeta, Session, AuthMethodMeta, MethodMeta
 from ..schemas.types.scopes import Scope
 
 logger = logging.getLogger(__name__)
@@ -23,17 +23,19 @@ class VkSettings(Settings):
     VK_CLIENT_SECRET: str | None
 
 
+class VkAuthParams(MethodMeta):
+    __auth_method__ = "VkAuth"
+    __fields__ = frozenset(("user_id",))
+    __required_fields__ = frozenset(("user_id",))
+
+    user_id: AuthMethod = None
+
+
 class VkAuth(OauthMeta):
     prefix = '/vk'
     tags = ['vk']
 
-    class VkAuth(AuthMethodMeta.MethodMeta):
-        __fields__ = frozenset(("user_id",))
-        __required_fields__ = frozenset(("user_id",))
-
-        user_id: AuthMethod = None
-
-    fields = VkAuth
+    fields = VkAuthParams
     settings = VkSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -91,7 +93,7 @@ class VkAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
+        await user.auth_methods.vk_auth.create('user_id', vk_user_id)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

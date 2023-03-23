@@ -14,7 +14,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from .auth_method import OauthMeta, Session, AuthMethodMeta
+from .auth_method import OauthMeta, Session, AuthMethodMeta, MethodMeta
 
 logger = logging.getLogger(__name__)
 
@@ -31,19 +31,21 @@ class GoogleSettings(Settings):
     GOOGLE_BLACKLIST_DOMAINS: list[str] | None = ['physics.msu.ru']
 
 
+class GoogleAuthParams(MethodMeta):
+    __auth_method__ = "GoogleAuth"
+    __fields__ = frozenset(("unique_google_id",))
+    __required_fields__ = frozenset(("unique_google_id",))
+
+    unique_google_id: AuthMethod = None
+
+
 class GoogleAuth(OauthMeta):
     """Вход в приложение по аккаунту гугл"""
 
     prefix = '/google'
     tags = ['Google']
 
-    class GoogleAuth(AuthMethodMeta.MethodMeta):
-        __fields__ = frozenset(("unique_google_id",))
-        __required_fields__ = frozenset(("unique_google_id",))
-
-        unique_google_id: AuthMethod = None
-
-    fields = GoogleAuth
+    fields = GoogleAuthParams
     settings = GoogleSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -102,7 +104,7 @@ class GoogleAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('unique_google_id', guser_id['sub'], user, db_session=db.session)
+        await user.auth_methods.google_auth.create("unique_google_id", guser_id['sub'])
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

@@ -17,7 +17,7 @@ from auth_backend.utils.smtp import (
     send_confirmation_email,
     send_reset_email,
 )
-from .auth_method import AuthMethodMeta, Session, random_string
+from .auth_method import AuthMethodMeta, Session, random_string, MethodMeta
 from auth_backend.schemas.types.scopes import Scope
 
 settings = get_settings()
@@ -93,35 +93,37 @@ class ResetPassword(Base):
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
+class EmailParams(MethodMeta):
+    __auth_method__ = "Email"
+    __fields__ = frozenset(
+        (
+            "email",
+            "hashed_password",
+            "salt",
+            "confirmed",
+            "confirmation_token",
+            "tmp_email",
+            "reset_token",
+            "tmp_email_confirmation_token",
+        )
+    )
+
+    __required_fields__ = frozenset(("email", "hashed_password", "salt", "confirmed", "confirmation_token"))
+
+    email: AuthMethod = None
+    hashed_password: AuthMethod = None
+    salt: AuthMethod = None
+    confirmed: AuthMethod = None
+    confirmation_token: AuthMethod = None
+    tmp_email: AuthMethod = None
+    reset_token: AuthMethod = None
+    tmp_email_confirmation_token: AuthMethod = None
+
+
 class Email(AuthMethodMeta):
     prefix = "/email"
 
-    class Email(AuthMethodMeta.MethodMeta):
-        __fields__ = frozenset(
-            (
-                "email",
-                "hashed_password",
-                "salt",
-                "confirmed",
-                "confirmation_token",
-                "tmp_email",
-                "reset_token",
-                "tmp_email_confirmation_token",
-            )
-        )
-
-        __required_fields__ = frozenset(("email", "hashed_password", "salt", "confirmed", "confirmation_token"))
-
-        email: AuthMethod = None
-        hashed_password: AuthMethod = None
-        salt: AuthMethod = None
-        confirmed: AuthMethod = None
-        confirmation_token: AuthMethod = None
-        tmp_email: AuthMethod = None
-        reset_token: AuthMethod = None
-        tmp_email_confirmation_token: AuthMethod = None
-
-    fields = Email
+    fields = EmailParams
 
     def __init__(self):
         super().__init__()
