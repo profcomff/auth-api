@@ -295,7 +295,6 @@ class OauthMeta(AuthMethodMeta):
         if auth_method:
             return auth_method.user
 
-
     @classmethod
     async def _delete_auth_methods(cls, user: User, *, db_session):
         """Удаляет пользователю все AuthMethod конкретной авторизации"""
