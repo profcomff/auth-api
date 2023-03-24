@@ -100,16 +100,9 @@ def test_invalid_check_tokens(client_auth: TestClient, user):
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-def test_check_me_groups(client_auth: TestClient, user, dbsession):
-    user_id, body_user, login = user["user_id"], user["body"], user["login_json"]
-    dbsession.add(scope1 := Scope(name="auth.group.create", creator_id=user_id))
-    dbsession.add(scope4 := Scope(name="auth.user.update", creator_id=user_id))
-    token_ = random_string()
-    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
-    dbsession.flush()
-    dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope4.id, user_session_id=user_session.id))
-    dbsession.commit()
+def test_check_me_groups(client_auth: TestClient, user_scopes, dbsession):
+    token_ = user_scopes[0]
+    user_id = dbsession.query(UserSession).filter(UserSession.token == token_).one().user_id
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     _group1 = client_auth.post(url="/group", json=body, headers={"Authorization": token_}).json()["id"]
@@ -121,20 +114,18 @@ def test_check_me_groups(client_auth: TestClient, user, dbsession):
     _group3 = client_auth.post(url="/group", json=body, headers={"Authorization": token_}).json()["id"]
     response = client_auth.patch(f"/user/{user_id}", json={"groups": [_group3]}, headers={"Authorization": token_})
     assert response.status_code == status.HTTP_200_OK
-    response = client_auth.get(f"/me", headers={"Authorization": login["token"]}, params={"info": "groups"})
+    response = client_auth.get(f"/me", headers={"Authorization": token_}, params={"info": ["groups"]})
     assert response.status_code == status.HTTP_200_OK
     assert _group3 in response.json()["groups"]
     assert _group2 not in response.json()["groups"]
     assert _group1 not in response.json()["groups"]
-    response = client_auth.get(f"/me", headers={"Authorization": login["token"]}, params={"info": "indirect_groups"})
+    response = client_auth.get(f"/me", headers={"Authorization": token_}, params={"info": ["indirect_groups"]})
     assert response.status_code == status.HTTP_200_OK
     assert _group3 in response.json()["indirect_groups"]
     assert _group2 in response.json()["indirect_groups"]
     assert _group1 in response.json()["indirect_groups"]
-    dbsession.query(UserSessionScope).delete()
-    dbsession.delete(user_session)
-    dbsession.query(GroupScope).delete()
-    dbsession.query(UserGroup).delete()
-    dbsession.query(Group).delete()
-    dbsession.query(Scope).delete()
+    dbsession.query(UserGroup).filter(UserGroup.user_id == user_id).delete()
+    dbsession.query(Group).filter(Group.id == _group1).delete()
+    dbsession.query(Group).filter(Group.id == _group2).delete()
+    dbsession.query(Group).filter(Group.id == _group3).delete()
     dbsession.commit()

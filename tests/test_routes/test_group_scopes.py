@@ -6,18 +6,10 @@ from auth_backend.models.db import Group, UserSession, User, Scope, UserSessionS
 from auth_backend.auth_plugins.auth_method import random_string
 
 
-def test_scopes_groups(client_auth, dbsession, user):
-    user_id, body, login = user["user_id"], user["body"], user["login_json"]
-    dbsession.add(scope1 := Scope(name="auth.group.create", creator_id=user_id))
-    dbsession.add(scope2 := Scope(name="auth.group.update", creator_id=user_id))
-    dbsession.add(scope3 := Scope(name="auth.group.read", creator_id=user_id))
-    token = random_string()
-    dbsession.add(user_session := UserSession(user_id=user_id, token=token))
-    dbsession.flush()
-    dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
-    dbsession.commit()
+def test_scopes_groups(client_auth, dbsession, user_scopes):
+    token = user_scopes[0]
+    scope1 = dbsession.query(Scope).filter(Scope.name == "auth.group.create").one()
+    scope2 = dbsession.query(Scope).filter(Scope.name == "auth.group.update").one()
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     headers = {"Authorization": token}
@@ -68,29 +60,20 @@ def test_scopes_groups(client_auth, dbsession, user):
     assert scope1.id in [row["id"] for row in response.json()["indirect_scopes"]]
     assert scope2.id in [row["id"] for row in response.json()["scopes"]]
     assert scope2.id in [row["id"] for row in response.json()["indirect_scopes"]]
-    dbsession.query(UserSessionScope).delete()
-    dbsession.delete(user_session)
-    dbsession.query(GroupScope).delete()
-    dbsession.query(UserGroup).delete()
-    dbsession.query(Group).delete()
-    dbsession.query(Scope).delete()
+    dbsession.query(GroupScope).filter(GroupScope.group_id == _group1).delete()
+    dbsession.query(GroupScope).filter(GroupScope.group_id == _group2).delete()
+    dbsession.query(GroupScope).filter(GroupScope.group_id == _group3).delete()
+    dbsession.query(Group).filter(Group.id == _group3).delete()
+    dbsession.query(Group).filter(Group.id == _group2).delete()
+    dbsession.query(Group).filter(Group.id == _group1).delete()
     dbsession.commit()
 
 
-def test_scopes_user_session(client_auth, dbsession, user):
+def test_scopes_user_session(client_auth, dbsession, user_scopes):
+    token_, user = user_scopes
     user_id, body_user, login = user["user_id"], user["body"], user["login_json"]
-    dbsession.add(scope1 := Scope(name="auth.group.create", creator_id=user_id))
-    dbsession.add(scope2 := Scope(name="auth.group.update", creator_id=user_id))
-    dbsession.add(scope3 := Scope(name="auth.user_group.create", creator_id=user_id))
-    dbsession.add(scope4 := Scope(name="auth.user.update", creator_id=user_id))
-    token_ = random_string()
-    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
-    dbsession.flush()
-    dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope4.id, user_session_id=user_session.id))
-    dbsession.commit()
+    scope1 = dbsession.query(Scope).filter(Scope.name == "auth.group.create").one()
+    scope2 = dbsession.query(Scope).filter(Scope.name == "auth.group.update").one()
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": [scope1.id]}
     headers = {"Authorization": token_}
@@ -159,10 +142,14 @@ def test_scopes_user_session(client_auth, dbsession, user):
     assert scope1.id not in [row["id"] for row in response.json()["session_scopes"]]
     assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
     assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
-    dbsession.query(UserSessionScope).delete()
-    dbsession.delete(user_session)
-    dbsession.query(GroupScope).delete()
-    dbsession.query(UserGroup).delete()
-    dbsession.query(Group).delete()
-    dbsession.query(Scope).delete()
+    dbsession.query(GroupScope).filter(GroupScope.group_id == _group1).delete()
+    dbsession.query(GroupScope).filter(GroupScope.group_id == _group2).delete()
+    dbsession.query(GroupScope).filter(GroupScope.group_id == _group3).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == _group1).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == _group2).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == _group3).delete()
+    dbsession.query(Group).filter(Group.id == _group3).delete()
+    dbsession.query(Group).filter(Group.id == _group2).delete()
+    dbsession.query(Group).filter(Group.id == _group1).delete()
     dbsession.commit()
+

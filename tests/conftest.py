@@ -6,11 +6,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from starlette import status
-
-from auth_backend.models.db import Group, UserSession, UserGroup, User, AuthMethod
+from auth_backend.auth_plugins.auth_method import random_string
+from auth_backend.models.db import Group, UserGroup, User, GroupScope
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
-
+from auth_backend.models.db import AuthMethod, UserSession, Scope, UserSessionScope
 
 @pytest.fixture
 def client():
@@ -185,4 +185,59 @@ def user_factory(dbsession):
     dbsession.flush()
 
     dbsession.query(User).delete()
+    dbsession.commit()
+
+@pytest.fixture()
+def user_scopes(dbsession, user):
+    user_id, body, response = user["user_id"], user["body"], user["login_json"]
+    dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
+    dbsession.add(scope2 := Scope(name="auth.scope.read", creator_id=user_id))
+    dbsession.add(scope3 := Scope(name="auth.scope.delete", creator_id=user_id))
+    dbsession.add(scope4 := Scope(name="auth.scope.update", creator_id=user_id))
+    dbsession.add(scope5 := Scope(name="auth.user.delete", creator_id=user_id))
+    dbsession.add(scope6 := Scope(name="auth.user.update", creator_id=user_id))
+    dbsession.add(scope7 := Scope(name="auth.user.read", creator_id=user_id))
+    dbsession.add(scope8 := Scope(name="auth.group.create", creator_id=user_id))
+    dbsession.add(scope9 := Scope(name="auth.group.read", creator_id=user_id))
+    dbsession.add(scope10 := Scope(name="auth.group.delete", creator_id=user_id))
+    dbsession.add(scope11 := Scope(name="auth.group.update", creator_id=user_id))
+    token_ = random_string()
+    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
+    dbsession.flush()
+    dbsession.add(user_scope1 := UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
+    dbsession.add(user_scope2 := UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
+    dbsession.add(user_scope3 := UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
+    dbsession.add(user_scope4 := UserSessionScope(scope_id=scope4.id, user_session_id=user_session.id))
+    dbsession.add(user_scope5 := UserSessionScope(scope_id=scope5.id, user_session_id=user_session.id))
+    dbsession.add(user_scope6 := UserSessionScope(scope_id=scope6.id, user_session_id=user_session.id))
+    dbsession.add(user_scope7 := UserSessionScope(scope_id=scope7.id, user_session_id=user_session.id))
+    dbsession.add(user_scope8 := UserSessionScope(scope_id=scope8.id, user_session_id=user_session.id))
+    dbsession.add(user_scope9 := UserSessionScope(scope_id=scope9.id, user_session_id=user_session.id))
+    dbsession.add(user_scope10 := UserSessionScope(scope_id=scope10.id, user_session_id=user_session.id))
+    dbsession.add(user_scope11 := UserSessionScope(scope_id=scope11.id, user_session_id=user_session.id))
+    dbsession.commit()
+    yield token_, user
+    dbsession.delete(user_scope1)
+    dbsession.delete(user_scope2)
+    dbsession.delete(user_scope3)
+    dbsession.delete(user_scope4)
+    dbsession.delete(user_scope5)
+    dbsession.delete(user_scope6)
+    dbsession.delete(user_scope7)
+    dbsession.delete(user_scope8)
+    dbsession.delete(user_scope9)
+    dbsession.delete(user_scope10)
+    dbsession.delete(user_scope11)
+    dbsession.delete(scope1)
+    dbsession.delete(scope2)
+    dbsession.delete(scope3)
+    dbsession.delete(scope4)
+    dbsession.delete(scope5)
+    dbsession.delete(scope6)
+    dbsession.delete(scope7)
+    dbsession.delete(scope8)
+    dbsession.delete(scope9)
+    dbsession.delete(scope10)
+    dbsession.delete(scope11)
+    dbsession.delete(user_session)
     dbsession.commit()

@@ -147,10 +147,10 @@ def test_cycle_patch(client, dbsession):
     response = client.patch(f"/group/{group}", json={"parent_id": group2})
     assert response.status_code == 400
 
-    dbsession.query(UserGroup).delete()
-    dbsession.query(GroupScope).delete()
-    dbsession.query(Scope).delete()
-    dbsession.query(Group).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == group).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == group2).delete()
+    dbsession.query(Group).filter(Group.id == group).delete()
+    dbsession.query(Group).filter(Group.id == group2).delete()
     dbsession.commit()
 
 
