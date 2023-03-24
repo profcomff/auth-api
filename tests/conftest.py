@@ -228,6 +228,7 @@ def user_scopes(dbsession, user):
     dbsession.delete(user_scope9)
     dbsession.delete(user_scope10)
     dbsession.delete(user_scope11)
+    dbsession.flush()
     dbsession.delete(scope1)
     dbsession.delete(scope2)
     dbsession.delete(scope3)

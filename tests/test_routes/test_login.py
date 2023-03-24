@@ -125,7 +125,7 @@ def test_check_me_groups(client_auth: TestClient, user_scopes, dbsession):
     assert _group2 in response.json()["indirect_groups"]
     assert _group1 in response.json()["indirect_groups"]
     dbsession.query(UserGroup).filter(UserGroup.user_id == user_id).delete()
-    dbsession.query(Group).filter(Group.id == _group1).delete()
-    dbsession.query(Group).filter(Group.id == _group2).delete()
     dbsession.query(Group).filter(Group.id == _group3).delete()
+    dbsession.query(Group).filter(Group.id == _group2).delete()
+    dbsession.query(Group).filter(Group.id == _group1).delete()
     dbsession.commit()
