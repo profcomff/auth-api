@@ -8,7 +8,11 @@ from auth_backend.models import AuthMethod, User
 
 
 def create_user(email: str, password: str, session: Session) -> None:
-    if AuthMethod.query(session=session).filter(AuthMethod.value == email, AuthMethod.auth_method == "email").one_or_none():
+    if (
+        AuthMethod.query(session=session)
+        .filter(AuthMethod.value == email, AuthMethod.auth_method == "email")
+        .one_or_none()
+    ):
         print("User already exists")
         exit(errno.EIO)
     user = User.create(session=session)
