@@ -17,7 +17,7 @@ from auth_backend.schemas.models import (
     UserInfo,
     UserGet,
     UserScopes,
-    SessionScopes,
+    SessionScopes, SessionPost
 )
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils import user_session_control
@@ -79,8 +79,8 @@ async def me(
 
 
 @user_session.post("/session", response_model=Session)
-async def create_session(session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))):
-    return await user_session_control.create_session(session.user, session.scopes, db_session=db.session)
+async def create_session(new_session: SessionPost, session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))):
+    return await user_session_control.create_session(session.user, new_session.scopes, db_session=db.session)
 
 
 @user_session.delete("/session/{token}")

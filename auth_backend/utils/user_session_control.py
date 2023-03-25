@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from auth_backend.models.db import User, UserSession, Scope, UserSessionScope
 from auth_backend.schemas.models import Session
 from auth_backend.schemas.types.scopes import Scope as TypeScope
@@ -17,7 +19,7 @@ def random_string(length: int = 32) -> str:
     return "".join([random.choice(string.ascii_letters) for _ in range(length)])
 
 
-async def create_session(user: User, scopes_list_names: list[TypeScope] | None, *, db_session: DbSession) -> Session:
+async def create_session(user: User, scopes_list_names: list[TypeScope] | None, expires: datetime = None, *, db_session: DbSession) -> Session:
     """Создает сессию пользователя"""
     scopes = set()
     if scopes_list_names is None:
@@ -26,6 +28,7 @@ async def create_session(user: User, scopes_list_names: list[TypeScope] | None, 
         scopes = await create_scopes_set_by_names(scopes_list_names)
         await check_scopes(scopes, user)
     user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
+    user_session.expires = expires or user_session.expires
     db_session.add(user_session)
     db_session.flush()
     for scope in scopes:
