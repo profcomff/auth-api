@@ -42,7 +42,20 @@ class MethodMeta(metaclass=ABCMeta):
     """Параметры метода аввторизации пользователя
     Args:
         `__fields__: frozenset - required` - множество параметров данного метода авторизации
+
         `__required_fields__: frozenset - required` - множество обязательных парамтеров данного метода авторизации
+
+        `__auth_method__: str - required` - __repr__ соотвествуещго метода авторизации
+
+    Пример:
+    ```
+    class YourAuthParams(MethodMeta):
+        __auth_method__ = "your_auth" ##YourAuth.__repr__ === "your_auth"
+
+        __fields__ = frozenset(frozenset(("very_important_field", "not_important_field",))("very_important_field", "not_important_field",))
+
+        __required_fields__ = frozenset(("very_important_field",))
+    ```
     """
 
     __auth_method__: str = None
@@ -64,16 +77,24 @@ class MethodMeta(metaclass=ABCMeta):
         """
         Создает AuthMethod у данного юзера, auth_method берется из
         self.__auth_method__
+
         Args:
             param: str - параметр AuthMethod
+
             value: str - значение, которое будет задано по этому параметру
+
         Returns:
             AuthMethod - созданный метод
+
         Raises:
-            AssertionError - если param не нахяодятся в ___fields__
+            AssertionError - если param не нахяодятся в __fields__
+
             AlreadyExists - если метод по такому ключу уже существует
 
-        Пример: user.auth_methods.email.create("email", value)
+        Пример:
+        ```
+        user.auth_methods.email.create("email", value)
+        ```
         """
         assert param in self.__fields__, "You cant create auth_method which not declared in __fields__"
         if attr := getattr(self, param):
@@ -91,15 +112,22 @@ class MethodMeta(metaclass=ABCMeta):
     async def bulk_create(self, map: dict[str, str]) -> list[AuthMethod]:
         """Создает несколько AuthMethod'ов по мапе param-value,
         auth_method берется из self.__auth_method__
+
         Args:
             map: dict[str, str] - словарь, по которому будуут создаваться AuthMthods
+
         Returns:
             list[AuthMethod] - созданные методы
+
         Raises:
             AssertionError - если ключи словаря не нахяодятся в ___fields__
+
             AlreadyExists - если метод по такому ключу уже существует
 
-        Пример: user.auth_method.email.bulk_create({"email": val1, "salt": val2})
+        Пример:
+        ```
+        user.auth_method.email.bulk_create({"email": val1, "salt": val2})
+        ```
         """
         for k in map.keys():
             assert k in self.__fields__, "You cant create auth_method which not declared in __fields__"
@@ -134,8 +162,10 @@ class MethodMeta(metaclass=ABCMeta):
     @classmethod
     def get_auth_method_name(cls) -> str:
         """Имя соответствующего метода аутентфикации
+
         Args:
             None
+
         Returns:
             Имя метода аутентификации, к которому
             приилагается данный класс

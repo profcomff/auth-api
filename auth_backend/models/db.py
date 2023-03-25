@@ -66,8 +66,13 @@ class User(BaseDbModel):
             MethodsDict
 
         user.auth_method.<auth_method>.<param> === AuthMethod instance
+
         user.auth_methods.<param> = Соответствущему объекту MethodsMeta
-        Пример: user.auth_methods.email.email.value
+
+        Пример:
+        ```
+        user.auth_methods.email.email.value
+        ```
 
         """
         from auth_backend.auth_plugins.methods_dict import MethodsDict
