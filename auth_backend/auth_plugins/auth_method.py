@@ -10,15 +10,14 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_sqlalchemy import db
 from pydantic import constr
-
-from auth_backend.base import Base, ResponseModel
-from auth_backend.models.db import AuthMethod, User, UserSession, Scope, UserSessionScope
-from auth_backend.settings import get_settings
-from auth_backend.schemas.types.scopes import Scope as TypeScope
 from sqlalchemy.orm import Session as DbSession
 
+from auth_backend.base import Base, ResponseModel
+from auth_backend.exceptions import AlreadyExists
+from auth_backend.models.db import AuthMethod, User, UserSession, Scope, UserSessionScope
+from auth_backend.schemas.types.scopes import Scope as TypeScope
+from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
-
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -39,11 +38,147 @@ class Session(Base):
 AUTH_METHODS: dict[str, type[AuthMethodMeta]] = {}
 
 
+class MethodMeta(metaclass=ABCMeta):
+    """Параметры метода аввторизации пользователя
+    Args:
+        `__fields__: frozenset - required` - множество параметров данного метода авторизации
+
+        `__required_fields__: frozenset - required` - множество обязательных парамтеров данного метода авторизации
+
+        `__auth_method__: str - required` - __repr__ соотвествуещго метода авторизации
+
+    Пример:
+    ```
+    class YourAuthParams(MethodMeta):
+        __auth_method__ = "your_auth" ##YourAuth.__repr__ === "your_auth"
+
+        __fields__ = frozenset(frozenset(("very_important_field", "not_important_field",))("very_important_field", "not_important_field",))
+
+        __required_fields__ = frozenset(("very_important_field",))
+    ```
+    """
+
+    __auth_method__: str = None
+
+    __fields__ = frozenset()
+    __required_fields__ = frozenset()
+    __user: User
+
+    def __init__(self, user: User, methods: list[AuthMethod] = None):
+        assert self.__fields__ and self.__required_fields__, "__fields__ or  __required_fields__ not defined"
+        if methods is None:
+            methods = []
+        self.__user = user
+        for method in methods:
+            assert method.param in self.__fields__
+            setattr(self, method.param, method)
+
+    async def create(self, param: str, value: str) -> AuthMethod:
+        """
+        Создает AuthMethod у данного юзера, auth_method берется из
+        self.__auth_method__
+
+        Args:
+            param: str - параметр AuthMethod
+
+            value: str - значение, которое будет задано по этому параметру
+
+        Returns:
+            AuthMethod - созданный метод
+
+        Raises:
+            AssertionError - если param не нахяодятся в __fields__
+
+            AlreadyExists - если метод по такому ключу уже существует
+
+        Пример:
+        ```
+        user.auth_methods.email.create("email", value)
+        ```
+        """
+        assert param in self.__fields__, "You cant create auth_method which not declared in __fields__"
+        if attr := getattr(self, param):
+            raise AlreadyExists(attr, attr.id)
+        _method = AuthMethod(
+            user_id=self.__user.id, param=param, value=value, auth_method=self.__class__.get_auth_method_name()
+        )
+        assert param in self.__fields__, "You cant create auth_method which not daclared"
+        db.session.add(_method)
+        db.session.flush()
+        db.session.refresh(self.__user)
+        setattr(self, param, _method)
+        return _method
+
+    async def bulk_create(self, map: dict[str, str]) -> list[AuthMethod]:
+        """Создает несколько AuthMethod'ов по мапе param-value,
+        auth_method берется из self.__auth_method__
+
+        Args:
+            map: dict[str, str] - словарь, по которому будуут создаваться AuthMthods
+
+        Returns:
+            list[AuthMethod] - созданные методы
+
+        Raises:
+            AssertionError - если ключи словаря не нахяодятся в ___fields__
+
+            AlreadyExists - если метод по такому ключу уже существует
+
+        Пример:
+        ```
+        user.auth_method.email.bulk_create({"email": val1, "salt": val2})
+        ```
+        """
+        for k in map.keys():
+            assert k in self.__fields__, "You cant create auth_method which not declared in __fields__"
+            if attr := getattr(self, k):
+                raise AlreadyExists(attr, attr.id)
+        methods: list[AuthMethod] = []
+        for k, v in map.items():
+            methods.append(
+                method := AuthMethod(
+                    user_id=self.__user.id, param=k, value=v, auth_method=self.__class__.get_auth_method_name()
+                )
+            )
+            db.session.add(method)
+        db.session.flush()
+        db.session.refresh(self.__user)
+        return methods
+
+    def __bool__(self) -> bool:
+        """Определен ли для польщователя этот метод аутентификации
+        Args:
+             None
+        Returns:
+            Если у юзера удалено/не определено хотя бы одно из полей из
+            __required_fields__ -> False, иначе True
+
+        """
+        for field in self.__required_fields__:
+            if not getattr(self, field):
+                return False
+        return True
+
+    @classmethod
+    def get_auth_method_name(cls) -> str:
+        """Имя соответствующего метода аутентфикации
+
+        Args:
+            None
+
+        Returns:
+            Имя метода аутентификации, к которому
+            приилагается данный класс
+        """
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__auth_method__).lower()
+
+
 class AuthMethodMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
-    fields: list[str] = []
+
+    fields: type[AuthMethodMeta] = MethodMeta
 
     @classmethod
     def get_name(cls) -> str:
@@ -189,17 +324,6 @@ class OauthMeta(AuthMethodMeta):
         )
         if auth_method:
             return auth_method.user
-
-    @classmethod
-    async def _register_auth_method(cls, key: str, value: str | int, user: User, *, db_session):
-        """Добавление пользователю новый AuthMethod"""
-        AuthMethod.create(
-            user_id=user.id,
-            auth_method=cls.get_name(),
-            param=key,
-            value=str(value),
-            session=db_session,
-        )
 
     @classmethod
     async def _delete_auth_methods(cls, user: User, *, db_session):

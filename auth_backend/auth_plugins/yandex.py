@@ -7,13 +7,12 @@ from fastapi import Depends
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_plugins.auth_method import OauthMeta, Session
+from auth_backend.auth_plugins.auth_method import OauthMeta, Session, AuthMethodMeta, MethodMeta
 from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
 from auth_backend.models.db import UserSession, User, AuthMethod
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from sqlalchemy.orm import Session as DbSession
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +25,19 @@ class YandexSettings(Settings):
     YANDEX_BLACKLIST_DOMAINS: list[str] | None = ['my.msu.ru']
 
 
+class YandexAuthParams(MethodMeta):
+    __auth_method__ = "YandexAuth"
+    __fields__ = frozenset(("user_id",))
+    __required_fields__ = frozenset(("user_id",))
+
+    user_id: AuthMethod = None
+
+
 class YandexAuth(OauthMeta):
     prefix = '/yandex'
     tags = ['Yandex']
-    fields = ["code", "scope"]
+
+    fields = YandexAuthParams
     settings = YandexSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -101,7 +109,7 @@ class YandexAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', yandex_user_id, user, db_session=db.session)
+        await user.auth_methods.yandex_auth.create('user_id', yandex_user_id)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

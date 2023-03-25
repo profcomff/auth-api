@@ -17,30 +17,8 @@ settings = get_settings()
 from auth_backend.models.base import BaseDbModel
 
 
-class ParamDict:
-    # Type hints
-    email: AuthMethod
-    hashed_password: AuthMethod
-    salt: AuthMethod
-    confirmed: AuthMethod
-    confirmation_token: AuthMethod
-    tmp_email: AuthMethod
-    reset_token: AuthMethod
-    tmp_email_confirmation_token: AuthMethod
-    unique_google_id: AuthMethod  # Google auth method field
-    user_id: AuthMethod  # LK MSU auth method field
-
-    def __new__(cls, methods: list[AuthMethod], *args, **kwargs):
-        obj = super(ParamDict, cls).__new__(cls)
-        for row in methods:
-            if attr := getattr(obj, row.param, None):
-                if not isinstance(attr, AuthMethod):
-                    raise AttributeError
-            setattr(obj, row.param, row)
-        return obj
-
-
 class User(BaseDbModel):
+    __auth_methods_cached = None
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     _auth_methods: Mapped[list[AuthMethod]] = relationship(
@@ -67,7 +45,7 @@ class User(BaseDbModel):
         return _scopes
 
     @hybrid_property
-    def indirect_groups(self) -> list[Group]:
+    def indirect_groups(self) -> set[Group]:
         _groups = set()
         _groups.update(set(self.groups))
         for group in self.groups:
@@ -75,17 +53,35 @@ class User(BaseDbModel):
         return _groups
 
     @hybrid_property
-    def active_sessions(self) -> list:
+    def active_sessions(self) -> list[UserSession]:
         return [row for row in self.sessions if not row.expired]
 
     @hybrid_property
-    def auth_methods(self) -> ParamDict:
+    def auth_methods(self):
+        """Все доступные методы авторизации юзера
+
+        Args:
+            None
+        Returns:
+            MethodsDict
+
+        user.auth_method.<auth_method>.<param> === AuthMethod instance
+
+        user.auth_methods.<param> = Соответствущему объекту MethodsMeta
+
+        Пример:
+        ```
+        user.auth_methods.email.email.value
+        ```
+
         """
-        Эта функция возвращает экземпляр класса ParamDict, который создает внутри себя поля, соотвествуюшие:
-        user.auth_methods.<param> = Соответствущему объекту AuthMethod
-        :return: ParamDict
-        """
-        return ParamDict.__new__(ParamDict, self._auth_methods)
+        from auth_backend.auth_plugins.methods_dict import MethodsDict
+
+        self.__auth_methods_cached = self.__auth_methods_cached or MethodsDict.__new__(
+            MethodsDict, self._auth_methods, self
+        )
+
+        return self.__auth_methods_cached
 
 
 class Group(BaseDbModel):

@@ -10,6 +10,7 @@ class PinchedScope(Base):
     id: int
     name: Scope
 
+
 class Group(Base):
     id: int = Field(..., gt=0)
     name: str
@@ -36,7 +37,6 @@ class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes, GroupUserLi
     pass
 
 
-
 class UserInfo(Base):
     id: int
     email: str | None
@@ -52,6 +52,7 @@ class UserIndirectGroups(Base):
 
 class UserScopes(Base):
     user_scopes: list[PinchedScope] | None
+
 
 class UserAuthMethods(Base):
     auth_methods: list[str] | None
@@ -119,7 +120,6 @@ class ScopePost(Base):
 class ScopePatch(Base):
     name: Scope | None
     comment: str | None
-
 
 
 Group.update_forward_refs()
