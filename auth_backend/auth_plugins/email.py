@@ -17,7 +17,7 @@ from auth_backend.utils.smtp import (
     send_confirmation_email,
     send_reset_email,
 )
-from .auth_method import AuthMethodMeta, Session, random_string
+from .auth_method import AuthMethodMeta, Session, random_string, MethodMeta
 from auth_backend.schemas.types.scopes import Scope
 
 settings = get_settings()
@@ -93,18 +93,37 @@ class ResetPassword(Base):
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
+class EmailParams(MethodMeta):
+    __auth_method__ = "Email"
+    __fields__ = frozenset(
+        (
+            "email",
+            "hashed_password",
+            "salt",
+            "confirmed",
+            "confirmation_token",
+            "tmp_email",
+            "reset_token",
+            "tmp_email_confirmation_token",
+        )
+    )
+
+    __required_fields__ = frozenset(("email", "hashed_password", "salt", "confirmed", "confirmation_token"))
+
+    email: AuthMethod = None
+    hashed_password: AuthMethod = None
+    salt: AuthMethod = None
+    confirmed: AuthMethod = None
+    confirmation_token: AuthMethod = None
+    tmp_email: AuthMethod = None
+    reset_token: AuthMethod = None
+    tmp_email_confirmation_token: AuthMethod = None
+
+
 class Email(AuthMethodMeta):
     prefix = "/email"
-    fields = [
-        "email",
-        "hashed_password",
-        "salt",
-        "confirmed",
-        "confirmation_token",
-        "tmp_email_confirmation_token",
-        "tmp_email",
-        "reset_token",
-    ]
+
+    fields = EmailParams
 
     def __init__(self):
         super().__init__()
@@ -135,12 +154,14 @@ class Email(AuthMethodMeta):
         )
         if not query:
             raise AuthFailed(error="Incorrect login or password")
-        if query.user.auth_methods.confirmed.value.lower() == "false":
+        if query.user.auth_methods.email.confirmed.value.lower() == "false":
             raise AuthFailed(
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
-        if query.user.auth_methods.email.value.lower() != user_inp.email.lower() or not Email._validate_password(
-            user_inp.password, query.user.auth_methods.hashed_password.value, query.user.auth_methods.salt.value
+        if query.user.auth_methods.email.email.value.lower() != user_inp.email.lower() or not Email._validate_password(
+            user_inp.password,
+            query.user.auth_methods.email.hashed_password.value,
+            query.user.auth_methods.email.salt.value,
         ):
             raise AuthFailed(error="Incorrect login or password")
         return await cls._create_session(query.user, user_inp.scopes, db_session=db.session)
@@ -149,25 +170,21 @@ class Email(AuthMethodMeta):
     async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> None:
         salt = random_string()
         hashed_password = Email._hash_password(user_inp.password, salt)
-        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="email", value=user_inp.email))
-        db.session.add(
-            AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="hashed_password", value=hashed_password)
-        )
-        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="salt", value=salt))
-        db.session.add(AuthMethod(user_id=user.id, auth_method=Email.get_name(), param="confirmed", value=str(False)))
-        db.session.add(
-            AuthMethod(
-                user_id=user.id, auth_method=Email.get_name(), param="confirmation_token", value=confirmation_token
-            )
-        )
-        db.session.flush()
+        map = {
+            "email": user_inp.email,
+            "hashed_password": hashed_password,
+            "salt": salt,
+            "confirmed": str(False),
+            "confirmation_token": confirmation_token,
+        }
+        await user.auth_methods.email.bulk_create(map)
 
     @staticmethod
     async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
-        if user.auth_methods.confirmed.value == "true":
+        if user.auth_methods.email.confirmed.value == "true":
             raise AlreadyExists(User, user.id)
         else:
-            user.auth_methods.confirmation_token.value = confirmation_token
+            user.auth_methods.email.confirmation_token.value = confirmation_token
 
     @classmethod
     async def _register(
@@ -233,7 +250,7 @@ class Email(AuthMethodMeta):
         )
         if not auth_method:
             raise HTTPException(status_code=403, detail=ResponseModel(status="Error", message="Incorrect link").dict())
-        auth_method.user.auth_methods.confirmed.value = "true"
+        auth_method.user.auth_methods.email.confirmed.value = "true"
         db.session.commit()
         return ResponseModel(status="Success", message="Email approved")
 
@@ -247,23 +264,16 @@ class Email(AuthMethodMeta):
             raise SessionExpired(user_session.token)
         if not user_session.user.auth_methods.email:
             raise IncorrectUserAuthType()
-        if user_session.user.auth_methods.confirmed.value == "false":
+        if user_session.user.auth_methods.email.confirmed.value == "false":
             raise AuthFailed(
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
-        if user_session.user.auth_methods.email.value == scheme.email:
+        if user_session.user.auth_methods.email.email.value == scheme.email:
             raise HTTPException(status_code=401, detail=ResponseModel(status="Error", message="Email incorrect").dict())
-        tmp_email = AuthMethod(
-            user_id=user_session.user_id, auth_method=Email.get_name(), param="tmp_email", value=scheme.email
-        )
         token = random_string()
-        tmp_email_confirmation_token = AuthMethod(
-            user_id=user_session.user_id,
-            auth_method=Email.get_name(),
-            param="tmp_email_confirmation_token",
-            value=token,
+        await user_session.user.auth_methods.email.bulk_create(
+            {"tmp_email_confirmation_token": token, "tmp_email": scheme.email}
         )
-        db.session.add_all([tmp_email, tmp_email_confirmation_token])
         background_tasks.add_task(
             send_reset_email,
             to_addr=scheme.email,
@@ -287,13 +297,13 @@ class Email(AuthMethodMeta):
                 status_code=403, detail=ResponseModel(status="Error", message="Incorrect confirmation token").dict()
             )
         user: User = auth.user
-        if user.auth_methods.confirmed.value == "false":
+        if user.auth_methods.email.confirmed.value == "false":
             raise AuthFailed(
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
-        user.auth_methods.email.value = user.auth_methods.tmp_email.value
-        user.auth_methods.tmp_email_confirmation_token.is_deleted = True
-        user.auth_methods.tmp_email.is_deleted = True
+        user.auth_methods.email.email.value = user.auth_methods.email.tmp_email.value
+        user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
+        user.auth_methods.email.tmp_email.is_deleted = True
         db.session.commit()
         return ResponseModel(status="Success", message="Email successfully changed")
 
@@ -314,8 +324,8 @@ class Email(AuthMethodMeta):
                 )
             if not Email._validate_password(
                 schema.password,
-                user_session.user.auth_methods.hashed_password.value,
-                user_session.user.auth_methods.salt.value,
+                user_session.user.auth_methods.email.hashed_password.value,
+                user_session.user.auth_methods.email.salt.value,
             ):
                 raise AuthFailed(error="Incorrect password")
             auth_method_email: AuthMethod = (
@@ -331,9 +341,11 @@ class Email(AuthMethodMeta):
                 raise HTTPException(
                     status_code=403, detail=ResponseModel(status="Error", message="Incorrect user session").dict()
                 )
-            user_session.user.auth_methods.hashed_password.value = Email._hash_password(schema.new_password, salt)
-            user_session.user.auth_methods.salt.value = salt
-            background_tasks.add_task(send_changes_password_notification, user_session.user.auth_methods.email.value)
+            user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
+            user_session.user.auth_methods.email.salt.value = salt
+            background_tasks.add_task(
+                send_changes_password_notification, user_session.user.auth_methods.email.email.value
+            )
             db.session.commit()
             return ResponseModel(status="Success", message="Password has been successfully changed")
         elif not user_session and not schema.password and not schema.new_password:
@@ -355,23 +367,15 @@ class Email(AuthMethodMeta):
                     status_code=401,
                     detail=ResponseModel(status="Error", message="Auth method restricted for this user").dict(),
                 )
-            if auth_method_email.user.auth_methods.confirmed.value.lower() == "false":
+            if auth_method_email.user.auth_methods.email.confirmed.value.lower() == "false":
                 raise AuthFailed(
                     error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
                 )
-            db.session.add(
-                AuthMethod(
-                    user_id=auth_method_email.user_id,
-                    auth_method=Email.get_name(),
-                    param="reset_token",
-                    value=random_string(),
-                )
-            )
-            db.session.commit()
+            await auth_method_email.user.auth_methods.email.create("reset_token", random_string())
             background_tasks.add_task(
                 send_change_password_confirmation,
-                auth_method_email.user.auth_methods.email.value,
-                f"{settings.APPLICATION_HOST}/email/reset?token={auth_method_email.user.auth_methods.reset_token.value}",
+                auth_method_email.user.auth_methods.email.email.value,
+                f"{settings.APPLICATION_HOST}/email/reset?token={auth_method_email.user.auth_methods.email.reset_token.value}",
             )
             return ResponseModel(status="Success", message="Reset link has been successfully mailed")
         elif not user_session and schema.password and schema.new_password:
@@ -394,16 +398,16 @@ class Email(AuthMethodMeta):
         if not auth_method:
             raise HTTPException(status_code=404, detail=ResponseModel(status="Error", message="Email not found"))
         if (
-            not auth_method.user.auth_methods.reset_token
-            or auth_method.user.auth_methods.reset_token.value != reset_token
+            not auth_method.user.auth_methods.email.reset_token
+            or auth_method.user.auth_methods.email.reset_token.value != reset_token
         ):
             raise HTTPException(
                 status_code=403,
                 detail=ResponseModel(status="Error", message="Incorrect reset token").dict(),
             )
         salt = random_string()
-        auth_method.user.auth_methods.hashed_password.value = Email._hash_password(schema.new_password, salt)
-        auth_method.user.auth_methods.salt.value = salt
-        auth_method.user.auth_methods.reset_token.is_deleted = True
+        auth_method.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
+        auth_method.user.auth_methods.email.salt.value = salt
+        auth_method.user.auth_methods.email.reset_token.is_deleted = True
         db.session.commit()
         return ResponseModel(status="Success", message="Password has been successfully changed")

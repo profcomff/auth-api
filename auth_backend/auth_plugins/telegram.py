@@ -4,7 +4,7 @@ import jwt
 from fastapi import Depends
 from pydantic import BaseModel, Field
 import logging
-from auth_backend.auth_plugins.auth_method import OauthMeta, Session
+from auth_backend.auth_plugins.auth_method import OauthMeta, Session, AuthMethodMeta, MethodMeta
 from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
 from auth_backend.models.db import UserSession, User, AuthMethod
 from auth_backend.schemas.types.scopes import Scope
@@ -23,10 +23,19 @@ class TelegramSettings(Settings):
     TELEGRAM_BOT_TOKEN: str | None
 
 
+class TelegramAuthParams(MethodMeta):
+    __auth_method__ = "TelegramAuth"
+    __fields__ = frozenset(("user_id",))
+    __required_fields__ = frozenset(("user_id",))
+
+    user_id: AuthMethod = None
+
+
 class TelegramAuth(OauthMeta):
     prefix = '/telegram'
     tags = ['Telegram']
-    fields = ["code", "scope"]
+
+    fields = TelegramAuthParams
     settings = TelegramSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -65,7 +74,7 @@ class TelegramAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', telegram_user_id, user, db_session=db.session)
+        await user.auth_methods.telegram_auth.create('user_id', telegram_user_id)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

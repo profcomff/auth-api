@@ -1,3 +1,5 @@
+import errno
+
 from sqlalchemy.orm import Session
 
 from auth_backend.auth_plugins import Email
@@ -6,6 +8,13 @@ from auth_backend.models import AuthMethod, User
 
 
 def create_user(email: str, password: str, session: Session) -> None:
+    if (
+        AuthMethod.query(session=session)
+        .filter(AuthMethod.value == email, AuthMethod.auth_method == "email")
+        .one_or_none()
+    ):
+        print("User already exists")
+        exit(errno.EIO)
     user = User.create(session=session)
     session.flush()
     email = AuthMethod.create(

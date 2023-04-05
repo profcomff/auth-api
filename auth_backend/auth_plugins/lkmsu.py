@@ -8,12 +8,11 @@ from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import AuthMethod, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-from .auth_method import OauthMeta, Session
-from sqlalchemy.orm import Session as DbSession
+from .auth_method import OauthMeta, Session, AuthMethodMeta, MethodMeta
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +23,21 @@ class LkmsuSettings(Settings):
     LKMSU_CLIENT_SECRET: str | None
 
 
+class LkmsuAuthParams(MethodMeta):
+    __auth_method__ = "LkmsuAuth"
+    __fields__ = frozenset(("user_id",))
+    __required_fields__ = frozenset(("user_id",))
+
+    user_id: AuthMethod = None
+
+
 class LkmsuAuth(OauthMeta):
     """Вход в приложение по аккаунту гугл"""
 
     prefix = '/lk-msu'
     tags = ['lk_msu']
-    fields = []
+
+    fields = LkmsuAuthParams
     settings = LkmsuSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -87,7 +95,7 @@ class LkmsuAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', lk_user_id, user, db_session=db.session)
+        await user.auth_methods.lkmsu_auth.create("user_id", lk_user_id)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

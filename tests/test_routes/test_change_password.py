@@ -21,7 +21,7 @@ def test_unprocessable_jsons_no_token(client_auth: TestClient, dbsession: Sessio
     response = client_auth.post(
         f"{url}/request",
         json={
-            "email": token.user.auth_methods.email.value,
+            "email": token.user.auth_methods.email.email.value,
         },
     )
     assert response.status_code == status.HTTP_200_OK
@@ -35,19 +35,21 @@ def test_unprocessable_jsons_no_token(client_auth: TestClient, dbsession: Sessio
     response = client_auth.post(
         f"{url}",
         headers={"reset-token": reset_token.value},
-        json={"email": token.user.auth_methods.email.value, "new_password": ""},
-    )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    response = client_auth.post(
-        f"{url}", headers={"reset-token": ""}, json={"email": token.user.auth_methods.email.value, "new_password": ""}
+        json={"email": token.user.auth_methods.email.email.value, "new_password": ""},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = client_auth.post(
         f"{url}",
         headers={"reset-token": ""},
-        json={"email": token.user.auth_methods.email.value, "new_password": "changed"},
+        json={"email": token.user.auth_methods.email.email.value, "new_password": ""},
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    response = client_auth.post(
+        f"{url}",
+        headers={"reset-token": ""},
+        json={"email": token.user.auth_methods.email.email.value, "new_password": "changed"},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -100,13 +102,13 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
         )
         .one()
     )
-    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.value})
+    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.email.value})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
 
-    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.value})
+    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.email.value})
     assert response.status_code == status.HTTP_200_OK
     reset_token: AuthMethod = (
         dbsession.query(AuthMethod)
@@ -118,25 +120,26 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
     response = client_auth.post(
         f"{url}",
         headers={"reset-token": reset_token.value + "x"},
-        json={"email": token.user.auth_methods.email.value, "new_password": "changedstring2"},
+        json={"email": token.user.auth_methods.email.email.value, "new_password": "changedstring2"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
     response = client_auth.post(
         f"{url}",
         headers={"reset-token": reset_token.value},
-        json={"email": token.user.auth_methods.email.value, "new_password": "changedstring2"},
+        json={"email": token.user.auth_methods.email.email.value, "new_password": "changedstring2"},
     )
     assert response.status_code == status.HTTP_200_OK
 
     response = client_auth.post(
-        "/email/login", json={"email": reset_token.user.auth_methods.email.value, "password": "string", "scopes": []}
+        "/email/login",
+        json={"email": reset_token.user.auth_methods.email.email.value, "password": "string", "scopes": []},
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     response = client_auth.post(
         "/email/login",
-        json={"email": reset_token.user.auth_methods.email.value, "password": "changedstring2", "scopes": []},
+        json={"email": reset_token.user.auth_methods.email.email.value, "password": "changedstring2", "scopes": []},
     )
     assert response.status_code == status.HTTP_200_OK
 
