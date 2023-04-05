@@ -15,7 +15,6 @@ from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.db import Group, UserGroup
 
 
-
 def test_create_scope(client_auth: TestClient, dbsession: Session, user_scopes):
     token_ = user_scopes[0]
     user_session = dbsession.query(UserSession).filter(UserSession.token == token_).one()
@@ -74,6 +73,7 @@ def test_get_scope(client_auth, dbsession, user_scopes):
     dbsession.delete(db_resp)
     dbsession.commit()
 
+
 def test_delete_scope(client_auth, dbsession, user_scopes):
     token_ = user_scopes[0]
     rand = random_string()
@@ -90,7 +90,6 @@ def test_delete_scope(client_auth, dbsession, user_scopes):
     db_resp: Scope = dbsession.query(Scope).filter(func.lower(Scope.name) == f"gh.gh.gh{rand}".lower()).one()
     dbsession.delete(db_resp)
     dbsession.commit()
-
 
 
 def test_get_scopes(client, dbsession):

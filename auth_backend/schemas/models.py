@@ -8,7 +8,6 @@ from pydantic import constr
 from datetime import datetime
 
 
-
 class PinchedScope(Base):
     id: int
     name: Scope
@@ -132,9 +131,11 @@ class Session(Base):
     user_id: int
     session_scopes: list[Scope]
 
+
 class SessionPost(Base):
     scopes: list[Scope] = []
     expires: datetime | None = None
+
 
 Group.update_forward_refs()
 GroupGet.update_forward_refs()

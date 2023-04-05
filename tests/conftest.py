@@ -12,6 +12,7 @@ from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 from auth_backend.models.db import AuthMethod, UserSession, Scope, UserSessionScope
 
+
 @pytest.fixture
 def client():
     patcher1 = patch("auth_backend.auth_plugins.email.send_confirmation_email")
@@ -186,6 +187,7 @@ def user_factory(dbsession):
 
     dbsession.query(User).delete()
     dbsession.commit()
+
 
 @pytest.fixture()
 def user_scopes(dbsession, user):

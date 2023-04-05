@@ -152,4 +152,3 @@ def test_scopes_user_session(client_auth, dbsession, user_scopes):
     dbsession.query(Group).filter(Group.id == _group2).delete()
     dbsession.query(Group).filter(Group.id == _group1).delete()
     dbsession.commit()
-
