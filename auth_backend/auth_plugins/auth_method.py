@@ -14,11 +14,12 @@ from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.base import Base, ResponseModel
 from auth_backend.exceptions import AlreadyExists
-from auth_backend.models.db import AuthMethod, User, UserSession, Scope, UserSessionScope
+from auth_backend.models.db import AuthMethod, Scope, User, UserSession, UserSessionScope
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.user_session_control import create_session
+
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

@@ -1,27 +1,29 @@
 import logging
+import string
 from datetime import datetime
 from typing import Literal
-import string
-from fastapi import APIRouter, Query, Depends
+
+from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
-from starlette.responses import JSONResponse
 from sqlalchemy import not_
+from starlette.responses import JSONResponse
+
 from auth_backend.base import ResponseModel
-from auth_backend.exceptions import SessionExpired, ObjectNotFound
-from auth_backend.schemas.models import Session
-from auth_backend.models.db import AuthMethod, UserSession, User
+from auth_backend.exceptions import ObjectNotFound, SessionExpired
+from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.models import (
+    Session,
+    SessionPost,
+    SessionScopes,
     UserAuthMethods,
+    UserGet,
     UserGroups,
     UserIndirectGroups,
     UserInfo,
-    UserGet,
     UserScopes,
-    SessionScopes,
-    SessionPost,
 )
-from auth_backend.utils.security import UnionAuth
 from auth_backend.utils import user_session_control
+from auth_backend.utils.security import UnionAuth
 
 
 user_session = APIRouter(prefix="", tags=["User session"])
@@ -83,7 +85,9 @@ async def me(
 async def create_session(
     new_session: SessionPost, session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
 ):
-    return await user_session_control.create_session(session.user, new_session.scopes, db_session=db.session)
+    return await user_session_control.create_session(
+        session.user, new_session.scopes, new_session.expires, db_session=db.session
+    )
 
 
 @user_session.delete("/session/{token}")
@@ -108,13 +112,14 @@ async def delete_sessions(
     delete_current: bool = Query(default=False),
     current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
 ):
-    other_sessions = current_session.user.active_sessions
-    for session in other_sessions:
-        if session.token == current_session.token and not delete_current:
-            continue
-        if session.expired:
-            raise SessionExpired(session.token)
-        session.expires = datetime.utcnow()
+    query = (
+        db.session.query(UserSession)
+        .filter(UserSession.user_id == current_session.user_id)
+        .filter(not_(UserSession.expired))
+    )
+    if not delete_current:
+        query = query.filter(UserSession.token != current_session.token)
+    query.update({"expires": datetime.utcnow()})
     db.session.commit()
 
 

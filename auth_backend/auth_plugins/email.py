@@ -9,6 +9,7 @@ from sqlalchemy import func
 from auth_backend.base import Base, ResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
 from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import (
@@ -17,8 +18,9 @@ from auth_backend.utils.smtp import (
     send_confirmation_email,
     send_reset_email,
 )
-from .auth_method import AuthMethodMeta, Session, random_string, MethodMeta
-from auth_backend.schemas.types.scopes import Scope
+
+from .auth_method import AuthMethodMeta, MethodMeta, Session, random_string
+
 
 settings = get_settings()
 

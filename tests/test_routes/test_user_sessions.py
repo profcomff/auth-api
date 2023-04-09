@@ -1,12 +1,13 @@
 import logging
+from datetime import datetime, timedelta
 from time import sleep
 
-from starlette.testclient import TestClient
 from sqlalchemy.orm import Session
-from datetime import datetime
 from starlette import status
-from auth_backend.models.db import UserSession, UserSessionScope, GroupScope, Group, UserGroup
-from auth_backend.models.db import Scope
+from starlette.testclient import TestClient
+
+from auth_backend.models.db import Group, GroupScope, Scope, UserGroup, UserSession, UserSessionScope
+
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,11 @@ def test_create_session(client_auth: TestClient, dbsession: Session, user_scopes
     new_session_: UserSession = dbsession.query(UserSession).get(new_session2.json()["id"])
     assert new_session_.id != current_session_id_get.json()["id"]
     assert new_session_.scopes != current_session_scopes_get.json()["session_scopes"]
+    time = datetime.utcnow() + timedelta(days=999999)
+    new_session3 = client_auth.post("/session", headers=header, json={"expires": str(time)})
+    assert new_session3.status_code == status.HTTP_200_OK
+    new_session3_: UserSession = dbsession.query(UserSession).get(new_session3.json()['id'])
+    assert new_session3_.expires == time
     dbsession.query(UserSessionScope).filter(
         UserSessionScope.scope_id == scope1.id, UserSessionScope.scope_id == scope2.id
     ).delete()
@@ -60,6 +66,7 @@ def test_create_session(client_auth: TestClient, dbsession: Session, user_scopes
         UserSession.user_id == user_id,
         UserSession.id == new_session1.json()["id"],
         UserSession.id == new_session2.json()["id"],
+        UserSession.id == new_session3.json()["id"],
     ).delete()
     dbsession.query(UserGroup).filter(UserGroup.group_id == group_id).delete()
     dbsession.delete(scope1)
@@ -159,3 +166,6 @@ def test_get_sessions(client_auth: TestClient, dbsession: Session, user_scopes):
     assert current_session.token in list(all_sessions.json()[i]['token'] for i in range(len(all_sessions.json())))
     assert new_session1.token in list(all_sessions.json()[i]['token'] for i in range(len(all_sessions.json())))
     assert new_session2.token in list(all_sessions.json()[i]['token'] for i in range(len(all_sessions.json())))
+    client_auth.delete(f'/session/{new_session1.token}', headers=header)
+    all_sessions = client_auth.get("/session", headers=header)
+    assert new_session1.token not in list(all_sessions.json()[i]['token'] for i in range(len(all_sessions.json())))

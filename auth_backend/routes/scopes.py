@@ -1,11 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi_sqlalchemy import db
 from pydantic import parse_obj_as
 from sqlalchemy import func
 
 from auth_backend.base import ResponseModel
-from auth_backend.models.db import UserSession, Scope
-from auth_backend.schemas.models import ScopeGet, ScopePost, ScopePatch
+from auth_backend.models.db import Scope, UserSession
+from auth_backend.schemas.models import ScopeGet, ScopePatch, ScopePost
 from auth_backend.utils.security import UnionAuth
 
 

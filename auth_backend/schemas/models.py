@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from pydantic import Field
+from datetime import datetime
+
+from pydantic import Field, constr, validator
 
 from auth_backend.base import Base
 from auth_backend.schemas.types.scopes import Scope
-from pydantic import constr
-from datetime import datetime
 
 
 class PinchedScope(Base):
@@ -135,6 +135,12 @@ class Session(Base):
 class SessionPost(Base):
     scopes: list[Scope] = []
     expires: datetime | None = None
+
+    @validator("expires")
+    def expires_validator(self, exp):
+        if exp < datetime.utcnow():
+            raise ValueError("Session is expired")
+        return exp
 
 
 Group.update_forward_refs()

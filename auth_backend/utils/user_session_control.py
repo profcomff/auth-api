@@ -1,16 +1,17 @@
-from datetime import datetime, timedelta
-
-from auth_backend.models.db import User, UserSession, Scope, UserSessionScope
-from auth_backend.schemas.models import Session
-from auth_backend.schemas.types.scopes import Scope as TypeScope
-from sqlalchemy.orm import Session as DbSession
-from fastapi_sqlalchemy import db
-from fastapi import HTTPException
-from auth_backend.base import ResponseModel
-from auth_backend.settings import Settings
 import random
 import string
-from auth_backend.settings import get_settings
+from datetime import datetime, timedelta
+
+from fastapi import HTTPException
+from fastapi_sqlalchemy import db
+from sqlalchemy.orm import Session as DbSession
+
+from auth_backend.base import ResponseModel
+from auth_backend.models.db import Scope, User, UserSession, UserSessionScope
+from auth_backend.schemas.models import Session
+from auth_backend.schemas.types.scopes import Scope as TypeScope
+from auth_backend.settings import Settings, get_settings
+
 
 settings = get_settings()
 
