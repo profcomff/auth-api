@@ -136,8 +136,9 @@ class SessionPost(Base):
     scopes: list[Scope] = []
     expires: datetime | None = None
 
+    @classmethod
     @validator("expires")
-    def expires_validator(self, exp):
+    def expires_validator(cls, exp):
         if exp < datetime.utcnow():
             raise ValueError("Session is expired")
         return exp
