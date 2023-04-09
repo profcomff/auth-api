@@ -140,7 +140,7 @@ class SessionPost(Base):
     @validator("expires")
     def expires_validator(cls, exp):
         if exp < datetime.utcnow():
-            raise ValueError("Session is expired")
+            raise ValueError()
         return exp
 
 
