@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session as DbSession
 
-from auth_backend.base import ResponseModel
+from auth_backend.base import Logout
 from auth_backend.models.db import Scope, User, UserSession, UserSessionScope
 from auth_backend.schemas.models import Session
 from auth_backend.schemas.types.scopes import Scope as TypeScope
@@ -47,6 +47,7 @@ async def create_session(
 
 
 async def create_scopes_set_by_names(scopes_list_names: list[TypeScope]) -> set[Scope]:
+    """Создает множество скоупов из списка"""
     scopes = set()
     for scope_name in scopes_list_names:
         scope = Scope.get_by_name(scope_name, session=db.session)
@@ -55,10 +56,11 @@ async def create_scopes_set_by_names(scopes_list_names: list[TypeScope]) -> set[
 
 
 async def check_scopes(scopes: set[Scope], user: User) -> None:
+    '''Проверяет, чтобы количество новых скоупов совпадало со старым количеством'''
     if len(scopes & user.scopes) != len(scopes):
         raise HTTPException(
             status_code=403,
-            detail=ResponseModel(
+            detail=Logout(
                 status="Error",
                 message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in scopes - user.scopes]} ",
             ).dict(),

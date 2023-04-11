@@ -163,9 +163,17 @@ def test_get_sessions(client_auth: TestClient, dbsession: Session, user_scopes):
     new_session1: UserSession = dbsession.query(UserSession).get(new_session_response1.json()["id"])
     new_session2: UserSession = dbsession.query(UserSession).get(new_session_response2.json()["id"])
     all_sessions = client_auth.get("/session", headers=header)
-    assert current_session.token in list(all_sessions.json()[i]['token'] for i in range(len(all_sessions.json())))
-    assert new_session1.token in list(all_sessions.json()[i]['token'] for i in range(len(all_sessions.json())))
-    assert new_session2.token in list(all_sessions.json()[i]['token'] for i in range(len(all_sessions.json())))
+    assert ('*' * (len(current_session.token) - 4) + current_session.token[-4:]) in list(
+        all_sessions.json()[i]['token'] for i in range(len(all_sessions.json()))
+    )
+    assert ('*' * (len(new_session1.token) - 4) + new_session1.token[-4:]) in list(
+        all_sessions.json()[i]['token'] for i in range(len(all_sessions.json()))
+    )
+    assert ('*' * (len(new_session2.token) - 4) + new_session2.token[-4:]) in list(
+        all_sessions.json()[i]['token'] for i in range(len(all_sessions.json()))
+    )
     client_auth.delete(f'/session/{new_session1.token}', headers=header)
     all_sessions = client_auth.get("/session", headers=header)
-    assert new_session1.token not in list(all_sessions.json()[i]['token'] for i in range(len(all_sessions.json())))
+    assert ('*' * (len(new_session1.token) - 4) + new_session1.token[-4:]) not in list(
+        all_sessions.json()[i]['token'] for i in range(len(all_sessions.json()))
+    )

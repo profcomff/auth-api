@@ -192,55 +192,36 @@ def user_factory(dbsession):
 @pytest.fixture()
 def user_scopes(dbsession, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
-    dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
-    dbsession.add(scope2 := Scope(name="auth.scope.read", creator_id=user_id))
-    dbsession.add(scope3 := Scope(name="auth.scope.delete", creator_id=user_id))
-    dbsession.add(scope4 := Scope(name="auth.scope.update", creator_id=user_id))
-    dbsession.add(scope5 := Scope(name="auth.user.delete", creator_id=user_id))
-    dbsession.add(scope6 := Scope(name="auth.user.update", creator_id=user_id))
-    dbsession.add(scope7 := Scope(name="auth.user.read", creator_id=user_id))
-    dbsession.add(scope8 := Scope(name="auth.group.create", creator_id=user_id))
-    dbsession.add(scope9 := Scope(name="auth.group.read", creator_id=user_id))
-    dbsession.add(scope10 := Scope(name="auth.group.delete", creator_id=user_id))
-    dbsession.add(scope11 := Scope(name="auth.group.update", creator_id=user_id))
+    scopes_names = [
+        "auth.scope.create",
+        "auth.scope.read",
+        "auth.scope.delete",
+        "auth.scope.update",
+        "auth.user.delete",
+        "auth.user.update",
+        "auth.user.read",
+        "auth.group.create",
+        "auth.group.read",
+        "auth.group.delete",
+        "auth.group.update",
+    ]
+    scopes = []
+    for i in range(len(scopes_names)):
+        dbsession.add(scope1 := Scope(name=scopes_names[i], creator_id=user_id))
+        scopes.append(scope1)
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
     dbsession.flush()
-    dbsession.add(user_scope1 := UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.add(user_scope2 := UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
-    dbsession.add(user_scope3 := UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
-    dbsession.add(user_scope4 := UserSessionScope(scope_id=scope4.id, user_session_id=user_session.id))
-    dbsession.add(user_scope5 := UserSessionScope(scope_id=scope5.id, user_session_id=user_session.id))
-    dbsession.add(user_scope6 := UserSessionScope(scope_id=scope6.id, user_session_id=user_session.id))
-    dbsession.add(user_scope7 := UserSessionScope(scope_id=scope7.id, user_session_id=user_session.id))
-    dbsession.add(user_scope8 := UserSessionScope(scope_id=scope8.id, user_session_id=user_session.id))
-    dbsession.add(user_scope9 := UserSessionScope(scope_id=scope9.id, user_session_id=user_session.id))
-    dbsession.add(user_scope10 := UserSessionScope(scope_id=scope10.id, user_session_id=user_session.id))
-    dbsession.add(user_scope11 := UserSessionScope(scope_id=scope11.id, user_session_id=user_session.id))
+    user_scopes = []
+    for i in range(len(scopes)):
+        dbsession.add(user_scope1 := UserSessionScope(scope_id=scopes[i].id, user_session_id=user_session.id))
+        user_scopes.append(user_scope1)
     dbsession.commit()
     yield token_, user
-    dbsession.delete(user_scope1)
-    dbsession.delete(user_scope2)
-    dbsession.delete(user_scope3)
-    dbsession.delete(user_scope4)
-    dbsession.delete(user_scope5)
-    dbsession.delete(user_scope6)
-    dbsession.delete(user_scope7)
-    dbsession.delete(user_scope8)
-    dbsession.delete(user_scope9)
-    dbsession.delete(user_scope10)
-    dbsession.delete(user_scope11)
+    for i in range(len(user_scopes)):
+        dbsession.delete(user_scopes[i])
     dbsession.flush()
-    dbsession.delete(scope1)
-    dbsession.delete(scope2)
-    dbsession.delete(scope3)
-    dbsession.delete(scope4)
-    dbsession.delete(scope5)
-    dbsession.delete(scope6)
-    dbsession.delete(scope7)
-    dbsession.delete(scope8)
-    dbsession.delete(scope9)
-    dbsession.delete(scope10)
-    dbsession.delete(scope11)
+    for i in range(len(scopes)):
+        dbsession.delete(scopes[i])
     dbsession.delete(user_session)
     dbsession.commit()

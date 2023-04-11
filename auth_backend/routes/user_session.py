@@ -8,7 +8,7 @@ from fastapi_sqlalchemy import db
 from sqlalchemy import not_
 from starlette.responses import JSONResponse
 
-from auth_backend.base import ResponseModel
+from auth_backend.base import Logout
 from auth_backend.exceptions import ObjectNotFound, SessionExpired
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.models import (
@@ -30,7 +30,7 @@ user_session = APIRouter(prefix="", tags=["User session"])
 logger = logging.getLogger(__name__)
 
 
-@user_session.post("/logout", response_model=ResponseModel)
+@user_session.post("/logout", response_model=Logout)
 async def logout(
     session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
 ) -> JSONResponse:
@@ -38,7 +38,7 @@ async def logout(
         raise SessionExpired(session.token)
     session.expires = datetime.utcnow()
     db.session.commit()
-    return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Logout successful").dict())
+    return JSONResponse(status_code=200, content=Logout(status="Success", message="Logout successful").dict())
 
 
 @user_session.get("/me", response_model_exclude_unset=True, response_model=UserGet)
@@ -130,7 +130,7 @@ async def get_sessions(current_session: UserSession = Depends(UnionAuth(scopes=[
         all_sessions.append(
             dict(
                 user_id=session.user_id,
-                token=session.token,
+                token=('*' * (len(session.token) - 4) + session.token[-4:]),
                 id=session.id,
                 expires=session.expires,
                 session_scopes=[_scope.name for _scope in session.scopes],
