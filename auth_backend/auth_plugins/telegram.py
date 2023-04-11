@@ -1,18 +1,20 @@
+import hashlib
 import hmac
-from fastapi_sqlalchemy import db
+import logging
+from urllib.parse import quote, unquote
+
 import jwt
 from fastapi import Depends
+from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
-import logging
-from auth_backend.auth_plugins.auth_method import OauthMeta, Session, AuthMethodMeta, MethodMeta
-from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
-from auth_backend.models.db import UserSession, User, AuthMethod
-from auth_backend.schemas.types.scopes import Scope
-from auth_backend.utils.security import UnionAuth
-from auth_backend.settings import Settings
-import hashlib
-from urllib.parse import unquote, quote
 from sqlalchemy.orm import Session as DbSession
+
+from auth_backend.auth_plugins.auth_method import AuthMethodMeta, MethodMeta, OauthMeta, Session
+from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.schemas.types.scopes import Scope
+from auth_backend.settings import Settings
+from auth_backend.utils.security import UnionAuth
 
 
 logger = logging.getLogger(__name__)

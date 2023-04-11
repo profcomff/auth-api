@@ -1,10 +1,11 @@
 from __future__ import annotations
+
 import re
 
-from sqlalchemy import not_, Integer
+from sqlalchemy import Integer, not_
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.declarative import as_declarative, declared_attr
-from sqlalchemy.orm import Session, Mapped, mapped_column, Query
+from sqlalchemy.orm import Mapped, Query, Session, mapped_column
 
 from auth_backend.exceptions import ObjectNotFound
 

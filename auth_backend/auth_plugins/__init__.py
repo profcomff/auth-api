@@ -1,13 +1,13 @@
-from .auth_method import AuthMethodMeta, AUTH_METHODS
+from .auth_method import AUTH_METHODS, AuthMethodMeta
 from .email import Email
+from .github import GithubAuth
 from .google import GoogleAuth
-from .physics import PhysicsAuth
 from .lkmsu import LkmsuAuth
-from .yandex import YandexAuth
 from .mymsu import MyMsuAuth
+from .physics import PhysicsAuth
 from .telegram import TelegramAuth
 from .vk import VkAuth
-from .github import GithubAuth
+from .yandex import YandexAuth
 
 
 __all__ = [

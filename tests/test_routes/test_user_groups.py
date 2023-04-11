@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 from starlette.testclient import TestClient
 
-from auth_backend.models.db import UserGroup, Group, User
+from auth_backend.models.db import Group, User, UserGroup
 
 
 def test_add_user(client: TestClient, dbsession: Session, user_factory):

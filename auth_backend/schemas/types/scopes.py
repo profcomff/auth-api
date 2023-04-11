@@ -1,7 +1,8 @@
 import string
 from typing import Any, Generator
 
-from pydantic.validators import str_validator, AnyCallable
+from pydantic.validators import AnyCallable, str_validator
+
 
 CallableGenerator = Generator[AnyCallable, None, None]
 

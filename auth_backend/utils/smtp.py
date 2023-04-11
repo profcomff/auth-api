@@ -7,6 +7,7 @@ from retrying import retry
 
 from auth_backend.settings import get_settings
 
+
 settings = get_settings()
 
 

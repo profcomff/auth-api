@@ -1,6 +1,8 @@
 from pydantic import Field
-from .yandex import YandexAuth, YandexAuthParams
+
 from auth_backend.settings import Settings
+
+from .yandex import YandexAuth, YandexAuthParams
 
 
 class MyMsuSettings(Settings):
