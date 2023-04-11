@@ -1,8 +1,10 @@
-from starlette import status
+from datetime import datetime
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
-from auth_backend.models.db import AuthMethod, UserSession, User
-from datetime import datetime
+from starlette import status
+
+from auth_backend.models.db import AuthMethod, User, UserSession
 
 
 url = "/logout"

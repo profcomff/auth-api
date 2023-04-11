@@ -7,12 +7,13 @@ from fastapi import Depends
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_plugins.auth_method import OauthMeta, Session, AuthMethodMeta, MethodMeta
-from auth_backend.exceptions import OauthAuthFailed, AlreadyExists
-from auth_backend.models.db import UserSession, User, AuthMethod
+from auth_backend.auth_plugins.auth_method import AuthMethodMeta, MethodMeta, OauthMeta, Session
+from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
+
 
 logger = logging.getLogger(__name__)
 

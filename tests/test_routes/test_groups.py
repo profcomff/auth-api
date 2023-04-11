@@ -1,11 +1,11 @@
 import datetime
 from time import sleep
 
-import pytest
 import httpx
+import pytest
 
 from auth_backend.exceptions import ObjectNotFound
-from auth_backend.models.db import Group, UserGroup, Scope, User, GroupScope
+from auth_backend.models.db import Group, GroupScope, Scope, User, UserGroup
 
 
 def test_create(client, dbsession):
