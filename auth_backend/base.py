@@ -12,6 +12,6 @@ class Base(BaseModel):
         orm_mode = True
 
 
-class ResponseModel(Base):
+class StatusResponseModel(Base):
     status: str
     message: str

@@ -1,11 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi_sqlalchemy import db
 from pydantic import parse_obj_as
 from sqlalchemy import func
 
-from auth_backend.base import ResponseModel
-from auth_backend.models.db import UserSession, Scope
-from auth_backend.schemas.models import ScopeGet, ScopePost, ScopePatch
+from auth_backend.base import StatusResponseModel
+from auth_backend.models.db import Scope, UserSession
+from auth_backend.schemas.models import ScopeGet, ScopePatch, ScopePost
 from auth_backend.utils.security import UnionAuth
 
 
@@ -21,7 +21,9 @@ async def create_scope(
     Scopes: `["auth.scope.create"]`
     """
     if Scope.query(session=db.session).filter(func.lower(Scope.name) == scope.name.lower()).all():
-        raise HTTPException(status_code=409, detail=ResponseModel(status="Error", message="Already exists").dict())
+        raise HTTPException(
+            status_code=409, detail=StatusResponseModel(status="Error", message="Already exists").dict()
+        )
     scope.name = scope.name.lower()
     return ScopeGet.from_orm(Scope.create(**scope.dict(), creator_id=user_session.user_id, session=db.session))
 
@@ -59,7 +61,7 @@ async def update_scope(
     return ScopeGet.from_orm(Scope.update(scope.id, **scope_inp.dict(), session=db.session))
 
 
-@scopes.delete("/{id}", response_model=ResponseModel)
+@scopes.delete("/{id}", response_model=StatusResponseModel)
 async def delete_scope(
     id: int, _: UserSession = Depends(UnionAuth(scopes=["auth.scope.delete"], allow_none=False, auto_error=True))
 ):
@@ -67,4 +69,4 @@ async def delete_scope(
     Scopes: `["auth.scope.delete"]`
     """
     Scope.delete(session=db.session, id=id)
-    return ResponseModel(status="Success", message="Scope has been deleted")
+    return StatusResponseModel(status="Success", message="Scope has been deleted")

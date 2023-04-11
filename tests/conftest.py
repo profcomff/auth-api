@@ -7,7 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from starlette import status
 
-from auth_backend.models.db import Group, UserSession, UserGroup, User, AuthMethod
+from auth_backend.auth_plugins.auth_method import random_string
+from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 
@@ -185,4 +186,42 @@ def user_factory(dbsession):
     dbsession.flush()
 
     dbsession.query(User).delete()
+    dbsession.commit()
+
+
+@pytest.fixture()
+def user_scopes(dbsession, user):
+    user_id, body, response = user["user_id"], user["body"], user["login_json"]
+    scopes_names = [
+        "auth.scope.create",
+        "auth.scope.read",
+        "auth.scope.delete",
+        "auth.scope.update",
+        "auth.user.delete",
+        "auth.user.update",
+        "auth.user.read",
+        "auth.group.create",
+        "auth.group.read",
+        "auth.group.delete",
+        "auth.group.update",
+    ]
+    scopes = []
+    for i in scopes_names:
+        dbsession.add(scope1 := Scope(name=i, creator_id=user_id))
+        scopes.append(scope1)
+    token_ = random_string()
+    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
+    dbsession.flush()
+    user_scopes = []
+    for i in scopes:
+        dbsession.add(user_scope1 := UserSessionScope(scope_id=i.id, user_session_id=user_session.id))
+        user_scopes.append(user_scope1)
+    dbsession.commit()
+    yield token_, user
+    for i in user_scopes:
+        dbsession.delete(i)
+    dbsession.flush()
+    for i in scopes:
+        dbsession.delete(i)
+    dbsession.delete(user_session)
     dbsession.commit()

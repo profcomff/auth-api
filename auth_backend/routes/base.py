@@ -7,7 +7,7 @@ from auth_backend import __version__
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.settings import get_settings
 
-from .user_session import logout_router
+from .user_session import user_session
 from .groups import groups
 from .scopes import scopes
 from .user import user
@@ -41,7 +41,7 @@ app.add_middleware(
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
-app.include_router(logout_router)
+app.include_router(user_session)
 app.include_router(groups)
 app.include_router(scopes)
 app.include_router(user)

@@ -27,7 +27,7 @@ def test_add_user(client: TestClient, dbsession: Session, user_factory):
     assert gr in user.groups
 
 
-def test_get_user_list(client, dbsession, group, user_factory):
+def test_get_user_list(client, dbsession, user_factory):
     time1 = datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     group = client.post(url="/group", json=body).json()["id"]

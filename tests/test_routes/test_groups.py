@@ -86,7 +86,7 @@ def test_get_all(client, dbsession):
     child_ = [row["child"] for row in response]
     assert child in [row["id"] for row in child_[0]]
 
-    for row in dbsession.query(Group).get(child), dbsession.query(Group).get(group):
+    for row in (dbsession.query(Group).get(child), dbsession.query(Group).get(group)):
         dbsession.delete(row)
     dbsession.commit()
 
@@ -106,7 +106,7 @@ def test_with_childs(client, dbsession):
     assert response.status_code == 200
     assert group not in [row["id"] for row in response.json()["child"]]
 
-    for row in dbsession.query(Group).get(child), dbsession.query(Group).get(group):
+    for row in (dbsession.query(Group).get(child), dbsession.query(Group).get(group)):
         dbsession.delete(row)
     dbsession.commit()
 
@@ -147,10 +147,10 @@ def test_cycle_patch(client, dbsession):
     response = client.patch(f"/group/{group}", json={"parent_id": group2})
     assert response.status_code == 400
 
-    dbsession.query(UserGroup).delete()
-    dbsession.query(GroupScope).delete()
-    dbsession.query(Scope).delete()
-    dbsession.query(Group).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == group).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == group2).delete()
+    dbsession.query(Group).filter(Group.id == group2).delete()
+    dbsession.query(Group).filter(Group.id == group).delete()
     dbsession.commit()
 
 

@@ -1,28 +1,36 @@
+import logging
+import string
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
+from sqlalchemy import not_
 from starlette.responses import JSONResponse
 
-from auth_backend.base import ResponseModel
-from auth_backend.exceptions import SessionExpired
-from auth_backend.models.db import AuthMethod, UserSession
+from auth_backend.base import StatusResponseModel
+from auth_backend.exceptions import ObjectNotFound, SessionExpired
+from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.models import (
+    Session,
+    SessionPost,
+    SessionScopes,
     UserAuthMethods,
+    UserGet,
     UserGroups,
     UserIndirectGroups,
     UserInfo,
-    UserGet,
     UserScopes,
-    SessionScopes,
 )
+from auth_backend.utils import user_session_control
 from auth_backend.utils.security import UnionAuth
 
-logout_router = APIRouter(prefix="", tags=["Logout"])
+
+user_session = APIRouter(prefix="", tags=["User session"])
+logger = logging.getLogger(__name__)
 
 
-@logout_router.post("/logout", response_model=str)
+@user_session.post("/logout", response_model=StatusResponseModel)
 async def logout(
     session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
 ) -> JSONResponse:
@@ -30,10 +38,12 @@ async def logout(
         raise SessionExpired(session.token)
     session.expires = datetime.utcnow()
     db.session.commit()
-    return JSONResponse(status_code=200, content=ResponseModel(status="Success", message="Logout successful").dict())
+    return JSONResponse(
+        status_code=200, content=StatusResponseModel(status="Success", message="StatusResponseModel successful").dict()
+    )
 
 
-@logout_router.get("/me", response_model_exclude_unset=True, response_model=UserGet)
+@user_session.get("/me", response_model_exclude_unset=True, response_model=UserGet)
 async def me(
     session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
     info: list[Literal["groups", "indirect_groups", "session_scopes", "user_scopes", "auth_methods"]] = Query(
@@ -71,3 +81,61 @@ async def me(
         result = result | UserAuthMethods(auth_methods=(a[0] for a in auth_methods)).dict()
 
     return UserGet(**result).dict(exclude_unset=True)
+
+
+@user_session.post("/session", response_model=Session)
+async def create_session(
+    new_session: SessionPost, session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
+):
+    return await user_session_control.create_session(
+        session.user, new_session.scopes, new_session.expires, db_session=db.session
+    )
+
+
+@user_session.delete("/session/{token}")
+async def delete_session(
+    token: str, current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
+):
+    session: UserSession = (
+        UserSession.query(session=db.session)
+        .filter(UserSession.token == token, not_(UserSession.expired))
+        .one_or_none()
+    )
+    if not session:
+        raise ObjectNotFound(UserSession, token)
+    if current_session.user is not session.user:
+        raise ObjectNotFound(UserSession, token)
+    session.expires = datetime.utcnow()
+    db.session.commit()
+
+
+@user_session.delete("/session")
+async def delete_sessions(
+    delete_current: bool = Query(default=False),
+    current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
+):
+    query = (
+        db.session.query(UserSession)
+        .filter(UserSession.user_id == current_session.user_id)
+        .filter(not_(UserSession.expired))
+    )
+    if not delete_current:
+        query = query.filter(UserSession.token != current_session.token)
+    query.update({"expires": datetime.utcnow()})
+    db.session.commit()
+
+
+@user_session.get("/session", response_model=list[Session])
+async def get_sessions(current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))):
+    all_sessions = []
+    for session in current_session.user.active_sessions:
+        all_sessions.append(
+            dict(
+                user_id=session.user_id,
+                token=('*' * (len(session.token) - 4) + session.token[-4:]),
+                id=session.id,
+                expires=session.expires,
+                session_scopes=[_scope.name for _scope in session.scopes],
+            )
+        )
+    return all_sessions

@@ -15,14 +15,9 @@ from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.db import Group, UserGroup
 
 
-def test_create_scope(client_auth: TestClient, dbsession: Session, user):
-    user_id, body, response = user["user_id"], user["body"], user["login_json"]
-    dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
-    token_ = random_string()
-    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
-    dbsession.flush()
-    dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.commit()
+def test_create_scope(client_auth: TestClient, dbsession: Session, user_scopes):
+    token_ = user_scopes[0]
+    user_session = dbsession.query(UserSession).filter(UserSession.token == token_).one()
     rand = random_string()
     response = client_auth.post(
         "/scope", json={"name": f"gh.gh.gh{rand}", "comment": "test"}, headers={"Authorization": token_}
@@ -32,24 +27,12 @@ def test_create_scope(client_auth: TestClient, dbsession: Session, user):
     assert db_resp.name == response.json()["name"]
     assert db_resp.comment == response.json()["comment"]
     assert db_resp.creator_id == user_session.user_id
-    dbsession.query(UserSessionScope).delete()
-    dbsession.delete(user_session)
-    dbsession.query(Scope).delete()
+    dbsession.delete(db_resp)
     dbsession.commit()
 
 
-def test_patch_scope(client_auth, dbsession, user):
-    user_id, body, response = user["user_id"], user["body"], user["login_json"]
-    dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
-    dbsession.add(scope2 := Scope(name="auth.scope.update", creator_id=user_id))
-    dbsession.add(scope3 := Scope(name="auth.scope.read", creator_id=user_id))
-    token_ = random_string()
-    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
-    dbsession.flush()
-    dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
-    dbsession.commit()
+def test_patch_scope(client_auth, dbsession, user_scopes):
+    token_ = user_scopes[0]
     rand = random_string()
     response = client_auth.post(
         "/scope", json={"name": f"gh.gh.gh{rand}", "comment": "test"}, headers={"Authorization": token_}
@@ -71,22 +54,13 @@ def test_patch_scope(client_auth, dbsession, user):
     assert response_get_2.json() == response_update.json()
     assert response_get_2.json()["name"] == f"gh.gh.gh{rand2}".lower()
     assert response_get_2.json()["comment"] == "test2"
-    dbsession.query(UserSessionScope).delete()
-    dbsession.delete(user_session)
-    dbsession.query(Scope).delete()
+    db_resp: Scope = dbsession.query(Scope).filter(func.lower(Scope.name) == f"gh.gh.gh{rand2}".lower()).one()
+    dbsession.delete(db_resp)
     dbsession.commit()
 
 
-def test_get_scope(client_auth, dbsession, user):
-    user_id, body, response = user["user_id"], user["body"], user["login_json"]
-    dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
-    dbsession.add(scope2 := Scope(name="auth.scope.read", creator_id=user_id))
-    token_ = random_string()
-    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
-    dbsession.flush()
-    dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
-    dbsession.commit()
+def test_get_scope(client_auth, dbsession, user_scopes):
+    token_ = user_scopes[0]
     rand = random_string()
     response = client_auth.post(
         "/scope", json={"name": f"gh.gh.gh{rand}", "comment": "test"}, headers={"Authorization": token_}
@@ -95,24 +69,13 @@ def test_get_scope(client_auth, dbsession, user):
     response_get = client_auth.get(f"/scope/{response.json()['id']}", headers={"Authorization": token_})
     assert response_get.status_code == 200
     assert response_get.json() == response.json()
-    dbsession.query(UserSessionScope).delete()
-    dbsession.delete(user_session)
-    dbsession.query(Scope).delete()
+    db_resp: Scope = dbsession.query(Scope).filter(func.lower(Scope.name) == f"gh.gh.gh{rand}".lower()).one()
+    dbsession.delete(db_resp)
     dbsession.commit()
 
 
-def test_delete_scope(client_auth, dbsession, user):
-    user_id, body, response = user["user_id"], user["body"], user["login_json"]
-    dbsession.add(scope1 := Scope(name="auth.scope.create", creator_id=user_id))
-    dbsession.add(scope2 := Scope(name="auth.scope.read", creator_id=user_id))
-    dbsession.add(scope3 := Scope(name="auth.scope.delete", creator_id=user_id))
-    token_ = random_string()
-    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
-    dbsession.flush()
-    dbsession.add(UserSessionScope(scope_id=scope1.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope3.id, user_session_id=user_session.id))
-    dbsession.add(UserSessionScope(scope_id=scope2.id, user_session_id=user_session.id))
-    dbsession.commit()
+def test_delete_scope(client_auth, dbsession, user_scopes):
+    token_ = user_scopes[0]
     rand = random_string()
     response = client_auth.post(
         "/scope", json={"name": f"gh.gh.gh{rand}", "comment": "test"}, headers={"Authorization": token_}
@@ -124,9 +87,8 @@ def test_delete_scope(client_auth, dbsession, user):
     assert resp_del.status_code == 200
     response_get_2 = client_auth.get(f"/scope/{response.json()['id']}", headers={"Authorization": token_})
     assert response_get_2.status_code == 404
-    dbsession.query(UserSessionScope).delete()
-    dbsession.delete(user_session)
-    dbsession.query(Scope).delete()
+    db_resp: Scope = dbsession.query(Scope).filter(func.lower(Scope.name) == f"gh.gh.gh{rand}".lower()).one()
+    dbsession.delete(db_resp)
     dbsession.commit()
 
 
