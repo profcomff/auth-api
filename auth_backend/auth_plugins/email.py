@@ -134,11 +134,18 @@ class Email(AuthMethodMeta):
         self.router.add_api_route(
             "/reset/email/request", self._request_reset_email, methods=["POST"], response_model=StatusResponseModel
         )
-        self.router.add_api_route("/reset/email", self._reset_email, methods=["GET"], response_model=StatusResponseModel)
         self.router.add_api_route(
-            "/reset/password/request", self._request_reset_password, methods=["POST"], response_model=StatusResponseModel
+            "/reset/email", self._reset_email, methods=["GET"], response_model=StatusResponseModel
         )
-        self.router.add_api_route("/reset/password", self._reset_password, methods=["POST"], response_model=StatusResponseModel)
+        self.router.add_api_route(
+            "/reset/password/request",
+            self._request_reset_password,
+            methods=["POST"],
+            response_model=StatusResponseModel,
+        )
+        self.router.add_api_route(
+            "/reset/password", self._reset_password, methods=["POST"], response_model=StatusResponseModel
+        )
         self.tags = ["Email"]
 
     @classmethod
@@ -249,7 +256,9 @@ class Email(AuthMethodMeta):
             .one_or_none()
         )
         if not auth_method:
-            raise HTTPException(status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect link").dict())
+            raise HTTPException(
+                status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect link").dict()
+            )
         auth_method.user.auth_methods.email.confirmed.value = "true"
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email approved")
@@ -269,7 +278,9 @@ class Email(AuthMethodMeta):
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
         if user_session.user.auth_methods.email.email.value == scheme.email:
-            raise HTTPException(status_code=401, detail=StatusResponseModel(status="Error", message="Email incorrect").dict())
+            raise HTTPException(
+                status_code=401, detail=StatusResponseModel(status="Error", message="Email incorrect").dict()
+            )
         token = random_string()
         await user_session.user.auth_methods.email.bulk_create(
             {"tmp_email_confirmation_token": token, "tmp_email": scheme.email}
@@ -294,7 +305,8 @@ class Email(AuthMethodMeta):
         )
         if not auth:
             raise HTTPException(
-                status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect confirmation token").dict()
+                status_code=403,
+                detail=StatusResponseModel(status="Error", message="Incorrect confirmation token").dict(),
             )
         user: User = auth.user
         if user.auth_methods.email.confirmed.value == "false":
@@ -359,7 +371,9 @@ class Email(AuthMethodMeta):
                 .one_or_none()
             )
             if not auth_method_email:
-                raise HTTPException(status_code=404, detail=StatusResponseModel(status="Error", message="Email not found").dict())
+                raise HTTPException(
+                    status_code=404, detail=StatusResponseModel(status="Error", message="Email not found").dict()
+                )
             if not auth_method_email.user.auth_methods.email:
                 raise HTTPException(
                     status_code=401,
@@ -377,8 +391,12 @@ class Email(AuthMethodMeta):
             )
             return StatusResponseModel(status="Success", message="Reset link has been successfully mailed")
         elif not user_session and schema.password and schema.new_password:
-            raise HTTPException(status_code=403, detail=StatusResponseModel(status="Error", message="Missing session").dict())
-        raise HTTPException(status_code=422, detail=StatusResponseModel(status="Error", message="Unprocessable entity").dict())
+            raise HTTPException(
+                status_code=403, detail=StatusResponseModel(status="Error", message="Missing session").dict()
+            )
+        raise HTTPException(
+            status_code=422, detail=StatusResponseModel(status="Error", message="Unprocessable entity").dict()
+        )
 
     @staticmethod
     async def _reset_password(schema: ResetPassword, reset_token: str = Header(min_length=1)) -> StatusResponseModel:

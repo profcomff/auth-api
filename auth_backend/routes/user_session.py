@@ -38,7 +38,9 @@ async def logout(
         raise SessionExpired(session.token)
     session.expires = datetime.utcnow()
     db.session.commit()
-    return JSONResponse(status_code=200, content=StatusResponseModel(status="Success", message="StatusResponseModel successful").dict())
+    return JSONResponse(
+        status_code=200, content=StatusResponseModel(status="Success", message="StatusResponseModel successful").dict()
+    )
 
 
 @user_session.get("/me", response_model_exclude_unset=True, response_model=UserGet)

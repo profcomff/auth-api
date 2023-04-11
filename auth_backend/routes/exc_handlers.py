@@ -63,4 +63,6 @@ async def session_expired_handler(req: starlette.requests.Request, exc: SessionE
 
 @app.exception_handler(Exception)
 async def http_error_handler(req: starlette.requests.Request, exc: Exception):
-    return JSONResponse(content=StatusResponseModel(status="Error", message="Internal server error").dict(), status_code=500)
+    return JSONResponse(
+        content=StatusResponseModel(status="Error", message="Internal server error").dict(), status_code=500
+    )

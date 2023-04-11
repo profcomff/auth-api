@@ -21,7 +21,9 @@ async def create_scope(
     Scopes: `["auth.scope.create"]`
     """
     if Scope.query(session=db.session).filter(func.lower(Scope.name) == scope.name.lower()).all():
-        raise HTTPException(status_code=409, detail=StatusResponseModel(status="Error", message="Already exists").dict())
+        raise HTTPException(
+            status_code=409, detail=StatusResponseModel(status="Error", message="Already exists").dict()
+        )
     scope.name = scope.name.lower()
     return ScopeGet.from_orm(Scope.create(**scope.dict(), creator_id=user_session.user_id, session=db.session))
 

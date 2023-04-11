@@ -56,7 +56,7 @@ async def create_scopes_set_by_names(scopes_list_names: list[TypeScope]) -> set[
 
 
 async def check_scopes(scopes: set[Scope], user: User) -> None:
-    '''Проверяет, чтобы количество новых скоупов совпадало со старым количеством'''
+    '''Проверяет доступность скоуппов для юзера'''
     if len(scopes & user.scopes) != len(scopes):
         raise HTTPException(
             status_code=403,

@@ -46,7 +46,9 @@ async def create_group(
     if group_inp.parent_id and not db.session.query(DbGroup).get(group_inp.parent_id):
         raise ObjectNotFound(Group, group_inp.parent_id)
     if DbGroup.query(session=db.session).filter(DbGroup.name == group_inp.name).one_or_none():
-        raise HTTPException(status_code=409, detail=StatusResponseModel(status="Error", message="Name already exists").dict())
+        raise HTTPException(
+            status_code=409, detail=StatusResponseModel(status="Error", message="Name already exists").dict()
+        )
     scopes = set()
     if group_inp.scopes:
         for _scope_id in group_inp.scopes:
@@ -78,7 +80,9 @@ async def patch_group(
         raise AlreadyExists(Group, exists_check.id)
     group = DbGroup.get(id, session=db.session)
     if group_inp.parent_id in (row.id for row in group.child):
-        raise HTTPException(status_code=400, detail=StatusResponseModel(status="Error", message="Cycle detected").dict())
+        raise HTTPException(
+            status_code=400, detail=StatusResponseModel(status="Error", message="Cycle detected").dict()
+        )
     result = Group.from_orm(
         DbGroup.update(id, session=db.session, **group_inp.dict(exclude_unset=True, exclude={"scopes"}))
     ).dict(exclude_unset=True)
