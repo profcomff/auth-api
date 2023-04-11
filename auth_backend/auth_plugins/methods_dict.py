@@ -1,4 +1,5 @@
 from auth_backend.models.db import AuthMethod, User
+
 from .auth_method import MethodMeta
 from .email import Email
 from .github import GithubAuth

@@ -1,6 +1,7 @@
-from pydantic import Json, Field
+from pydantic import Field, Json
 
 from auth_backend.settings import Settings
+
 from .google import GoogleAuth, GoogleAuthParams
 
 

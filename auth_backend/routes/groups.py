@@ -1,13 +1,15 @@
-from typing import Literal, Any
+from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_sqlalchemy import db
 
 from auth_backend.base import StatusResponseModel
-from auth_backend.exceptions import ObjectNotFound, AlreadyExists
-from auth_backend.models.db import Group as DbGroup, UserSession, GroupScope, Scope
-from auth_backend.schemas.models import Group, GroupPost, GroupsGet, GroupPatch, GroupGet
+from auth_backend.exceptions import AlreadyExists, ObjectNotFound
+from auth_backend.models.db import Group as DbGroup
+from auth_backend.models.db import GroupScope, Scope, UserSession
+from auth_backend.schemas.models import Group, GroupGet, GroupPatch, GroupPost, GroupsGet
 from auth_backend.utils.security import UnionAuth
+
 
 groups = APIRouter(prefix="/group", tags=["Groups"])
 

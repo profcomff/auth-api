@@ -1,13 +1,20 @@
 import logging
-from typing import Literal, Any
+from typing import Any, Literal
 
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
 
-from auth_backend.models.db import User, UserGroup, AuthMethod
-from auth_backend.models.db import UserSession, Group
-from auth_backend.schemas.models import UserGroups, UserIndirectGroups, UserInfo, UserGet, UserScopes, UserAuthMethods
-from auth_backend.schemas.models import UsersGet, UserPatch
+from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
+from auth_backend.schemas.models import (
+    UserAuthMethods,
+    UserGet,
+    UserGroups,
+    UserIndirectGroups,
+    UserInfo,
+    UserPatch,
+    UserScopes,
+    UsersGet,
+)
 from auth_backend.utils.security import UnionAuth
 
 

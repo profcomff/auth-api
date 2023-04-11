@@ -4,11 +4,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from auth_backend.settings import get_settings
+
+from ..routes import app
 from .group import create_group
 from .scope import create_scope
 from .user import create_user
 from .user_group import create_user_group
-from ..routes import app
+
 
 settings = get_settings()
 engine = create_engine(settings.DB_DSN)

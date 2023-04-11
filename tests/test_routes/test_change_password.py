@@ -1,8 +1,10 @@
 import pytest
-from starlette import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from starlette import status
+
 from auth_backend.models.db import AuthMethod
+
 
 url = "/email/reset/password"
 
