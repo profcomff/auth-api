@@ -206,22 +206,22 @@ def user_scopes(dbsession, user):
         "auth.group.update",
     ]
     scopes = []
-    for i in range(len(scopes_names)):
-        dbsession.add(scope1 := Scope(name=scopes_names[i], creator_id=user_id))
+    for i in scopes_names:
+        dbsession.add(scope1 := Scope(name=i, creator_id=user_id))
         scopes.append(scope1)
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
     dbsession.flush()
     user_scopes = []
-    for i in range(len(scopes)):
-        dbsession.add(user_scope1 := UserSessionScope(scope_id=scopes[i].id, user_session_id=user_session.id))
+    for i in scopes:
+        dbsession.add(user_scope1 := UserSessionScope(scope_id=i.id, user_session_id=user_session.id))
         user_scopes.append(user_scope1)
     dbsession.commit()
     yield token_, user
-    for i in range(len(user_scopes)):
-        dbsession.delete(user_scopes[i])
+    for i in user_scopes:
+        dbsession.delete(i)
     dbsession.flush()
-    for i in range(len(scopes)):
-        dbsession.delete(scopes[i])
+    for i in scopes:
+        dbsession.delete(i)
     dbsession.delete(user_session)
     dbsession.commit()

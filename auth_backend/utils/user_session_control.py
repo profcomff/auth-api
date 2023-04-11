@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session as DbSession
 
-from auth_backend.base import Logout
+from auth_backend.base import StatusResponseModel
 from auth_backend.models.db import Scope, User, UserSession, UserSessionScope
 from auth_backend.schemas.models import Session
 from auth_backend.schemas.types.scopes import Scope as TypeScope
@@ -60,7 +60,7 @@ async def check_scopes(scopes: set[Scope], user: User) -> None:
     if len(scopes & user.scopes) != len(scopes):
         raise HTTPException(
             status_code=403,
-            detail=Logout(
+            detail=StatusResponseModel(
                 status="Error",
                 message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in scopes - user.scopes]} ",
             ).dict(),

@@ -6,7 +6,7 @@ from fastapi_sqlalchemy import db
 from pydantic import constr, validator
 from sqlalchemy import func
 
-from auth_backend.base import Base, Logout
+from auth_backend.base import Base, StatusResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
@@ -130,15 +130,15 @@ class Email(AuthMethodMeta):
     def __init__(self):
         super().__init__()
 
-        self.router.add_api_route("/approve", self._approve_email, methods=["GET"], response_model=Logout)
+        self.router.add_api_route("/approve", self._approve_email, methods=["GET"], response_model=StatusResponseModel)
         self.router.add_api_route(
-            "/reset/email/request", self._request_reset_email, methods=["POST"], response_model=Logout
+            "/reset/email/request", self._request_reset_email, methods=["POST"], response_model=StatusResponseModel
         )
-        self.router.add_api_route("/reset/email", self._reset_email, methods=["GET"], response_model=Logout)
+        self.router.add_api_route("/reset/email", self._reset_email, methods=["GET"], response_model=StatusResponseModel)
         self.router.add_api_route(
-            "/reset/password/request", self._request_reset_password, methods=["POST"], response_model=Logout
+            "/reset/password/request", self._request_reset_password, methods=["POST"], response_model=StatusResponseModel
         )
-        self.router.add_api_route("/reset/password", self._reset_password, methods=["POST"], response_model=Logout)
+        self.router.add_api_route("/reset/password", self._reset_password, methods=["POST"], response_model=StatusResponseModel)
         self.tags = ["Email"]
 
     @classmethod
@@ -192,7 +192,7 @@ class Email(AuthMethodMeta):
         user_inp: EmailRegister,
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
-    ) -> Logout:
+    ) -> StatusResponseModel:
         confirmation_token: str = random_string()
         auth_method: AuthMethod = (
             AuthMethod.query(session=db.session)
@@ -211,7 +211,7 @@ class Email(AuthMethodMeta):
                 link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
             )
             db.session.commit()
-            return Logout(status="Success", message="Email confirmation link sent")
+            return StatusResponseModel(status="Success", message="Email confirmation link sent")
         if user_session:
             user = await cls._get_user(user_session=user_session, db_session=db.session)
             if not user:
@@ -225,7 +225,7 @@ class Email(AuthMethodMeta):
             link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
         )
         db.session.commit()
-        return Logout(status="Success", message="Email confirmation link sent")
+        return StatusResponseModel(status="Success", message="Email confirmation link sent")
 
     @staticmethod
     def _hash_password(password: str, salt: str) -> str:
@@ -238,7 +238,7 @@ class Email(AuthMethodMeta):
         return Email._hash_password(password, salt) == hashed_password
 
     @staticmethod
-    async def _approve_email(token: str) -> Logout:
+    async def _approve_email(token: str) -> StatusResponseModel:
         auth_method = (
             AuthMethod.query(session=db.session)
             .filter(
@@ -249,17 +249,17 @@ class Email(AuthMethodMeta):
             .one_or_none()
         )
         if not auth_method:
-            raise HTTPException(status_code=403, detail=Logout(status="Error", message="Incorrect link").dict())
+            raise HTTPException(status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect link").dict())
         auth_method.user.auth_methods.email.confirmed.value = "true"
         db.session.commit()
-        return Logout(status="Success", message="Email approved")
+        return StatusResponseModel(status="Success", message="Email approved")
 
     @staticmethod
     async def _request_reset_email(
         scheme: EmailChange,
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
-    ) -> Logout:
+    ) -> StatusResponseModel:
         if user_session.expired:
             raise SessionExpired(user_session.token)
         if not user_session.user.auth_methods.email:
@@ -269,7 +269,7 @@ class Email(AuthMethodMeta):
                 error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
             )
         if user_session.user.auth_methods.email.email.value == scheme.email:
-            raise HTTPException(status_code=401, detail=Logout(status="Error", message="Email incorrect").dict())
+            raise HTTPException(status_code=401, detail=StatusResponseModel(status="Error", message="Email incorrect").dict())
         token = random_string()
         await user_session.user.auth_methods.email.bulk_create(
             {"tmp_email_confirmation_token": token, "tmp_email": scheme.email}
@@ -280,10 +280,10 @@ class Email(AuthMethodMeta):
             link=f"{settings.APPLICATION_HOST}/email/reset/email/{user_session.user_id}?token={token}&email={scheme.email}",
         )
         db.session.commit()
-        return Logout(status="Success", message="Email confirmation link sent")
+        return StatusResponseModel(status="Success", message="Email confirmation link sent")
 
     @staticmethod
-    async def _reset_email(token: str) -> Logout:
+    async def _reset_email(token: str) -> StatusResponseModel:
         auth: AuthMethod = (
             AuthMethod.query(session=db.session)
             .filter(
@@ -294,7 +294,7 @@ class Email(AuthMethodMeta):
         )
         if not auth:
             raise HTTPException(
-                status_code=403, detail=Logout(status="Error", message="Incorrect confirmation token").dict()
+                status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect confirmation token").dict()
             )
         user: User = auth.user
         if user.auth_methods.email.confirmed.value == "false":
@@ -305,14 +305,14 @@ class Email(AuthMethodMeta):
         user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
         user.auth_methods.email.tmp_email.is_deleted = True
         db.session.commit()
-        return Logout(status="Success", message="Email successfully changed")
+        return StatusResponseModel(status="Success", message="Email successfully changed")
 
     @staticmethod
     async def _request_reset_password(
         schema: RequestResetPassword,
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
-    ) -> Logout:
+    ) -> StatusResponseModel:
         salt = random_string()
         if user_session and schema.new_password and schema.password:
             if user_session.expired:
@@ -320,7 +320,7 @@ class Email(AuthMethodMeta):
             if not user_session.user.auth_methods.email:
                 raise HTTPException(
                     status_code=401,
-                    detail=Logout(status="Error", message="Auth method restricted for this user").dict(),
+                    detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").dict(),
                 )
             if not Email._validate_password(
                 schema.password,
@@ -339,7 +339,7 @@ class Email(AuthMethodMeta):
             )
             if auth_method_email.user_id != user_session.user_id:
                 raise HTTPException(
-                    status_code=403, detail=Logout(status="Error", message="Incorrect user session").dict()
+                    status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect user session").dict()
                 )
             user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
             user_session.user.auth_methods.email.salt.value = salt
@@ -347,7 +347,7 @@ class Email(AuthMethodMeta):
                 send_changes_password_notification, user_session.user.auth_methods.email.email.value
             )
             db.session.commit()
-            return Logout(status="Success", message="Password has been successfully changed")
+            return StatusResponseModel(status="Success", message="Password has been successfully changed")
         elif not user_session and not schema.password and not schema.new_password:
             auth_method_email: AuthMethod = (
                 AuthMethod.query(session=db.session)
@@ -359,11 +359,11 @@ class Email(AuthMethodMeta):
                 .one_or_none()
             )
             if not auth_method_email:
-                raise HTTPException(status_code=404, detail=Logout(status="Error", message="Email not found").dict())
+                raise HTTPException(status_code=404, detail=StatusResponseModel(status="Error", message="Email not found").dict())
             if not auth_method_email.user.auth_methods.email:
                 raise HTTPException(
                     status_code=401,
-                    detail=Logout(status="Error", message="Auth method restricted for this user").dict(),
+                    detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").dict(),
                 )
             if auth_method_email.user.auth_methods.email.confirmed.value.lower() == "false":
                 raise AuthFailed(
@@ -375,13 +375,13 @@ class Email(AuthMethodMeta):
                 auth_method_email.user.auth_methods.email.email.value,
                 f"{settings.APPLICATION_HOST}/email/reset?token={auth_method_email.user.auth_methods.email.reset_token.value}",
             )
-            return Logout(status="Success", message="Reset link has been successfully mailed")
+            return StatusResponseModel(status="Success", message="Reset link has been successfully mailed")
         elif not user_session and schema.password and schema.new_password:
-            raise HTTPException(status_code=403, detail=Logout(status="Error", message="Missing session").dict())
-        raise HTTPException(status_code=422, detail=Logout(status="Error", message="Unprocessable entity").dict())
+            raise HTTPException(status_code=403, detail=StatusResponseModel(status="Error", message="Missing session").dict())
+        raise HTTPException(status_code=422, detail=StatusResponseModel(status="Error", message="Unprocessable entity").dict())
 
     @staticmethod
-    async def _reset_password(schema: ResetPassword, reset_token: str = Header(min_length=1)) -> Logout:
+    async def _reset_password(schema: ResetPassword, reset_token: str = Header(min_length=1)) -> StatusResponseModel:
         auth_method = (
             AuthMethod.query(session=db.session)
             .filter(
@@ -392,18 +392,18 @@ class Email(AuthMethodMeta):
             .one_or_none()
         )
         if not auth_method:
-            raise HTTPException(status_code=404, detail=Logout(status="Error", message="Email not found"))
+            raise HTTPException(status_code=404, detail=StatusResponseModel(status="Error", message="Email not found"))
         if (
             not auth_method.user.auth_methods.email.reset_token
             or auth_method.user.auth_methods.email.reset_token.value != reset_token
         ):
             raise HTTPException(
                 status_code=403,
-                detail=Logout(status="Error", message="Incorrect reset token").dict(),
+                detail=StatusResponseModel(status="Error", message="Incorrect reset token").dict(),
             )
         salt = random_string()
         auth_method.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
         auth_method.user.auth_methods.email.salt.value = salt
         auth_method.user.auth_methods.email.reset_token.is_deleted = True
         db.session.commit()
-        return Logout(status="Success", message="Password has been successfully changed")
+        return StatusResponseModel(status="Success", message="Password has been successfully changed")

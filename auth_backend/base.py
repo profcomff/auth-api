@@ -12,6 +12,6 @@ class Base(BaseModel):
         orm_mode = True
 
 
-class Logout(Base):
+class StatusResponseModel(Base):
     status: str
     message: str

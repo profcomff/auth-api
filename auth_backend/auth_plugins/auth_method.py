@@ -12,7 +12,7 @@ from fastapi_sqlalchemy import db
 from pydantic import constr
 from sqlalchemy.orm import Session as DbSession
 
-from auth_backend.base import Base, Logout
+from auth_backend.base import Base, StatusResponseModel
 from auth_backend.exceptions import AlreadyExists
 from auth_backend.models.db import AuthMethod, Scope, User, UserSession, UserSessionScope
 from auth_backend.schemas.types.scopes import Scope as TypeScope
