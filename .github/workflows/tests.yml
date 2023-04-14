@@ -47,7 +47,6 @@ jobs:
           hide-comment: false
           report-only-changed-files: false
           remove-link-from-badge: false
-          unique-id-for-comment: python3.11
           junitxml-path: ./pytest.xml
           junitxml-title: Summary
   linting:
