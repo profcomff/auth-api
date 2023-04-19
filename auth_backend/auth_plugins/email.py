@@ -124,10 +124,6 @@ class EmailParams(MethodMeta):
     tmp_email_confirmation_token: AuthMethod = None
 
 
-def f():
-    return 1 / 0
-
-
 class Email(AuthMethodMeta):
     prefix = "/email"
 
@@ -234,7 +230,7 @@ class Email(AuthMethodMeta):
                     status_code=429,
                     detail=StatusResponseModel(
                         status="Error",
-                        message=f"Too many requests. Delay time: {TooManyEmailRequests_ex.delay_time.total_seconds()} seconds.",
+                        message=f"Too many requests. Delay time: {int(TooManyEmailRequests_ex.delay_time.total_seconds())} seconds.",
                     ).dict(),
                 )
             finally:
@@ -262,7 +258,7 @@ class Email(AuthMethodMeta):
                 status_code=429,
                 detail=StatusResponseModel(
                     status="Error",
-                    message=f"Too many requests. Delay time: {TooManyEmailRequests_ex.delay_time.total_seconds()} seconds.",
+                    message=f"Too many requests. Delay time: {int(TooManyEmailRequests_ex.delay_time.total_seconds())} seconds.",
                 ).dict(),
             )
         finally:
@@ -336,7 +332,7 @@ class Email(AuthMethodMeta):
                 status_code=429,
                 detail=StatusResponseModel(
                     status="Error",
-                    message=f"Too many requests. Delay time: {TooManyEmailRequests_ex.delay_time.total_seconds()} seconds.",
+                    message=f"Too many requests. Delay time: {int(TooManyEmailRequests_ex.delay_time.total_seconds())} seconds.",
                 ).dict(),
             )
         finally:
@@ -420,7 +416,7 @@ class Email(AuthMethodMeta):
                     status_code=429,
                     detail=StatusResponseModel(
                         status="Error",
-                        message=f"Too many requests. Delay time: {TooManyEmailRequests_ex.delay_time.total_seconds()} seconds.",
+                        message=f"Too many requests. Delay time: {int(TooManyEmailRequests_ex.delay_time.total_seconds())} seconds.",
                     ).dict(),
                 )
             finally:
@@ -465,7 +461,7 @@ class Email(AuthMethodMeta):
                     status_code=429,
                     detail=StatusResponseModel(
                         status="Error",
-                        message=f"Too many requests. Delay time: {TooManyEmailRequests_ex.delay_time.total_seconds()} seconds.",
+                        message=f"Too many requests. Delay time: {int(TooManyEmailRequests_ex.delay_time.total_seconds())} seconds.",
                     ).dict(),
                 )
             return StatusResponseModel(status="Success", message="Reset link has been successfully mailed")
