@@ -10,26 +10,17 @@ from starlette import status
 from auth_backend.auth_plugins.auth_method import random_string
 from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
 from auth_backend.routes.base import app
-from auth_backend.settings import get_settings
+from auth_backend.settings import Settings, get_settings
 
 
 @pytest.fixture
 def client():
-    patcher1 = patch("auth_backend.auth_plugins.email.send_confirmation_email")
-    patcher2 = patch("auth_backend.auth_plugins.email.send_change_password_confirmation")
-    patcher3 = patch("auth_backend.auth_plugins.email.send_changes_password_notification")
-    patcher4 = patch("auth_backend.auth_plugins.email.send_reset_email")
-    patcher5 = patch("auth_backend.utils.security.UnionAuth.__call__")
+    patcher1 = patch("auth_backend.auth_plugins.email.SendEmailMessage.send_email")
+    patcher2 = patch("auth_backend.utils.security.UnionAuth.__call__")
     patcher1.start()
     patcher2.start()
-    patcher3.start()
-    patcher4.start()
-    patcher5.start()
     patcher1.return_value = None
-    patcher2.return_value = None
-    patcher3.return_value = None
-    patcher4.return_value = None
-    patcher5.return_value = UserSession(
+    patcher2.return_value = UserSession(
         **{
             "id": 0,
             "user_id": 0,
@@ -41,31 +32,16 @@ def client():
     yield client
     patcher1.stop()
     patcher2.stop()
-    patcher3.stop()
-    patcher4.stop()
-    patcher5.stop()
 
 
 @pytest.fixture
 def client_auth():
-    patcher1 = patch("auth_backend.auth_plugins.email.send_confirmation_email")
-    patcher2 = patch("auth_backend.auth_plugins.email.send_change_password_confirmation")
-    patcher3 = patch("auth_backend.auth_plugins.email.send_changes_password_notification")
-    patcher4 = patch("auth_backend.auth_plugins.email.send_reset_email")
+    patcher1 = patch("auth_backend.auth_plugins.email.SendEmailMessage.send_email")
     patcher1.start()
-    patcher2.start()
-    patcher3.start()
-    patcher4.start()
     patcher1.return_value = None
-    patcher2.return_value = None
-    patcher3.return_value = None
-    patcher4.return_value = None
     client = TestClient(app)
     yield client
     patcher1.stop()
-    patcher2.stop()
-    patcher3.stop()
-    patcher4.stop()
 
 
 @pytest.fixture(scope='session')
@@ -225,3 +201,13 @@ def user_scopes(dbsession, user):
         dbsession.delete(i)
     dbsession.delete(user_session)
     dbsession.commit()
+
+
+@pytest.fixture()
+def client_auth_email_delay():
+    patcher1 = patch("auth_backend.auth_plugins.email.SendEmailMessage.create_backtask_send_email")
+    patcher1.start()
+    patcher1.return_value = None
+    client = TestClient(app)
+    yield client
+    patcher1.stop()

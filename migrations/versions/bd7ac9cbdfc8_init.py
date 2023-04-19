@@ -36,9 +36,18 @@ def upgrade():
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('token'),
     )
+    op.create_table(
+        'user_message_delay',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('user_ip', sa.String(), nullable=True),
+        sa.Column('user_email', sa.String(), nullable=True),
+        sa.Column('delay_time', sa.DateTime(), nullable=False),
+        sa.PrimaryKeyConstraint('id'),
+    )
 
 
 def downgrade():
     op.drop_table('user_session')
     op.drop_table('auth_method')
     op.drop_table('user')
+    op.drop_table('user_message_table')

@@ -33,6 +33,11 @@ class Settings(BaseSettings):
 
     ENCRYPTION_KEY: str = "".join([random.choice(string.ascii_letters) for _ in range(32)])
 
+    IP_DELAY_TIME_IN_MINUTES: float = 1
+    IP_DELAY_COUNT: int = 3
+    EMAIL_DELAY_TIME_IN_MINUTES: float = 1
+    EMAIL_DELAY_COUNT: int = 3
+
     class Config:
         """Pydantic BaseSettings config"""
 
