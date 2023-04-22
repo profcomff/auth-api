@@ -15,7 +15,7 @@ from auth_backend.settings import Settings, get_settings
 
 @pytest.fixture
 def client():
-    patcher1 = patch("auth_backend.auth_plugins.email.SendEmailMessage.send_email")
+    patcher1 = patch("auth_backend.auth_plugins.email.SendEmailMessage.send")
     patcher2 = patch("auth_backend.utils.security.UnionAuth.__call__")
     patcher1.start()
     patcher2.start()
@@ -36,7 +36,7 @@ def client():
 
 @pytest.fixture
 def client_auth():
-    patcher1 = patch("auth_backend.auth_plugins.email.SendEmailMessage.send_email")
+    patcher1 = patch("auth_backend.auth_plugins.email.SendEmailMessage.send")
     patcher1.start()
     patcher1.return_value = None
     client = TestClient(app)
@@ -205,7 +205,7 @@ def user_scopes(dbsession, user):
 
 @pytest.fixture()
 def client_auth_email_delay():
-    patcher1 = patch("auth_backend.auth_plugins.email.SendEmailMessage.create_backtask_send_email")
+    patcher1 = patch("auth_backend.auth_plugins.email.SendEmailMessage.email_task")
     patcher1.start()
     patcher1.return_value = None
     client = TestClient(app)

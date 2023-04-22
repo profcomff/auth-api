@@ -27,10 +27,7 @@ class EmailDelay:
         '''Create database entry'''
         cls.check_ip_delay(ip, dbsession)
         cls.check_email_delay(email, dbsession)
-        entry_id = 0
-        if dbsession.query(UserMessageDelay).all():
-            entry_id = max(list(i.id for i in dbsession.query(UserMessageDelay).all())) + 1
-        user_delay = UserMessageDelay(id=entry_id, user_ip=ip, user_email=email, delay_time=datetime.datetime.utcnow())
+        user_delay = UserMessageDelay(user_ip=ip, user_email=email, delay_time=datetime.datetime.utcnow())
         dbsession.add(user_delay)
         dbsession.commit()
 
@@ -86,9 +83,9 @@ class EmailDelay:
 
     @classmethod
     def delay(cls, ip, email, dbsession: DbSession):
-        cls.create_user_delay(ip, email, dbsession)
         cls.check_ip_delay(ip, dbsession)
         cls.check_email_delay(email, dbsession)
+        cls.create_user_delay(ip, email, dbsession)
 
 
 class SendEmailMessage:
@@ -103,7 +100,7 @@ class SendEmailMessage:
         wait_random_max=settings.WAIT_MAX,
         retry_on_exception=lambda exc: isinstance(exc, smtplib.SMTPException),
     )
-    def create_backtask_send_email(cls, to_email, file_name, subject, *, link=None):
+    def email_task(cls, to_email, file_name, subject, *, link=None):
         with open(f"auth_backend/templates/{file_name}") as f:  # main_confirmation
             tmp = f.read()
             if link and "{{url}}" in tmp:
@@ -113,7 +110,7 @@ class SendEmailMessage:
             img = MIMEImage(f.read(), name="image.png")
 
         message = MIMEMultipart('related')
-        message['Subject'] = subject  # "Подтверждение регистрации Твой ФФ!"
+        message['Subject'] = subject
         message['From'] = cls.from_email
         message['To'] = to_email
 
@@ -137,7 +134,7 @@ class SendEmailMessage:
         wait_random_max=settings.WAIT_MAX,
         retry_on_exception=lambda exc: isinstance(exc, smtplib.SMTPException),
     )
-    def send_email(
+    def send(
         cls,
         to_email,
         ip,
@@ -152,7 +149,7 @@ class SendEmailMessage:
         EmailDelay.check_ip_delay(ip, dbsession)
         EmailDelay.check_email_delay(to_email, dbsession)
         background_tasks.add_task(
-            cls.create_backtask_send_email,
+            cls.email_task,
             to_email=to_email,
             link=link,
             file_name=message_file_name,
