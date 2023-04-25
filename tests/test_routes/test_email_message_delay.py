@@ -13,8 +13,9 @@ settings = get_settings()
 def test_message_delay(client_auth_email_delay: TestClient, dbsession: Session):
     ip_delay = get_settings().IP_DELAY_TIME_IN_MINUTES
     email_delay = get_settings().EMAIL_DELAY_TIME_IN_MINUTES
-    get_settings().IP_DELAY_TIME_IN_MINUTES = 1 / 60
-    get_settings().EMAIL_DELAY_TIME_IN_MINUTES = 1 / 60
+    settings_ = get_settings()
+    settings_.IP_DELAY_TIME_IN_MINUTES = 1 / 60
+    settings_.EMAIL_DELAY_TIME_IN_MINUTES = 1 / 60
     for i in range(settings.IP_DELAY_COUNT):
         response = client_auth_email_delay.post(
             "/email/registration", json={"email": f"test-user@profcomff.com", "password": "string"}
@@ -24,5 +25,5 @@ def test_message_delay(client_auth_email_delay: TestClient, dbsession: Session):
         "/email/registration", json={"email": f"test-user@profcomff.com", "password": "string"}
     )
     assert delay_response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-    get_settings().IP_DELAY_TIME_IN_MINUTES = ip_delay
-    get_settings().EMAIL_DELAY_TIME_IN_MINUTES = email_delay
+    settings_.IP_DELAY_TIME_IN_MINUTES = ip_delay
+    settings_.EMAIL_DELAY_TIME_IN_MINUTES = email_delay
