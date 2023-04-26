@@ -102,8 +102,8 @@ class SendEmailMessage:
         with open(f"auth_backend/templates/{file_name}") as f:
             tmp = f.read()
             for key, value in kwargs.items():
-                if key and f"{{{{{value}}}}}" in tmp:
-                    tmp = tmp.replace(f"{{{{{value}}}}}", key)
+                if f"{{{{{key}}}}}" in tmp:
+                    tmp = tmp.replace(f"{{{{{key}}}}}", value)
 
         with open("auth_backend/templates/image.png", 'rb') as f:
             img = MIMEImage(f.read(), name="image.png")

@@ -223,6 +223,6 @@ class UserSessionScope(BaseDbModel):
 
 
 class UserMessageDelay(BaseDbModel):
+    delay_time: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     user_email: Mapped[str] = mapped_column(String, unique=False)
     user_ip: Mapped[str] = mapped_column(String, unique=False)
-    delay_time: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow())
