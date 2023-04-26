@@ -216,7 +216,7 @@ class Email(AuthMethodMeta):
         if auth_method:
             await Email._change_confirmation_link(auth_method.user, confirmation_token)
             try:
-                await SendEmailMessage.send(
+                SendEmailMessage.send(
                     user_inp.email,
                     request.client.host,
                     "main_confirmation.html",
@@ -244,7 +244,7 @@ class Email(AuthMethodMeta):
             user = await cls._create_user(db_session=db.session)
         await Email._add_to_db(user_inp, confirmation_token, user)
         try:
-            await SendEmailMessage.send(
+            SendEmailMessage.send(
                 user_inp.email,
                 request.client.host,
                 "main_confirmation.html",
@@ -318,7 +318,7 @@ class Email(AuthMethodMeta):
             {"tmp_email_confirmation_token": token, "tmp_email": scheme.email}
         )
         try:
-            await SendEmailMessage.send(
+            SendEmailMessage.send(
                 to_email=scheme.email,
                 ip=request.client.host,
                 message_file_name="mail_change_confirmation.html",
@@ -403,7 +403,7 @@ class Email(AuthMethodMeta):
             user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
             user_session.user.auth_methods.email.salt.value = salt
             try:
-                await SendEmailMessage.send(
+                SendEmailMessage.send(
                     to_email=user_session.user.auth_methods.email.email.value,
                     ip=request.client.host,
                     message_file_name="password_change_notification.html",
@@ -447,7 +447,7 @@ class Email(AuthMethodMeta):
                 )
             await auth_method_email.user.auth_methods.email.create("reset_token", random_string())
             try:
-                await SendEmailMessage.send(
+                SendEmailMessage.send(
                     to_email=auth_method_email.user.auth_methods.email.email.value,
                     ip=request.client.host,
                     message_file_name="password_change_confirmation.html",
