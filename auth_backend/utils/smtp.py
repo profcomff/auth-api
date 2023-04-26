@@ -102,8 +102,8 @@ class SendEmailMessage:
         with open(f"auth_backend/templates/{file_name}") as f:
             tmp = f.read()
             for key, value in kwargs.items():
-                if f"{{{{{key}}}}}" in tmp:
-                    tmp = tmp.replace(f"{{{{{key}}}}}", value)
+                if f'{{{{{key}}}}}' in tmp:
+                    tmp = tmp.replace(f'{{{{{key}}}}}', value)
 
         with open("auth_backend/templates/image.png", 'rb') as f:
             img = MIMEImage(f.read(), name="image.png")
@@ -144,10 +144,4 @@ class SendEmailMessage:
         **kwargs,
     ):
         EmailDelay.delay(ip, to_email, dbsession)
-        background_tasks.add_task(
-            cls.email_task,
-            to_email=to_email,
-            file_name=message_file_name,
-            subject=subject,
-            kwargs=kwargs,
-        )
+        background_tasks.add_task(cls.email_task, to_email, message_file_name, subject, **kwargs)
