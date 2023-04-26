@@ -1,23 +1,25 @@
+import datetime
 import hashlib
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException, Request
 from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import constr, validator
 from sqlalchemy import func
 
 from auth_backend.base import Base, StatusResponseModel
-from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
+from auth_backend.exceptions import (
+    AlreadyExists,
+    AuthFailed,
+    IncorrectUserAuthType,
+    SessionExpired,
+    TooManyEmailRequests,
+)
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
-from auth_backend.utils.smtp import (
-    send_change_password_confirmation,
-    send_changes_password_notification,
-    send_confirmation_email,
-    send_reset_email,
-)
+from auth_backend.utils.smtp import SendEmailMessage
 
 from .auth_method import AuthMethodMeta, MethodMeta, Session, random_string
 
@@ -196,6 +198,7 @@ class Email(AuthMethodMeta):
     @classmethod
     async def _register(
         cls,
+        request: Request,
         user_inp: EmailRegister,
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
@@ -212,12 +215,26 @@ class Email(AuthMethodMeta):
         )
         if auth_method:
             await Email._change_confirmation_link(auth_method.user, confirmation_token)
-            background_tasks.add_task(
-                send_confirmation_email,
-                to_addr=user_inp.email,
-                link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
-            )
-            db.session.commit()
+            try:
+                SendEmailMessage.send(
+                    user_inp.email,
+                    request.client.host,
+                    "main_confirmation.html",
+                    "Подтверждение регистрации Твой ФФ!",
+                    db.session,
+                    background_tasks,
+                    url=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
+                )
+            except TooManyEmailRequests as ex:
+                raise HTTPException(
+                    status_code=429,
+                    detail=StatusResponseModel(
+                        status="Error",
+                        message=f"Too many requests. Delay time: {int(ex.delay_time.total_seconds())} seconds.",
+                    ).dict(),
+                )
+            finally:
+                db.session.commit()
             return StatusResponseModel(status="Success", message="Email confirmation link sent")
         if user_session:
             user = await cls._get_user(user_session=user_session, db_session=db.session)
@@ -226,12 +243,26 @@ class Email(AuthMethodMeta):
         else:
             user = await cls._create_user(db_session=db.session)
         await Email._add_to_db(user_inp, confirmation_token, user)
-        background_tasks.add_task(
-            send_confirmation_email,
-            to_addr=user_inp.email,
-            link=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
-        )
-        db.session.commit()
+        try:
+            SendEmailMessage.send(
+                user_inp.email,
+                request.client.host,
+                "main_confirmation.html",
+                "Подтверждение регистрации Твой ФФ!",
+                db.session,
+                background_tasks,
+                url=f"{settings.APPLICATION_HOST}/email/approve?token={confirmation_token}",
+            )
+        except TooManyEmailRequests as ex:
+            raise HTTPException(
+                status_code=429,
+                detail=StatusResponseModel(
+                    status="Error",
+                    message=f"Too many requests. Delay time: {int(ex.delay_time.total_seconds())} seconds.",
+                ).dict(),
+            )
+        finally:
+            db.session.commit()
         return StatusResponseModel(status="Success", message="Email confirmation link sent")
 
     @staticmethod
@@ -265,6 +296,7 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     async def _request_reset_email(
+        request: Request,
         scheme: EmailChange,
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
@@ -285,12 +317,26 @@ class Email(AuthMethodMeta):
         await user_session.user.auth_methods.email.bulk_create(
             {"tmp_email_confirmation_token": token, "tmp_email": scheme.email}
         )
-        background_tasks.add_task(
-            send_reset_email,
-            to_addr=scheme.email,
-            link=f"{settings.APPLICATION_HOST}/email/reset/email/{user_session.user_id}?token={token}&email={scheme.email}",
-        )
-        db.session.commit()
+        try:
+            SendEmailMessage.send(
+                to_email=scheme.email,
+                ip=request.client.host,
+                message_file_name="mail_change_confirmation.html",
+                subject="Смена почты Твой ФФ!",
+                dbsession=db.session,
+                background_tasks=background_tasks,
+                url=f"{settings.APPLICATION_HOST}/email/reset/email/{user_session.user_id}?token={token}&email={scheme.email}",
+            )
+        except TooManyEmailRequests as ex:
+            raise HTTPException(
+                status_code=429,
+                detail=StatusResponseModel(
+                    status="Error",
+                    message=f"Too many requests. Delay time: {int(ex.delay_time.total_seconds())} seconds.",
+                ).dict(),
+            )
+        finally:
+            db.session.commit()
         return StatusResponseModel(status="Success", message="Email confirmation link sent")
 
     @staticmethod
@@ -321,6 +367,7 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     async def _request_reset_password(
+        request: Request,
         schema: RequestResetPassword,
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
@@ -355,10 +402,25 @@ class Email(AuthMethodMeta):
                 )
             user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
             user_session.user.auth_methods.email.salt.value = salt
-            background_tasks.add_task(
-                send_changes_password_notification, user_session.user.auth_methods.email.email.value
-            )
-            db.session.commit()
+            try:
+                SendEmailMessage.send(
+                    to_email=user_session.user.auth_methods.email.email.value,
+                    ip=request.client.host,
+                    message_file_name="password_change_notification.html",
+                    subject="Смена пароля Твой ФФ!",
+                    dbsession=db.session,
+                    background_tasks=background_tasks,
+                )
+            except TooManyEmailRequests as ex:
+                raise HTTPException(
+                    status_code=429,
+                    detail=StatusResponseModel(
+                        status="Error",
+                        message=f"Too many requests. Delay time: {int(ex.delay_time.total_seconds())} seconds.",
+                    ).dict(),
+                )
+            finally:
+                db.session.commit()
             return StatusResponseModel(status="Success", message="Password has been successfully changed")
         elif not user_session and not schema.password and not schema.new_password:
             auth_method_email: AuthMethod = (
@@ -384,11 +446,24 @@ class Email(AuthMethodMeta):
                     error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
                 )
             await auth_method_email.user.auth_methods.email.create("reset_token", random_string())
-            background_tasks.add_task(
-                send_change_password_confirmation,
-                auth_method_email.user.auth_methods.email.email.value,
-                f"{settings.APPLICATION_HOST}/email/reset?token={auth_method_email.user.auth_methods.email.reset_token.value}",
-            )
+            try:
+                SendEmailMessage.send(
+                    to_email=auth_method_email.user.auth_methods.email.email.value,
+                    ip=request.client.host,
+                    message_file_name="password_change_confirmation.html",
+                    subject="Смена пароля Твой ФФ!",
+                    dbsession=db.session,
+                    background_tasks=background_tasks,
+                    url=f"{settings.APPLICATION_HOST}/email/reset?token={auth_method_email.user.auth_methods.email.reset_token.value}",
+                )
+            except TooManyEmailRequests as ex:
+                raise HTTPException(
+                    status_code=429,
+                    detail=StatusResponseModel(
+                        status="Error",
+                        message=f"Too many requests. Delay time: {int(ex.delay_time.total_seconds())} seconds.",
+                    ).dict(),
+                )
             return StatusResponseModel(status="Success", message="Reset link has been successfully mailed")
         elif not user_session and schema.password and schema.new_password:
             raise HTTPException(

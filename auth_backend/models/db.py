@@ -220,3 +220,9 @@ class UserSessionScope(BaseDbModel):
     user_session_id: Mapped[int] = mapped_column(Integer, ForeignKey(UserSession.id))
     scope_id: Mapped[int] = mapped_column(Integer, ForeignKey(Scope.id))
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class UserMessageDelay(BaseDbModel):
+    delay_time: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    user_email: Mapped[str] = mapped_column(String, unique=False)
+    user_ip: Mapped[str] = mapped_column(String, unique=False)
