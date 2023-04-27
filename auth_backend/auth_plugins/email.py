@@ -1,3 +1,4 @@
+import logging
 import datetime
 import hashlib
 
@@ -25,6 +26,7 @@ from .auth_method import AuthMethodMeta, MethodMeta, Session, random_string
 
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def check_email(v):

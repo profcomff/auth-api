@@ -10,6 +10,7 @@ from .groups import groups
 from .scopes import scopes
 from .user import user
 from .user_session import user_session
+from .app_auth import app_auth
 
 
 settings = get_settings()
@@ -44,6 +45,7 @@ app.include_router(user_session)
 app.include_router(groups)
 app.include_router(scopes)
 app.include_router(user)
+app.include_router(app_auth)
 
 for method in AUTH_METHODS.values():
     if settings.ENABLED_AUTH_METHODS is None or method.get_name() in settings.ENABLED_AUTH_METHODS:
