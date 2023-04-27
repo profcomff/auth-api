@@ -133,8 +133,8 @@ class Session(Base):
 
 
 class SessionPost(Base):
-    scopes: list[Scope] = []
-    expires: datetime | None = None
+    scopes: list[Scope] | None
+    expires: datetime | None
 
     @classmethod
     @validator("expires")
