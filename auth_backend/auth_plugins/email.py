@@ -1,5 +1,5 @@
-import datetime
 import hashlib
+import logging
 
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.background import BackgroundTasks
@@ -25,6 +25,7 @@ from .auth_method import AuthMethodMeta, MethodMeta, Session, random_string
 
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 def check_email(v):

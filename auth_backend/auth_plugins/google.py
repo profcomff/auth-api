@@ -15,7 +15,7 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from .auth_method import AuthMethodMeta, MethodMeta, OauthMeta, Session
+from .auth_method import MethodMeta, OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)

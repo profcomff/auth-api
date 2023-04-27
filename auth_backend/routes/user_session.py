@@ -1,5 +1,4 @@
 import logging
-import string
 from datetime import datetime
 from typing import Literal
 
@@ -10,7 +9,7 @@ from starlette.responses import JSONResponse
 
 from auth_backend.base import StatusResponseModel
 from auth_backend.exceptions import ObjectNotFound, SessionExpired
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import AuthMethod, UserSession
 from auth_backend.schemas.models import (
     Session,
     SessionPost,

@@ -6,6 +6,7 @@ from auth_backend import __version__
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.settings import get_settings
 
+from .app_auth import app_auth
 from .groups import groups
 from .scopes import scopes
 from .user import user
@@ -44,6 +45,7 @@ app.include_router(user_session)
 app.include_router(groups)
 app.include_router(scopes)
 app.include_router(user)
+app.include_router(app_auth)
 
 for method in AUTH_METHODS.values():
     if settings.ENABLED_AUTH_METHODS is None or method.get_name() in settings.ENABLED_AUTH_METHODS:
