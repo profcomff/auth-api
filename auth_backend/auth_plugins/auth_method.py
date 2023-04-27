@@ -7,14 +7,14 @@ import string
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi_sqlalchemy import db
 from pydantic import constr
 from sqlalchemy.orm import Session as DbSession
 
-from auth_backend.base import Base, StatusResponseModel
+from auth_backend.base import Base
 from auth_backend.exceptions import AlreadyExists
-from auth_backend.models.db import AuthMethod, Scope, User, UserSession, UserSessionScope
+from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth

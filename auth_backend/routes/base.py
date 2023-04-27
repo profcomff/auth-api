@@ -6,11 +6,11 @@ from auth_backend import __version__
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.settings import get_settings
 
+from .app_auth import app_auth
 from .groups import groups
 from .scopes import scopes
 from .user import user
 from .user_session import user_session
-from .app_auth import app_auth
 
 
 settings = get_settings()

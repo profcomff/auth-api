@@ -2,14 +2,13 @@
 библиотеку аутентификации auth-lib.
 """
 import logging
-
 from typing import Annotated
 
-from fastapi import Depends, APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-from auth_backend.auth_plugins.email import Email, EmailLogin, AuthFailed
+from auth_backend.auth_plugins.email import AuthFailed, Email, EmailLogin
 
 
 app_auth = APIRouter(include_in_schema=False)
@@ -31,10 +30,12 @@ async def read_current_user(credentials: Annotated[HTTPBasicCredentials, Depends
     """
     logger.debug(dict(email=credentials.username, password=credentials.password))
     try:
-        session = await Email._login(EmailLogin(
-            email=credentials.username,
-            password=credentials.password,
-        ))
+        session = await Email._login(
+            EmailLogin(
+                email=credentials.username,
+                password=credentials.password,
+            )
+        )
         logger.debug(session)
         if scope not in session.session_scopes:
             return PlainTextResponse("Unauthorized", 401, {"WWW-Authenticate": "Basic"})

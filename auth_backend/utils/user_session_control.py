@@ -1,6 +1,6 @@
 import random
 import string
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fastapi import HTTPException
 from fastapi_sqlalchemy import db
@@ -10,7 +10,7 @@ from auth_backend.base import StatusResponseModel
 from auth_backend.models.db import Scope, User, UserSession, UserSessionScope
 from auth_backend.schemas.models import Session
 from auth_backend.schemas.types.scopes import Scope as TypeScope
-from auth_backend.settings import Settings, get_settings
+from auth_backend.settings import get_settings
 
 
 settings = get_settings()
