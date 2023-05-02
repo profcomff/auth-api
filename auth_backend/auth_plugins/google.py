@@ -106,7 +106,7 @@ class GoogleAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await user.auth_methods.google_auth.create("unique_google_id", guser_id['sub'])
+        await cls._register_auth_method('unique_google_id', guser_id['sub'], user, db_session=db.session)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

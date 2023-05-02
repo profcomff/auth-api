@@ -291,6 +291,17 @@ class OauthMeta(AuthMethodMeta):
             return auth_method.user
 
     @classmethod
+    async def _register_auth_method(cls, key: str, value: str | int, user: User, *, db_session):
+        """Добавление пользователю новый AuthMethod"""
+        AuthMethod.create(
+            user_id=user.id,
+            auth_method=cls.get_name(),
+            param=key,
+            value=str(value),
+            session=db_session,
+        )
+
+    @classmethod
     async def _delete_auth_methods(cls, user: User, *, db_session):
         """Удаляет пользователю все AuthMethod конкретной авторизации"""
         auth_methods = (
