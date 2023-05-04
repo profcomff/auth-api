@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
-from auth_backend.models.db import AuthMethod, UserSession
+from auth_backend.models.db import AuthMethod, UserSession, User
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
@@ -70,7 +70,7 @@ class TelegramAuth(OauthMeta):
         user = await cls._get_user('user_id', telegram_user_id, db_session=db.session)
 
         if user is not None:
-            raise AlreadyExists(user, user.id)
+            raise AlreadyExists(User, user.id)
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
