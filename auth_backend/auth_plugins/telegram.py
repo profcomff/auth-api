@@ -87,7 +87,7 @@ class TelegramAuth(OauthMeta):
         найден, возвращает ошибка.
         """
 
-        userinfo = cls._check(user_inp)
+        userinfo = await cls._check(user_inp)
         telegram_user_id = user_inp.id
         logger.debug(userinfo)
 
@@ -114,6 +114,7 @@ class TelegramAuth(OauthMeta):
     @classmethod
     async def _check(cls, user_inp):
         '''Проверка данных пользователя
+
         https://core.telegram.org/widgets/login#checking-authorization
         '''
         data_check = {
@@ -124,10 +125,9 @@ class TelegramAuth(OauthMeta):
             'auth_date': user_inp.auth_date,
         }
         check_hash = user_inp.hash
-        data_check = dict(sorted(data_check.items()))
         data_check_string = ''
-        for i in data_check.items():
-            data_check_string += f'{unquote(i[0])}={unquote(i[1])}\n'
+        for k, v in sorted(data_check.items()):
+            data_check_string += f'{unquote(k)}={unquote(v)}\n'
         data_check_string = data_check_string.rstrip('\n')
         secret_key = hashlib.sha256(str.encode(cls.settings.TELEGRAM_BOT_TOKEN)).digest()
         signing = hmac.new(secret_key, msg=str.encode(data_check_string), digestmod=hashlib.sha256).hexdigest()
