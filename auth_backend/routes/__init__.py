@@ -1,4 +1,5 @@
-from . import exc_handlers
+import exc_handlers
+
 from .base import app
 
 
