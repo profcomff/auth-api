@@ -88,7 +88,11 @@ async def create_session(
 ):
     if new_session.session_name is not None:
         return await user_session_control.create_session(
-            session.user, new_session.scopes, new_session.expires, db_session=db.session, session_name=new_session.session_name
+            session.user,
+            new_session.scopes,
+            new_session.expires,
+            db_session=db.session,
+            session_name=new_session.session_name,
         )
     else:
         return await user_session_control.create_session(
