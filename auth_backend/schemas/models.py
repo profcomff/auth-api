@@ -125,14 +125,17 @@ class ScopePatch(Base):
 
 
 class Session(Base):
+    session_name: str | None
     token: constr(min_length=1)
     expires: datetime
     id: int
     user_id: int
     session_scopes: list[Scope]
+    last_activity: datetime
 
 
 class SessionPost(Base):
+    session_name: str | None
     scopes: list[Scope] = []
     expires: datetime | None = None
 

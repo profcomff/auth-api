@@ -86,9 +86,14 @@ async def me(
 async def create_session(
     new_session: SessionPost, session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
 ):
-    return await user_session_control.create_session(
-        session.user, new_session.scopes, new_session.expires, db_session=db.session
-    )
+    if new_session.session_name is not None:
+        return await user_session_control.create_session(
+            session.user, new_session.scopes, new_session.expires, db_session=db.session, session_name=new_session.session_name
+        )
+    else:
+        return await user_session_control.create_session(
+            session.user, new_session.scopes, new_session.expires, db_session=db.session
+        )
 
 
 @user_session.delete("/session/{token}")
@@ -135,6 +140,8 @@ async def get_sessions(current_session: UserSession = Depends(UnionAuth(scopes=[
                 id=session.id,
                 expires=session.expires,
                 session_scopes=[_scope.name for _scope in session.scopes],
+                last_activity=session.last_activity,
+                session_name=session.session_name,
             )
         )
     return all_sessions

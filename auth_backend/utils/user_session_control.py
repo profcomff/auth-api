@@ -21,16 +21,15 @@ def random_string(length: int = 32) -> str:
 
 
 async def create_session(
-    user: User, scopes_list_names: list[TypeScope] | None, expires: datetime = None, *, db_session: DbSession
+    user: User, scopes_list_names: list[TypeScope] | None, expires: datetime = None, *, db_session: DbSession, session_name: str = ''
 ) -> Session:
     """Создает сессию пользователя"""
-    scopes = set()
     if scopes_list_names is None:
         scopes = user.scopes
     else:
         scopes = await create_scopes_set_by_names(scopes_list_names)
         await check_scopes(scopes, user)
-    user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH))
+    user_session = UserSession(user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH), session_name=session_name)
     user_session.expires = expires or user_session.expires
     db_session.add(user_session)
     db_session.flush()
@@ -38,11 +37,13 @@ async def create_session(
         db_session.add(UserSessionScope(scope_id=scope.id, user_session_id=user_session.id))
     db_session.commit()
     return Session(
+        session_name=session_name,
         user_id=user_session.user_id,
         token=user_session.token,
         id=user_session.id,
         expires=user_session.expires,
         session_scopes=[_scope.name for _scope in user_session.scopes],
+        last_activity=datetime.utcnow(),
     )
 
 

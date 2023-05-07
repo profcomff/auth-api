@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import APIKey, APIKeyIn
 from fastapi.security.base import SecurityBase
@@ -9,6 +11,10 @@ from auth_backend.models.db import UserSession
 
 
 class UnionAuth(SecurityBase):
+    '''Проверяет токен, возвращает пользователя.
+
+    Основной метод находится в `__call__`
+    '''
     model = APIKey.construct(in_=APIKeyIn.header, name="Authorization")
     scheme_name = "token"
     auto_error: bool
@@ -41,6 +47,8 @@ class UnionAuth(SecurityBase):
         )
         if not user_session:
             self._except()
+        user_session.last_activity = datetime.datetime.utcnow()
+        db.session.commit()
         if user_session.expired:
             self._except()
         if len(
