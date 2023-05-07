@@ -104,7 +104,7 @@ class GithubAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await user.auth_methods.github_auth.create("user_id", github_user_id)
+        await cls._register_auth_method('user_id', github_user_id, user, db_session=db.session)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 

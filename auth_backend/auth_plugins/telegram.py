@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
-from auth_backend.models.db import AuthMethod, UserSession
+from auth_backend.models.db import AuthMethod, UserSession, User
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
@@ -70,12 +70,12 @@ class TelegramAuth(OauthMeta):
         user = await cls._get_user('user_id', telegram_user_id, db_session=db.session)
 
         if user is not None:
-            raise AlreadyExists(user, user.id)
+            raise AlreadyExists(User, user.id)
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await user.auth_methods.telegram_auth.create('user_id', telegram_user_id)
+        await cls._register_auth_method('user_id', telegram_user_id, user, db_session=db.session)
 
         return await cls._create_session(user, user_inp.scopes, db_session=db.session)
 
@@ -87,7 +87,7 @@ class TelegramAuth(OauthMeta):
         найден, возвращает ошибка.
         """
 
-        userinfo = cls._check(user_inp)
+        userinfo = await cls._check(user_inp)
         telegram_user_id = user_inp.id
         logger.debug(userinfo)
 
@@ -114,6 +114,7 @@ class TelegramAuth(OauthMeta):
     @classmethod
     async def _check(cls, user_inp):
         '''Проверка данных пользователя
+
         https://core.telegram.org/widgets/login#checking-authorization
         '''
         data_check = {
@@ -124,10 +125,9 @@ class TelegramAuth(OauthMeta):
             'auth_date': user_inp.auth_date,
         }
         check_hash = user_inp.hash
-        data_check = dict(sorted(data_check.items()))
         data_check_string = ''
-        for i in data_check.items():
-            data_check_string += f'{unquote(i[0])}={unquote(i[1])}\n'
+        for k, v in sorted(data_check.items()):
+            data_check_string += f'{unquote(k)}={unquote(v)}\n'
         data_check_string = data_check_string.rstrip('\n')
         secret_key = hashlib.sha256(str.encode(cls.settings.TELEGRAM_BOT_TOKEN)).digest()
         signing = hmac.new(secret_key, msg=str.encode(data_check_string), digestmod=hashlib.sha256).hexdigest()
