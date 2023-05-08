@@ -171,9 +171,6 @@ class UserSession(BaseDbModel):
     token: Mapped[str] = mapped_column(String, unique=True)
     last_activity: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
-    update_ts: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
-    )
     user: Mapped[User] = relationship(
         "User",
         foreign_keys=[user_id],
