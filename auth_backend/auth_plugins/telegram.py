@@ -43,6 +43,7 @@ class TelegramAuth(OauthMeta):
         id_token: str | None = Field(help="Telegram JWT token identifier")
         id: str | None
         first_name: str | None
+        last_name: str | None
         username: str | None
         photo_url: str | None
         auth_date: str | None
