@@ -86,18 +86,13 @@ async def me(
 async def create_session(
     new_session: SessionPost, session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
 ):
-    if new_session.session_name is not None:
-        return await user_session_control.create_session(
-            session.user,
-            new_session.scopes,
-            new_session.expires,
-            db_session=db.session,
-            session_name=new_session.session_name,
-        )
-    else:
-        return await user_session_control.create_session(
-            session.user, new_session.scopes, new_session.expires, db_session=db.session
-        )
+    return await user_session_control.create_session(
+        session.user,
+        new_session.scopes,
+        new_session.expires,
+        db_session=db.session,
+        session_name=new_session.session_name,
+    )
 
 
 @user_session.delete("/session/{token}")

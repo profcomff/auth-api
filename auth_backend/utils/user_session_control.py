@@ -24,9 +24,9 @@ async def create_session(
     user: User,
     scopes_list_names: list[TypeScope] | None,
     expires: datetime = None,
+    session_name: str = None,
     *,
     db_session: DbSession,
-    session_name: str = '',
 ) -> Session:
     """Создает сессию пользователя"""
     if scopes_list_names is None:
@@ -50,7 +50,7 @@ async def create_session(
         id=user_session.id,
         expires=user_session.expires,
         session_scopes=[_scope.name for _scope in user_session.scopes],
-        last_activity=datetime.utcnow(),
+        last_activity=user_session.last_activity
     )
 
 

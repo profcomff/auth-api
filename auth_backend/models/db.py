@@ -22,7 +22,9 @@ class User(BaseDbModel):
     __auth_methods_cached = None
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
-    update_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    update_ts: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
+    )
     _auth_methods: Mapped[list[AuthMethod]] = relationship(
         "AuthMethod",
         foreign_keys="AuthMethod.user_id",
@@ -91,7 +93,9 @@ class Group(BaseDbModel):
     name: Mapped[str] = mapped_column(String, unique=False, nullable=False)
     parent_id: Mapped[int] = mapped_column(Integer, ForeignKey("group.id"), nullable=True)
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
-    update_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    update_ts: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     child: Mapped[list[Group]] = relationship(
@@ -143,7 +147,9 @@ class AuthMethod(BaseDbModel):
     param: Mapped[str] = mapped_column(String)
     value: Mapped[str] = mapped_column(String, nullable=False)
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
-    update_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    update_ts: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
+    )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped[User] = relationship(
@@ -165,7 +171,9 @@ class UserSession(BaseDbModel):
     token: Mapped[str] = mapped_column(String, unique=True)
     last_activity: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
-    update_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    update_ts: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
+    )
     user: Mapped[User] = relationship(
         "User",
         foreign_keys=[user_id],
