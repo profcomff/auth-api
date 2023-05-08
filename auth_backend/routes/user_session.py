@@ -142,10 +142,10 @@ async def get_sessions(
             session_name=session.session_name,
         )
         if "session_scopes" in info:
-            result.update(dict(session_scopes=[_scope.name for _scope in session.scopes]))
+            result.update(session_scopes=[_scope.name for _scope in session.scopes])
         if "token" in info:
-            result.update(dict(token=('*' * (len(session.token) - 4) + session.token[-4:])))
+            result.update(token=('*' * (len(session.token) - 4) + session.token[-4:]))
         if "expires" in info:
-            result.update(dict(expires=session.expires))
+            result.update(expires=session.expires)
         all_sessions.append(result)
     return all_sessions
