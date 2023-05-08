@@ -134,4 +134,4 @@ class TelegramAuth(OauthMeta):
         if signing == check_hash:
             return data_check
         else:
-            raise OauthAuthFailed
+            raise OauthAuthFailed('Invalid user data from Telegram')
