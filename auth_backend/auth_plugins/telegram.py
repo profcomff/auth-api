@@ -120,6 +120,7 @@ class TelegramAuth(OauthMeta):
         data_check = {
             'id': user_inp.id,
             'first_name': user_inp.first_name,
+            'last_name': user_inp.last_name,
             'username': user_inp.username,
             'photo_url': user_inp.photo_url,
             'auth_date': user_inp.auth_date,
@@ -127,6 +128,8 @@ class TelegramAuth(OauthMeta):
         check_hash = user_inp.hash
         data_check_string = ''
         for k, v in sorted(data_check.items()):
+            if v is None:
+                continue
             data_check_string += f'{unquote(k)}={unquote(v)}\n'
         data_check_string = data_check_string.rstrip('\n')
         secret_key = hashlib.sha256(str.encode(cls.settings.TELEGRAM_BOT_TOKEN)).digest()
