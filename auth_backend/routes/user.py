@@ -86,7 +86,7 @@ async def get_users(
     return UsersGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
 
-@user.patch("/{user_id}", response_model=UserInfo)
+@user.patch("/{user_id}", response_model=UserInfo, response_model_exclude_none=True)
 async def patch_user(
     user_id: int,
     user_inp: UserPatch,
@@ -113,11 +113,7 @@ async def patch_user(
         )
         UserGroup.delete(user_group.id, session=db.session)
     db.session.commit()
-    res = {
-        "id": user.id,
-        "email": user.auth_methods.email.email.value if user.auth_methods.email.email else None,
-    }
-    return UserInfo(**res)
+    return UserInfo.from_orm(user)
 
 
 @user.delete("/{user_id}", response_model=None)

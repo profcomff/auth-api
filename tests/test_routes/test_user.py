@@ -18,7 +18,7 @@ def test_user_email(client: TestClient, dbsession: Session, user_factory):
     dbsession.commit()
     resp = client.patch(f"/user/{user1}", json={"groups": [group]})
     assert resp.status_code == 200
-    assert resp.json()["email"] == user.auth_methods.email.email.value
+    assert "email" not in resp.json().keys()
     dbsession.delete(email_user)
     gr = Group.get(group, session=dbsession)
     dbsession.delete(gr)
