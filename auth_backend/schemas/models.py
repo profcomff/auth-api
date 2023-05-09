@@ -39,8 +39,11 @@ class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes, GroupUserLi
     pass
 
 
-class UserInfo(Base):
+class User(Base):
     id: int
+
+
+class UserInfo(User):
     email: str | None
 
 

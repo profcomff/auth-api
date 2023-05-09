@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
 
 from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
+from auth_backend.schemas.models import User as UserModel
 from auth_backend.schemas.models import (
     UserAuthMethods,
     UserGet,
@@ -86,7 +87,7 @@ async def get_users(
     return UsersGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
 
-@user.patch("/{user_id}", response_model=UserInfo, response_model_exclude={"email"})
+@user.patch("/{user_id}", response_model=UserModel)
 async def patch_user(
     user_id: int,
     user_inp: UserPatch,
@@ -113,7 +114,7 @@ async def patch_user(
         )
         UserGroup.delete(user_group.id, session=db.session)
     db.session.commit()
-    return UserInfo.from_orm(user)
+    return UserModel.from_orm(user)
 
 
 @user.delete("/{user_id}", response_model=None)
