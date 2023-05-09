@@ -16,8 +16,8 @@ def test_create_session(client_auth: TestClient, dbsession: Session, user_scopes
     user_id, body, response_ = user_scopes[1]["user_id"], user_scopes[1]["body"], user_scopes[1]["login_json"]
     token = user_scopes[0]
     header = {"Authorization": token}
-
-    all_sessions = client_auth.get("/session", headers=header)
+    params = {"info": ["session_scopes", "token", "expires"]}
+    all_sessions = client_auth.get("/session", headers=header, params=params)
 
     current_session_id_get = client_auth.get("/me", headers=header)
     assert current_session_id_get.status_code == status.HTTP_200_OK
@@ -78,8 +78,8 @@ def test_create_session(client_auth: TestClient, dbsession: Session, user_scopes
 def test_delete_session(client_auth: TestClient, dbsession: Session, user_scopes):
     token = user_scopes[0]
     header = {"Authorization": token}
-
-    all_sessions = client_auth.get("/session", headers=header)
+    params = {"info": ["session_scopes", "token", "expires"]}
+    all_sessions = client_auth.get("/session", headers=header, params=params)
 
     new_session_response = client_auth.post("/session", headers=header, json={})
     assert new_session_response.status_code == status.HTTP_200_OK
@@ -95,8 +95,8 @@ def test_delete_session(client_auth: TestClient, dbsession: Session, user_scopes
 def test_delete_sessions_without_current(client_auth: TestClient, dbsession: Session, user_scopes):
     token = user_scopes[0]
     header = {"Authorization": token}
-
-    all_sessions = client_auth.get("/session", headers=header)
+    params = {"info": ["session_scopes", "token", "expires"]}
+    all_sessions = client_auth.get("/session", headers=header, params=params)
 
     new_session_response1 = client_auth.post("/session", headers=header, json={})
     assert new_session_response1.status_code == status.HTTP_200_OK
@@ -121,8 +121,8 @@ def test_delete_sessions_without_current(client_auth: TestClient, dbsession: Ses
 def test_delete_sessions_with_current(client_auth: TestClient, dbsession: Session, user_scopes):
     token = user_scopes[0]
     header = {"Authorization": token}
-
-    all_sessions = client_auth.get("/session", headers=header)
+    params = {"info": ["session_scopes", "token", "expires"]}
+    all_sessions = client_auth.get("/session", headers=header, params=params)
 
     current_session_id_get = client_auth.get("/me", headers=header)
     assert current_session_id_get.status_code == status.HTTP_200_OK
@@ -151,6 +151,7 @@ def test_delete_sessions_with_current(client_auth: TestClient, dbsession: Sessio
 
 
 def test_get_sessions(client_auth: TestClient, dbsession: Session, user_scopes):
+    params = {"info": ["session_scopes", "token", "expires"]}
     token = user_scopes[0]
     header = {"Authorization": token}
     current_session_id_get = client_auth.get("/me", headers=header)
@@ -162,7 +163,7 @@ def test_get_sessions(client_auth: TestClient, dbsession: Session, user_scopes):
     current_session: UserSession = dbsession.query(UserSession).filter(UserSession.token == token).one_or_none()
     new_session1: UserSession = dbsession.query(UserSession).get(new_session_response1.json()["id"])
     new_session2: UserSession = dbsession.query(UserSession).get(new_session_response2.json()["id"])
-    all_sessions = client_auth.get("/session", headers=header)
+    all_sessions = client_auth.get("/session", headers=header, params=params)
     assert ('*' * (len(current_session.token) - 4) + current_session.token[-4:]) in list(
         all_sessions.json()[i]['token'] for i in range(len(all_sessions.json()))
     )
@@ -173,7 +174,7 @@ def test_get_sessions(client_auth: TestClient, dbsession: Session, user_scopes):
         all_sessions.json()[i]['token'] for i in range(len(all_sessions.json()))
     )
     client_auth.delete(f'/session/{new_session1.token}', headers=header)
-    all_sessions = client_auth.get("/session", headers=header)
+    all_sessions = client_auth.get("/session", headers=header, params=params)
     assert ('*' * (len(new_session1.token) - 4) + new_session1.token[-4:]) not in list(
         all_sessions.json()[i]['token'] for i in range(len(all_sessions.json()))
     )

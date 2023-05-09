@@ -87,7 +87,11 @@ async def create_session(
     new_session: SessionPost, session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
 ):
     return await user_session_control.create_session(
-        session.user, new_session.scopes, new_session.expires, db_session=db.session
+        session.user,
+        new_session.scopes,
+        new_session.expires,
+        db_session=db.session,
+        session_name=new_session.session_name,
     )
 
 
@@ -125,16 +129,23 @@ async def delete_sessions(
 
 
 @user_session.get("/session", response_model=list[Session])
-async def get_sessions(current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))):
+async def get_sessions(
+    current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
+    info: list[Literal["session_scopes", "token", "expires"]] = Query(default=[]),
+):
     all_sessions = []
     for session in current_session.user.active_sessions:
-        all_sessions.append(
-            dict(
-                user_id=session.user_id,
-                token=('*' * (len(session.token) - 4) + session.token[-4:]),
-                id=session.id,
-                expires=session.expires,
-                session_scopes=[_scope.name for _scope in session.scopes],
-            )
+        result = dict(
+            user_id=session.user_id,
+            id=session.id,
+            last_activity=session.last_activity,
+            session_name=session.session_name,
         )
+        if "session_scopes" in info:
+            result['session_scopes'] = [_scope.name for _scope in session.scopes]
+        if "token" in info:
+            result['token'] = '*' * (len(session.token) - 4) + session.token[-4:]
+        if "expires" in info:
+            result['expires'] = session.expires
+        all_sessions.append(result)
     return all_sessions
