@@ -113,7 +113,11 @@ async def patch_user(
         )
         UserGroup.delete(user_group.id, session=db.session)
     db.session.commit()
-    return UserInfo.from_orm(user)
+    res = {
+        "id": user.id,
+        "email": user.auth_methods.email.email.value if user.auth_methods.email.email else None,
+    }
+    return UserInfo(**res)
 
 
 @user.delete("/{user_id}", response_model=None)
