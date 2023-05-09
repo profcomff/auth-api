@@ -86,7 +86,7 @@ async def get_users(
     return UsersGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
 
 
-@user.patch("/{user_id}", response_model=UserInfo, response_model_exclude_none=True)
+@user.patch("/{user_id}", response_model=UserInfo, response_model_exclude={"email"})
 async def patch_user(
     user_id: int,
     user_inp: UserPatch,
