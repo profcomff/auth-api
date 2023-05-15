@@ -25,6 +25,8 @@ def test_add_user(client: TestClient, dbsession: Session, user_factory):
     user = User.get(usergroup.user_id, session=dbsession)
     assert user in gr.users
     assert gr in user.groups
+    dbsession.delete(gr)
+    dbsession.commit()
 
 
 def test_get_user_list(client, dbsession, user_factory):
