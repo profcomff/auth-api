@@ -61,6 +61,7 @@ class GoogleAuth(OauthMeta):
         cls,
         user_inp: OauthResponseSchema,
         user_session: UserSession | None = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
+        session_name: str = None,
     ) -> Session:
         """Создает аккаунт или привязывает существующий
 
@@ -108,10 +109,10 @@ class GoogleAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method('unique_google_id', guser_id['sub'], user, db_session=db.session)
 
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=session_name)
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema):
+    async def _login(cls, user_inp: OauthResponseSchema, session_name: str = None):
         """Вход в пользователя с помощью аккаунта Google
 
         Производит вход, если находит пользователя по Google client_id. Если аккаунт не найден,
@@ -133,7 +134,7 @@ class GoogleAuth(OauthMeta):
         user = await cls._get_user('unique_google_id', guser_id['sub'], db_session=db.session)
         if not user:
             raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=session_name)
 
     @classmethod
     async def _redirect_url(cls):

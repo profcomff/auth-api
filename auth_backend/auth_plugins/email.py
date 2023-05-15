@@ -152,7 +152,7 @@ class Email(AuthMethodMeta):
         self.tags = ["Email"]
 
     @classmethod
-    async def _login(cls, user_inp: EmailLogin) -> Session:
+    async def _login(cls, user_inp: EmailLogin, session_name: str = None) -> Session:
         query = (
             AuthMethod.query(session=db.session)
             .filter(
@@ -174,7 +174,7 @@ class Email(AuthMethodMeta):
             query.user.auth_methods.email.salt.value,
         ):
             raise AuthFailed(error="Incorrect login or password")
-        return await cls._create_session(query.user, user_inp.scopes, db_session=db.session)
+        return await cls._create_session(query.user, user_inp.scopes, db_session=db.session, session_name=session_name)
 
     @staticmethod
     async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> None:

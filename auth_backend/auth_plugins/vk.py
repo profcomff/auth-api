@@ -50,6 +50,7 @@ class VkAuth(OauthMeta):
         cls,
         user_inp: OauthResponseSchema,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
+        session_name: str = None,
     ) -> Session:
         """Создает аккаунт или привязывает существующий
 
@@ -97,10 +98,10 @@ class VkAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
 
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=session_name)
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
+    async def _login(cls, user_inp: OauthResponseSchema, session_name: str = None) -> Session:
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
 
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
@@ -135,7 +136,7 @@ class VkAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for vk account', id_token)
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=session_name)
 
     @classmethod
     async def _redirect_url(cls):
