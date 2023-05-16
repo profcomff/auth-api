@@ -46,13 +46,13 @@ class GithubAuth(OauthMeta):
         code: str | None
         id_token: str | None = Field(help="LK MSU JWT token identifier")
         scopes: list[Scope] | None
+        session_name: str | None
 
     @classmethod
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
-        user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
-        session_name: str = None,
+        user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True))
     ) -> Session:
         """Создает аккаунт или привязывает существующий
 
@@ -107,10 +107,10 @@ class GithubAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method('user_id', github_user_id, user, db_session=db.session)
 
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=session_name)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name)
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema, session_name: str = None) -> Session:
+    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
         """Вход в пользователя с помощью аккаунта https://github.com
 
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
@@ -151,7 +151,7 @@ class GithubAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=session_name)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name)
 
     @classmethod
     async def _redirect_url(cls):

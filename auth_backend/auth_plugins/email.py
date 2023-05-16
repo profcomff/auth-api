@@ -152,7 +152,7 @@ class Email(AuthMethodMeta):
         self.tags = ["Email"]
 
     @classmethod
-    async def _login(cls, user_inp: EmailLogin, session_name: str = None) -> Session:
+    async def _login(cls, user_inp: EmailLogin) -> Session:
         query = (
             AuthMethod.query(session=db.session)
             .filter(

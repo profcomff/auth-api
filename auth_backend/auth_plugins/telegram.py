@@ -49,13 +49,13 @@ class TelegramAuth(OauthMeta):
         auth_date: str | None
         hash: str | None
         scopes: list[Scope] | None
+        session_name: str | None
 
     @classmethod
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
-        session_name: str = None,
     ) -> Session:
         telegram_user_id = None
         userinfo = None
@@ -82,7 +82,7 @@ class TelegramAuth(OauthMeta):
         return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=session_name)
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema, session_name: str = None) -> Session:
+    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
 
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
@@ -98,7 +98,7 @@ class TelegramAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Telegram account', id_token)
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=session_name)
+        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name)
 
     @classmethod
     async def _redirect_url(cls):
