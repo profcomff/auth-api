@@ -98,7 +98,9 @@ class TelegramAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Telegram account', id_token)
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name)
+        return await cls._create_session(
+            user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+        )
 
     @classmethod
     async def _redirect_url(cls):
