@@ -66,14 +66,13 @@ class EmailLogin(Base):
     email: constr(min_length=1)
     password: constr(min_length=1)
     scopes: list[Scope] | None
-
+    session_name: str | None
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
 class EmailRegister(Base):
     email: constr(min_length=1)
     password: constr(min_length=1)
-
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
@@ -174,7 +173,9 @@ class Email(AuthMethodMeta):
             query.user.auth_methods.email.salt.value,
         ):
             raise AuthFailed(error="Incorrect login or password")
-        return await cls._create_session(query.user, user_inp.scopes, db_session=db.session, session_name=session_name)
+        return await cls._create_session(
+            query.user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+        )
 
     @staticmethod
     async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> None:
