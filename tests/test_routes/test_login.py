@@ -19,7 +19,12 @@ def test_invalid_email(client: TestClient):
 
 def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
-    body_with_uppercase = {"email": body["email"].replace("u", "U"), "password": "string", "scopes": []}
+    body_with_uppercase = {
+        "email": body["email"].replace("u", "U"),
+        "password": "string",
+        "scopes": [],
+        "session_name": "name",
+    }
     response = client_auth.post(url, json=body_with_uppercase)
     assert response.status_code == status.HTTP_200_OK
 

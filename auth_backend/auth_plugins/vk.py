@@ -44,6 +44,7 @@ class VkAuth(OauthMeta):
         code: str | None
         id_token: str | None = Field(help="VK JWT token identifier")
         scopes: list[Scope] | None
+        session_name: str | None
 
     @classmethod
     async def _register(
@@ -97,7 +98,9 @@ class VkAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
 
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
+        return await cls._create_session(
+            user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+        )
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema) -> Session:
@@ -135,7 +138,9 @@ class VkAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for vk account', id_token)
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session)
+        return await cls._create_session(
+            user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+        )
 
     @classmethod
     async def _redirect_url(cls):
