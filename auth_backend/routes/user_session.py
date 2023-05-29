@@ -5,6 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
 from sqlalchemy import not_
+from sqlalchemy.sql import func
 from starlette.responses import JSONResponse
 
 from auth_backend.base import StatusResponseModel
@@ -101,13 +102,13 @@ async def delete_session(
 ):
     session: UserSession = (
         UserSession.query(session=db.session)
-        .filter(UserSession.token == token, not_(UserSession.expired))
+        .filter(not_(UserSession.expired), UserSession.token.ilike(f'%{token}'))
         .one_or_none()
     )
     if not session:
-        raise ObjectNotFound(UserSession, token)
+        raise ObjectNotFound(UserSession, token[-4:])
     if current_session.user is not session.user:
-        raise ObjectNotFound(UserSession, token)
+        raise ObjectNotFound(UserSession, token[-4:])
     session.expires = datetime.utcnow()
     db.session.commit()
 
@@ -144,7 +145,7 @@ async def get_sessions(
         if "session_scopes" in info:
             result['session_scopes'] = [_scope.name for _scope in session.scopes]
         if "token" in info:
-            result['token'] = '*' * (len(session.token) - 4) + session.token[-4:]
+            result['token'] = session.token[-4:]
         if "expires" in info:
             result['expires'] = session.expires
         all_sessions.append(result)
