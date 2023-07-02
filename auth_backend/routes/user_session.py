@@ -5,7 +5,6 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
 from sqlalchemy import not_
-from sqlalchemy.sql import func
 from starlette.responses import JSONResponse
 
 from auth_backend.base import StatusResponseModel

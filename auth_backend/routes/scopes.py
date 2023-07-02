@@ -58,7 +58,7 @@ async def update_scope(
     Scopes: `["auth.scope.update"]`
     """
     scope = Scope.get(id, session=db.session)
-    return ScopeGet.from_orm(Scope.update(scope.id, **scope_inp.dict(), session=db.session))
+    return ScopeGet.from_orm(Scope.update(scope.id, **scope_inp.dict(exclude_unset=True), session=db.session))
 
 
 @scopes.delete("/{id}", response_model=StatusResponseModel)
