@@ -6,7 +6,6 @@ import smtplib
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Literal
 
 from fastapi.background import BackgroundTasks
 from retrying import retry
@@ -14,7 +13,6 @@ from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.exceptions import TooManyEmailRequests
 from auth_backend.models.db import UserMessageDelay
-
 from auth_backend.settings import Settings, get_settings
 
 
@@ -91,7 +89,6 @@ class EmailDelay:
 
 
 class SendEmailMessage:
-
     @dataclasses.dataclass(frozen=True)
     class Image:
         name: str
@@ -99,12 +96,14 @@ class SendEmailMessage:
 
     settings: Settings = get_settings()
     from_email: str = settings.EMAIL
-    images: tuple[Image] = (Image(name="ff-icon.png", header="<ff-icon>"),
-                            Image(name="github-icon.png", header="<github-icon>"),
-                            Image(name="header-image.png", header="<header-image>"),
-                            Image(name="profcom-logo.png", header="<profcom-logo>"),
-                            Image(name="vk-icon.png", header="<vk-icon>"),
-                            Image(name="www-icon.png", header="<www-icon>"))
+    images: tuple[Image] = (
+        Image(name="ff-icon.png", header="<ff-icon>"),
+        Image(name="github-icon.png", header="<github-icon>"),
+        Image(name="header-image.png", header="<header-image>"),
+        Image(name="profcom-logo.png", header="<profcom-logo>"),
+        Image(name="vk-icon.png", header="<vk-icon>"),
+        Image(name="www-icon.png", header="<www-icon>"),
+    )
 
     @classmethod
     @retry(
