@@ -1,9 +1,12 @@
+import dataclasses
 import datetime
 import logging
+import os
 import smtplib
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from typing import Literal
 
 from fastapi.background import BackgroundTasks
 from retrying import retry
@@ -11,6 +14,7 @@ from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.exceptions import TooManyEmailRequests
 from auth_backend.models.db import UserMessageDelay
+
 from auth_backend.settings import Settings, get_settings
 
 
@@ -87,8 +91,20 @@ class EmailDelay:
 
 
 class SendEmailMessage:
+
+    @dataclasses.dataclass(frozen=True)
+    class Image:
+        name: str
+        header: str
+
     settings: Settings = get_settings()
     from_email: str = settings.EMAIL
+    images: tuple[Image] = (Image(name="ff-icon.png", header="<ff-icon>"),
+                            Image(name="github-icon.png", header="<github-icon>"),
+                            Image(name="header-image.png", header="<header-image>"),
+                            Image(name="profcom-logo.png", header="<profcom-logo>"),
+                            Image(name="vk-icon.png", header="<vk-icon>"),
+                            Image(name="www-icon.png", header="<www-icon>"))
 
     @classmethod
     @retry(
@@ -105,9 +121,6 @@ class SendEmailMessage:
                 if f'{{{{{key}}}}}' in tmp:
                     tmp = tmp.replace(f'{{{{{key}}}}}', value)
 
-        with open("auth_backend/templates/image.png", 'rb') as f:
-            img = MIMEImage(f.read(), name="image.png")
-
         message = MIMEMultipart('related')
         message['Subject'] = subject
         message['From'] = cls.from_email
@@ -118,8 +131,12 @@ class SendEmailMessage:
 
         text = MIMEText(tmp, "html")
         msgAlternative.attach(text)
-        img.add_header('Content-ID', '<header>')
-        message.attach(img)
+
+        for image in cls.images:
+            with open(os.path.join("auth_backend/templates", image.name), 'rb') as f:
+                img = MIMEImage(f.read(), name=image.name)
+                img.add_header('Content-ID', image.header)
+                message.attach(img)
 
         with smtplib.SMTP_SSL(cls.settings.SMTP_HOST, 465) as smtp:
             smtp.login(cls.settings.EMAIL, cls.settings.EMAIL_PASS)
