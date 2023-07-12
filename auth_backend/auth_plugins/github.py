@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class GithubSettings(Settings):
     GITHUB_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/github'
-    GITHUB_CLIENT_ID: str | None
-    GITHUB_CLIENT_SECRET: str | None
+    GITHUB_CLIENT_ID: str | None = None
+    GITHUB_CLIENT_SECRET: str | None = None
 
 
 class GithubAuthParams(MethodMeta):
@@ -43,10 +43,10 @@ class GithubAuth(OauthMeta):
     settings = GithubSettings()
 
     class OauthResponseSchema(BaseModel):
-        code: str | None
+        code: str | None = None
         id_token: str | None = Field(help="LK MSU JWT token identifier")
-        scopes: list[Scope] | None
-        session_name: str | None
+        scopes: list[Scope] | None = None
+        session_name: str | None = None
 
     @classmethod
     async def _register(
@@ -115,7 +115,7 @@ class GithubAuth(OauthMeta):
     async def _login(cls, user_inp: OauthResponseSchema) -> Session:
         """Вход в пользователя с помощью аккаунта https://github.com
 
-        Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
+        Производит вход, если находит пользователя по уникальному идендификатору. Если аккаунт не
         найден, возвращает ошибка.
         """
         payload = {

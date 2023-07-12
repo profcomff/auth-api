@@ -13,7 +13,7 @@ from .user_group import create_user_group
 
 
 settings = get_settings()
-engine = create_engine(settings.DB_DSN)
+engine = create_engine(str(settings.DB_DSN))
 Session = sessionmaker(bind=engine)
 
 

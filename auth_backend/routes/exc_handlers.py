@@ -10,6 +10,7 @@ from auth_backend.exceptions import (
     OauthCredentialsIncorrect,
     ObjectNotFound,
     SessionExpired,
+    TooManyEmailRequests,
 )
 
 from .base import app
@@ -36,7 +37,7 @@ async def auth_failed_handler(req: starlette.requests.Request, exc: AuthFailed):
 
 
 class OauthAuthFailedStatusResponseModel(StatusResponseModel):
-    id_token: str | None
+    id_token: str | None = None
 
 
 @app.exception_handler(OauthAuthFailed)
@@ -65,4 +66,14 @@ async def session_expired_handler(req: starlette.requests.Request, exc: SessionE
 async def http_error_handler(req: starlette.requests.Request, exc: Exception):
     return JSONResponse(
         content=StatusResponseModel(status="Error", message="Internal server error").dict(), status_code=500
+    )
+
+
+@app.exception_handler(TooManyEmailRequests)
+async def http_error_handler(req: starlette.requests.Request, exc: TooManyEmailRequests):
+    return JSONResponse(
+        content=StatusResponseModel(
+            status="Error", message=f"Too many requests. Delay time: {int(exc.delay_time.total_seconds())} seconds."
+        ).dict(),
+        status_code=429,
     )

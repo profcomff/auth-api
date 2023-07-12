@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import Field, constr, validator
+from pydantic import ConfigDict, Field, constr, field_validator
 
 from auth_backend.base import Base
 from auth_backend.schemas.types.scopes import Scope
@@ -20,19 +20,19 @@ class Group(Base):
 
 
 class GroupScopes(Base):
-    scopes: list[PinchedScope] | None
+    scopes: list[PinchedScope] | None = None
 
 
 class GroupChilds(Base):
-    child: list[Group] | None
+    child: list[Group] | None = None
 
 
 class GroupIndirectScopes(Base):
-    indirect_scopes: list[PinchedScope] | None
+    indirect_scopes: list[PinchedScope] | None = None
 
 
 class GroupUserList(Base):
-    users: list[int] | None
+    users: list[int] | None = None
 
 
 class GroupGet(Group, GroupChilds, GroupIndirectScopes, GroupScopes, GroupUserList):
@@ -44,27 +44,27 @@ class User(Base):
 
 
 class UserInfo(User):
-    email: str | None
+    email: str | None = None
 
 
 class UserGroups(Base):
-    groups: list[int] | None
+    groups: list[int] | None = None
 
 
 class UserIndirectGroups(Base):
-    indirect_groups: list[int] | None
+    indirect_groups: list[int] | None = None
 
 
 class UserScopes(Base):
-    user_scopes: list[PinchedScope] | None
+    user_scopes: list[PinchedScope] | None = None
 
 
 class UserAuthMethods(Base):
-    auth_methods: list[str] | None
+    auth_methods: list[str] | None = None
 
 
 class SessionScopes(Base):
-    session_scopes: list[PinchedScope] | None
+    session_scopes: list[PinchedScope] | None = None
 
 
 class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScopes, UserAuthMethods):
@@ -73,9 +73,9 @@ class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScope
 
 class UsersGet(Base):
     items: list[UserGet]
-
-    class Config:
-        fields = {'session_scopes': {'exclude': True}}
+    # TODO[pydantic]: The following keys were removed: `fields`.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+    model_config = ConfigDict(fields={'session_scopes': {'exclude': True}})
 
 
 class UserPatch(Base):
@@ -93,9 +93,9 @@ class GroupsGet(Base):
 
 
 class GroupPatch(Base):
-    name: str | None
+    name: str | None = None
     parent_id: int | None = Field(None, gt=0)
-    scopes: list[int] | None
+    scopes: list[int] | None = None
 
 
 class UserGroupGet(Base):
@@ -114,36 +114,37 @@ class GroupUserListGet(Base):
 class ScopeGet(Base):
     id: int
     name: Scope
-    comment: str | None
+    comment: str | None = None
 
 
 class ScopePost(Base):
     name: Scope
-    comment: str | None
+    comment: str | None = None
 
 
 class ScopePatch(Base):
-    name: Scope | None
-    comment: str | None
+    name: Scope | None = None
+    comment: str | None = None
 
 
 class Session(Base):
-    session_name: str | None
-    token: constr(min_length=1) | None
-    expires: datetime | None
+    session_name: str | None = None
+    token: constr(min_length=1) | None = None
+    expires: datetime | None = None
     id: int
     user_id: int
-    session_scopes: list[Scope] | None
+    session_scopes: list[Scope] | None = None
     last_activity: datetime
 
 
 class SessionPost(Base):
-    session_name: str | None
+    session_name: str | None = None
     scopes: list[Scope] = []
     expires: datetime | None = None
 
     @classmethod
-    @validator("expires")
+    @field_validator("expires")
+    @classmethod
     def expires_validator(cls, exp):
         if exp < datetime.utcnow():
             raise ValueError()

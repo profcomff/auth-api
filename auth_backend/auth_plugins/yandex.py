@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 class YandexSettings(Settings):
     YANDEX_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
-    YANDEX_CLIENT_ID: str | None
-    YANDEX_CLIENT_SECRET: str | None
+    YANDEX_CLIENT_ID: str | None = None
+    YANDEX_CLIENT_SECRET: str | None = None
     YANDEX_WHITELIST_DOMAINS: list[str] | None = None
     YANDEX_BLACKLIST_DOMAINS: list[str] | None = ['my.msu.ru']
 
@@ -42,10 +42,10 @@ class YandexAuth(OauthMeta):
     settings = YandexSettings()
 
     class OauthResponseSchema(BaseModel):
-        code: str | None
+        code: str | None = None
         id_token: str | None = Field(help="Yandex JWT token identifier")
-        scopes: list[Scope] | None
-        session_name: str | None
+        scopes: list[Scope] | None = None
+        session_name: str | None = None
 
     @classmethod
     async def _register(

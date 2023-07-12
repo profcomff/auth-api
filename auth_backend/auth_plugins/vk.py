@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class VkSettings(Settings):
     VK_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/vk'
-    VK_CLIENT_ID: int | None
-    VK_CLIENT_SECRET: str | None
+    VK_CLIENT_ID: int | None = None
+    VK_CLIENT_SECRET: str | None = None
 
 
 class VkAuthParams(MethodMeta):
@@ -41,10 +41,10 @@ class VkAuth(OauthMeta):
     settings = VkSettings()
 
     class OauthResponseSchema(BaseModel):
-        code: str | None
+        code: str | None = None
         id_token: str | None = Field(help="VK JWT token identifier")
-        scopes: list[Scope] | None
-        session_name: str | None
+        scopes: list[Scope] | None = None
+        session_name: str | None = None
 
     @classmethod
     async def _register(

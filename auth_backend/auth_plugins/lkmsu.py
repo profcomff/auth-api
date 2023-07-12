@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class LkmsuSettings(Settings):
     LKMSU_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/lk-msu'
-    LKMSU_CLIENT_ID: str | None
-    LKMSU_CLIENT_SECRET: str | None
+    LKMSU_CLIENT_ID: str | None = None
+    LKMSU_CLIENT_SECRET: str | None = None
 
 
 class LkmsuAuthParams(MethodMeta):
@@ -43,10 +43,10 @@ class LkmsuAuth(OauthMeta):
     settings = LkmsuSettings()
 
     class OauthResponseSchema(BaseModel):
-        code: str | None
+        code: str | None = None
         id_token: str | None = Field(help="LK MSU JWT token identifier")
-        scopes: list[Scope] | None
-        session_name: str | None
+        scopes: list[Scope] | None = None
+        session_name: str | None = None
 
     @classmethod
     async def _register(
@@ -108,7 +108,7 @@ class LkmsuAuth(OauthMeta):
     async def _login(cls, user_inp: OauthResponseSchema) -> Session:
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
 
-        Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
+        Производит вход, если находит пользователя по уникальному идендификатору. Если аккаунт не
         найден, возвращает ошибка.
         """
         payload = {

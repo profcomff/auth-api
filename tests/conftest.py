@@ -47,7 +47,7 @@ def client_auth():
 @pytest.fixture(scope='session')
 def dbsession():
     settings = get_settings()
-    engine = create_engine(settings.DB_DSN)
+    engine = create_engine(str(settings.DB_DSN))
     TestingSessionLocal = sessionmaker(bind=engine)
     return TestingSessionLocal()
 
