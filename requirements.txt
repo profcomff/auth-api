@@ -10,6 +10,7 @@ email-validator
 retrying
 aiohttp
 logging-profcomff
+pydantic-settings
 
 # Google Auth Method
 google-api-python-client
