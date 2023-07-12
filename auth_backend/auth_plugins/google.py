@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 
 import google_auth_oauthlib.flow
