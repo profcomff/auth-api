@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class VkSettings(Settings):
     VK_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/vk'
-    VK_CLIENT_ID: int | None
-    VK_CLIENT_SECRET: str | None
+    VK_CLIENT_ID: int | None = None
+    VK_CLIENT_SECRET: str | None = None
 
 
 class VkAuthParams(MethodMeta):

@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class LkmsuSettings(Settings):
     LKMSU_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/lk-msu'
-    LKMSU_CLIENT_ID: str | None
-    LKMSU_CLIENT_SECRET: str | None
+    LKMSU_CLIENT_ID: str | None = None
+    LKMSU_CLIENT_SECRET: str | None = None
 
 
 class LkmsuAuthParams(MethodMeta):

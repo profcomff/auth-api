@@ -10,8 +10,8 @@ class MyMsuSettings(Settings):
         'https://app.test.profcomff.com/auth/oauth-authorized/my-msu',
         validation_alias='MY_MSU_REDIRECT_URL',
     )
-    YANDEX_CLIENT_ID: str = Field(None, validation_alias='MY_MSU_CLIENT_ID')
-    YANDEX_CLIENT_SECRET: str = Field(None, validation_alias='MY_MSU_CLIENT_SECRET')
+    YANDEX_CLIENT_ID: str | None = Field(None, validation_alias='MY_MSU_CLIENT_ID')
+    YANDEX_CLIENT_SECRET: str | None = Field(None, validation_alias='MY_MSU_CLIENT_SECRET')
     YANDEX_WHITELIST_DOMAINS: list[str] | None = ['my.msu.ru']
     YANDEX_BLACKLIST_DOMAINS: list[str] | None = None
 

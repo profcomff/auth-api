@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class GithubSettings(Settings):
     GITHUB_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/github'
-    GITHUB_CLIENT_ID: str | None
-    GITHUB_CLIENT_SECRET: str | None
+    GITHUB_CLIENT_ID: str | None = None
+    GITHUB_CLIENT_SECRET: str | None = None
 
 
 class GithubAuthParams(MethodMeta):

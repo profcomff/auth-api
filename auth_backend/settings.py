@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     IP_DELAY_COUNT: int = 3
     EMAIL_DELAY_TIME_IN_MINUTES: float = 1
     EMAIL_DELAY_COUNT: int = 3
-    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env")
+    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra='ignore')
 
 
 @lru_cache
