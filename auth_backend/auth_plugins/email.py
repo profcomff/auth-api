@@ -65,8 +65,8 @@ def check_email(v):
 class EmailLogin(Base):
     email: constr(min_length=1)
     password: constr(min_length=1)
-    scopes: list[Scope] | None
-    session_name: str | None
+    scopes: list[Scope] | None = None
+    session_name: str | None = None
     email_validator = validator("email", allow_reuse=True)(check_email)
 
 
@@ -84,8 +84,8 @@ class EmailChange(Base):
 
 class RequestResetPassword(Base):
     email: constr(min_length=1)
-    password: str | None
-    new_password: str | None
+    password: str | None = None
+    new_password: str | None = None
 
     email_validator = validator("email", allow_reuse=True)(check_email)
 

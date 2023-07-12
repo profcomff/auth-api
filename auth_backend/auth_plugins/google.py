@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 
 import google_auth_oauthlib.flow
@@ -51,11 +52,11 @@ class GoogleAuth(OauthMeta):
     settings = GoogleSettings()
 
     class OauthResponseSchema(BaseModel):
-        code: str | None
-        state: str | None
+        code: str | None = None
+        state: str | None = None
         id_token: str | None = Field(help="Google JWT token identifier")
-        scopes: list[Scope] | None
-        session_name: str | None
+        scopes: list[Scope] | None = None
+        session_name: str | None = None
 
     @classmethod
     async def _register(
@@ -66,7 +67,7 @@ class GoogleAuth(OauthMeta):
         """Создает аккаунт или привязывает существующий
 
         Если передана активная сессия пользователя, то привязывает аккаунт Google к аккаунту в
-        активной сессии. Иначе, создает новый пользователь и делает Google первым методом входа.
+        активной сессии. иначе, создает новый пользователь и делает Google первым методом входа.
         """
         if not user_inp.id_token:
             flow = await cls._default_flow()

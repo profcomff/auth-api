@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import logging
@@ -163,13 +164,13 @@ class MethodMeta(metaclass=ABCMeta):
 
     @classmethod
     def get_auth_method_name(cls) -> str:
-        """Имя соответствующего метода аутентфикации
+        """имя соответствующего метода аутентфикации
 
         Args:
             None
 
         Returns:
-            Имя метода аутентификации, к которому
+            имя метода аутентификации, к которому
             приилагается данный класс
         """
         return re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__auth_method__).lower()

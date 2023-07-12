@@ -8,7 +8,7 @@ from .google import GoogleAuth, GoogleAuthParams
 class PhysicsSettings(Settings):
     GOOGLE_REDIRECT_URL: str = Field(
         'https://app.test.profcomff.com/auth/oauth-authorized/physics-msu',
-        env='PHYSICS_REDIRECT_URL',
+        validation_alias='PHYSICS_REDIRECT_URL',
     )
     GOOGLE_SCOPES: list[str] = Field(
         [
@@ -16,9 +16,9 @@ class PhysicsSettings(Settings):
             'https://www.googleapis.com/auth/userinfo.profile',
             'https://www.googleapis.com/auth/userinfo.email',
         ],
-        env='PHYSICS_SCOPES',
+        validation_alias='PHYSICS_SCOPES',
     )
-    GOOGLE_CREDENTIALS: Json = Field('{}', env='PHYSICS_CREDENTIALS')
+    GOOGLE_CREDENTIALS: Json = Field('{}', validation_alias='PHYSICS_CREDENTIALS')
     GOOGLE_WHITELIST_DOMAINS: list[str] | None = ['physics.msu.ru']
     GOOGLE_BLACKLIST_DOMAINS: list[str] | None = None
 

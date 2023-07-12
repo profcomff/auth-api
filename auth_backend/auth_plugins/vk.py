@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 from urllib.parse import quote
 
@@ -41,10 +42,10 @@ class VkAuth(OauthMeta):
     settings = VkSettings()
 
     class OauthResponseSchema(BaseModel):
-        code: str | None
+        code: str | None = None
         id_token: str | None = Field(help="VK JWT token identifier")
-        scopes: list[Scope] | None
-        session_name: str | None
+        scopes: list[Scope] | None = None
+        session_name: str | None = None
 
     @classmethod
     async def _register(
@@ -55,7 +56,7 @@ class VkAuth(OauthMeta):
         """Создает аккаунт или привязывает существующий
 
         Если передана активная сессия пользователя, то привязывает аккаунт https://vk.com к
-        аккаунту в активной сессии. Иначе, создает новый пользователь и делает https://vk.com
+        аккаунту в активной сессии. иначе, создает новый пользователь и делает https://vk.com
         первым методом входа.
         """
         payload = {

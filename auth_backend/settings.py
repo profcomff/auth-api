@@ -3,7 +3,8 @@ import random
 import string
 from functools import lru_cache
 
-from pydantic import BaseSettings, PostgresDsn, conint
+from pydantic import PostgresDsn, conint
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -12,12 +13,12 @@ class Settings(BaseSettings):
     DB_DSN: PostgresDsn = 'postgresql://postgres@localhost:5432/postgres'
     ROOT_PATH: str = '/' + os.getenv('APP_NAME', '')
 
-    EMAIL: str | None
+    EMAIL: str | None = None
     APPLICATION_HOST: str = "localhost"
-    EMAIL_PASS: str | None
+    EMAIL_PASS: str | None = None
     SMTP_HOST: str = 'smtp.gmail.com'
     SMTP_PORT: int = 587
-    ENABLED_AUTH_METHODS: list[str] | None
+    ENABLED_AUTH_METHODS: list[str] | None = None
     TOKEN_LENGTH: conint(gt=8) = 64  # type: ignore
     SESSION_TIME_IN_DAYS: int = 30
 
@@ -37,12 +38,7 @@ class Settings(BaseSettings):
     IP_DELAY_COUNT: int = 3
     EMAIL_DELAY_TIME_IN_MINUTES: float = 1
     EMAIL_DELAY_COUNT: int = 3
-
-    class Config:
-        """Pydantic BaseSettings config"""
-
-        case_sensitive = True
-        env_file = ".env"
+    model_config = SettingsConfigDict(case_sensitive=True, env_file=".env")
 
 
 @lru_cache

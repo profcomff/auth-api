@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class TelegramSettings(Settings):
     TELEGRAM_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
-    TELEGRAM_BOT_TOKEN: str | None
+    TELEGRAM_BOT_TOKEN: str | None = None
 
 
 class TelegramAuthParams(MethodMeta):
@@ -41,15 +41,15 @@ class TelegramAuth(OauthMeta):
 
     class OauthResponseSchema(BaseModel):
         id_token: str | None = Field(help="Telegram JWT token identifier")
-        id: str | None
-        first_name: str | None
-        last_name: str | None
-        username: str | None
-        photo_url: str | None
-        auth_date: str | None
-        hash: str | None
-        scopes: list[Scope] | None
-        session_name: str | None
+        id: str | None = None
+        first_name: str | None = None
+        last_name: str | None = None
+        username: str | None = None
+        photo_url: str | None = None
+        auth_date: str | None = None
+        hash: str | None = None
+        scopes: list[Scope] | None = None
+        session_name: str | None = None
 
     @classmethod
     async def _register(

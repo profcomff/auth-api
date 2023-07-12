@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging
 from urllib.parse import quote
 
@@ -42,10 +43,10 @@ class YandexAuth(OauthMeta):
     settings = YandexSettings()
 
     class OauthResponseSchema(BaseModel):
-        code: str | None
+        code: str | None = None
         id_token: str | None = Field(help="Yandex JWT token identifier")
-        scopes: list[Scope] | None
-        session_name: str | None
+        scopes: list[Scope] | None = None
+        session_name: str | None = None
 
     @classmethod
     async def _register(
@@ -56,7 +57,7 @@ class YandexAuth(OauthMeta):
         """Создает аккаунт или привязывает существующий
 
         Если передана активная сессия пользователя, то привязывает аккаунт Yandex к
-        аккаунту в активной сессии. Иначе, создает новый пользователь и делает Yandex
+        аккаунту в активной сессии. иначе, создает новый пользователь и делает Yandex
         первым методом входа.
         """
         header = {"content-type": "application/x-www-form-urlencoded"}

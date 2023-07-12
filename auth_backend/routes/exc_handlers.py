@@ -37,7 +37,7 @@ async def auth_failed_handler(req: starlette.requests.Request, exc: AuthFailed):
 
 
 class OauthAuthFailedStatusResponseModel(StatusResponseModel):
-    id_token: str | None
+    id_token: str | None = None
 
 
 @app.exception_handler(OauthAuthFailed)
