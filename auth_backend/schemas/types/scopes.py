@@ -1,31 +1,42 @@
 import string
-from typing import Any, Generator
+from typing import Any
 
-from pydantic.validators import AnyCallable, str_validator
+from pydantic._internal import _schema_generation_shared
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import core_schema
 
 
-CallableGenerator = Generator[AnyCallable, None, None]
+class Scope:
+    """
+    Класс для валидации строки скоупа
+    Скоуп должен быть строкой
+    Скоуп должен быть не пустой строкой
+    Скоуп не может начинаться с точки или заканчиваться ей
+    Скоуп должен состоять только из букв, точек и подчеркиваний
+    """
 
-
-class Scope(str):
     @classmethod
-    def __modify_schema__(cls, field_schema: dict[str, Any]) -> None:
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+    ) -> core_schema.CoreSchema:
+        return core_schema.general_after_validator_function(cls._validate, core_schema.str_schema())
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls, core_schema: core_schema.CoreSchema, handler: _schema_generation_shared.GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        field_schema = handler(core_schema)
         field_schema.update(type='string', format='scope')
+        return field_schema
 
     @classmethod
-    def __get_validators__(cls) -> CallableGenerator:
-        yield str_validator
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, val: str) -> str:
-        if not val:
-            raise ValueError("None or empty string are not allowed")
-        val = str(val).strip().lower()
-        if val[0] == "." or val[-1] == ".":
+    def _validate(cls, __input_value: str, _: core_schema.ValidationInfo) -> str:
+        if __input_value == "":
+            raise ValueError("Empty string are not allowed")
+        __input_value = str(__input_value).strip().lower()
+        if __input_value[0] == "." or __input_value[-1] == ".":
             raise ValueError("Dot can not be leading or closing")
-        if len(set(val) - set(string.ascii_lowercase + "._")) > 0:
+        if len(set(__input_value) - set(string.ascii_lowercase + "._")) > 0:
             raise ValueError("Only letters, dot and underscore allowed")
-        return val
-
-    __weakref__ = property(lambda self: object(), lambda self, v: None, lambda self: None)
+        return __input_value
