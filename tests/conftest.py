@@ -1,4 +1,5 @@
 import datetime
+import errno
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -7,7 +8,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from starlette import status
 
+from auth_backend.auth_plugins import Email, YandexAuth
 from auth_backend.auth_plugins.auth_method import random_string
+from auth_backend.models import AuthMethod, User
 from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
 from auth_backend.routes.base import app
 from auth_backend.settings import Settings, get_settings
@@ -211,3 +214,43 @@ def client_auth_email_delay():
     client = TestClient(app)
     yield client
     patcher1.stop()
+
+
+@pytest.fixture()
+def yandex_user(dbsession) -> User:
+    email = f"{random_string()}@yandex.ru"
+    password = random_string()
+    if (
+        AuthMethod.query(session=dbsession)
+        .filter(AuthMethod.value == email, AuthMethod.auth_method == YandexAuth.get_name())
+        .one_or_none()
+    ):
+        exit(errno.EIO)
+    user = User.create(session=dbsession)
+    dbsession.flush()
+    email = AuthMethod.create(
+        user_id=user.id, param="email", value=email, auth_method=YandexAuth.get_name(), session=dbsession
+    )
+    _salt = random_string()
+    password = AuthMethod.create(
+        user_id=user.id,
+        param="hashed_password",
+        value=Email._hash_password(password, _salt),
+        auth_method=YandexAuth.get_name(),
+        session=dbsession,
+    )
+    salt = AuthMethod.create(
+        user_id=user.id, param="salt", value=_salt, auth_method=YandexAuth.get_name(), session=dbsession
+    )
+    confirmed = AuthMethod.create(
+        user_id=user.id, param="confirmed", value="true", auth_method=YandexAuth.get_name(), session=dbsession
+    )
+    confirmation_token = AuthMethod.create(
+        user_id=user.id, param=random_string(), value="admin", auth_method=YandexAuth.get_name(), session=dbsession
+    )
+    dbsession.add_all([email, password, salt, confirmed, confirmation_token])
+    dbsession.commit()
+    yield user
+    dbsession.query(AuthMethod).filter(AuthMethod.user_id == user.id).delete()
+    dbsession.query(User).filter(User.id == user.id).delete()
+    dbsession.commit()
