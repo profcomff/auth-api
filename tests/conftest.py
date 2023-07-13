@@ -219,7 +219,6 @@ def client_auth_email_delay():
 @pytest.fixture()
 def yandex_user(dbsession) -> User:
     email = f"{random_string()}@yandex.ru"
-    password = random_string()
     if (
         AuthMethod.query(session=dbsession)
         .filter(AuthMethod.value == email, AuthMethod.auth_method == YandexAuth.get_name())
@@ -232,23 +231,13 @@ def yandex_user(dbsession) -> User:
         user_id=user.id, param="email", value=email, auth_method=YandexAuth.get_name(), session=dbsession
     )
     _salt = random_string()
-    password = AuthMethod.create(
-        user_id=user.id,
-        param="hashed_password",
-        value=Email._hash_password(password, _salt),
-        auth_method=YandexAuth.get_name(),
-        session=dbsession,
-    )
-    salt = AuthMethod.create(
-        user_id=user.id, param="salt", value=_salt, auth_method=YandexAuth.get_name(), session=dbsession
-    )
     confirmed = AuthMethod.create(
         user_id=user.id, param="confirmed", value="true", auth_method=YandexAuth.get_name(), session=dbsession
     )
     confirmation_token = AuthMethod.create(
         user_id=user.id, param=random_string(), value="admin", auth_method=YandexAuth.get_name(), session=dbsession
     )
-    dbsession.add_all([email, password, salt, confirmed, confirmation_token])
+    dbsession.add_all([email, confirmed, confirmation_token])
     dbsession.commit()
     yield user
     dbsession.query(AuthMethod).filter(AuthMethod.user_id == user.id).delete()
