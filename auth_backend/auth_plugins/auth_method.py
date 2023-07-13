@@ -13,7 +13,7 @@ from pydantic import constr
 from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.base import Base
-from auth_backend.exceptions import AlreadyExists
+from auth_backend.exceptions import AlreadyExists, LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from auth_backend.settings import get_settings
@@ -312,6 +312,9 @@ class OauthMeta(AuthMethodMeta):
             )
             .all()
         )
+        all_auth_methods = AuthMethod.query(session=db_session).filter(AuthMethod.user_id == user.id).all()
+        if len(all_auth_methods) - len(auth_methods) == 0:
+            raise LastAuthMethodDelete()
         logger.debug(auth_methods)
         for method in auth_methods:
             method.is_deleted = True
