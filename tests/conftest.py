@@ -227,17 +227,10 @@ def yandex_user(dbsession) -> User:
         exit(errno.EIO)
     user = User.create(session=dbsession)
     dbsession.flush()
-    email = AuthMethod.create(
-        user_id=user.id, param="email", value=email, auth_method=YandexAuth.get_name(), session=dbsession
+    user_id = AuthMethod.create(
+        user_id=user.id, param="user_id", value=user.id, auth_method=YandexAuth.get_name(), session=dbsession
     )
-    _salt = random_string()
-    confirmed = AuthMethod.create(
-        user_id=user.id, param="confirmed", value="true", auth_method=YandexAuth.get_name(), session=dbsession
-    )
-    confirmation_token = AuthMethod.create(
-        user_id=user.id, param=random_string(), value="admin", auth_method=YandexAuth.get_name(), session=dbsession
-    )
-    dbsession.add_all([email, confirmed, confirmation_token])
+    dbsession.add(user_id)
     dbsession.commit()
     yield user
     dbsession.query(AuthMethod).filter(AuthMethod.user_id == user.id).delete()
