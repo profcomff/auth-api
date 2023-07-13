@@ -6,6 +6,7 @@ from auth_backend.exceptions import (
     AlreadyExists,
     AuthFailed,
     IncorrectUserAuthType,
+    LastAuthMethodDelete,
     OauthAuthFailed,
     OauthCredentialsIncorrect,
     ObjectNotFound,
@@ -70,10 +71,18 @@ async def http_error_handler(req: starlette.requests.Request, exc: Exception):
 
 
 @app.exception_handler(TooManyEmailRequests)
-async def http_error_handler(req: starlette.requests.Request, exc: TooManyEmailRequests):
+async def too_many_requests_handler(req: starlette.requests.Request, exc: TooManyEmailRequests):
     return JSONResponse(
         content=StatusResponseModel(
             status="Error", message=f"Too many requests. Delay time: {int(exc.delay_time.total_seconds())} seconds."
         ).dict(),
         status_code=429,
+    )
+
+
+@app.exception_handler(LastAuthMethodDelete)
+async def last_auth_method_delete_handler(req: starlette.requests.Request, exc: LastAuthMethodDelete):
+    return JSONResponse(
+        content=StatusResponseModel(status="Error", message=f"Unable to remove last authentication method").dict(),
+        status_code=403,
     )

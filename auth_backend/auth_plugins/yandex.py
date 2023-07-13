@@ -43,7 +43,7 @@ class YandexAuth(OauthMeta):
 
     class OauthResponseSchema(BaseModel):
         code: str | None = None
-        id_token: str | None = Field(help="Yandex JWT token identifier")
+        id_token: str | None = Field(default=None, help="Yandex JWT token identifier")
         scopes: list[Scope] | None = None
         session_name: str | None = None
 

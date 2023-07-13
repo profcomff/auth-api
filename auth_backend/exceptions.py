@@ -44,3 +44,8 @@ class TooManyEmailRequests(Exception):
     def __init__(self, dtime: datetime.timedelta):
         self.delay_time = dtime
         super().__init__(f'Delay: {dtime}')
+
+
+class LastAuthMethodDelete(Exception):
+    def __init__(self):
+        super().__init__(f'Unable to remove last authentication method')

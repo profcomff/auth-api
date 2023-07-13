@@ -11,6 +11,7 @@ retrying
 aiohttp
 logging-profcomff
 pydantic-settings
+pytest-asyncio
 
 # Google Auth Method
 google-api-python-client
