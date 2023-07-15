@@ -151,8 +151,8 @@ class SessionPost(Base):
         return exp
 
 
-Group.update_forward_refs()
-GroupGet.update_forward_refs()
-UserScopes.update_forward_refs()
-UserGet.update_forward_refs()
-SessionScopes.update_forward_refs()
+Group.model_rebuild()
+GroupGet.model_rebuild()
+UserScopes.model_rebuild()
+UserGet.model_rebuild()
+SessionScopes.model_rebuild()

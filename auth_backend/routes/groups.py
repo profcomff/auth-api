@@ -25,7 +25,7 @@ async def get_group(
     """
     group = DbGroup.get(id, session=db.session)
     result = {}
-    result = result | Group.from_orm(group).model_dump()
+    result = result | Group.model_validate(group).model_dump()
     if "child" in info:
         result["child"] = group.child
     if "scopes" in info:
@@ -85,7 +85,7 @@ async def patch_group(
         raise HTTPException(
             status_code=400, detail=StatusResponseModel(status="Error", message="Cycle detected").model_dump()
         )
-    result = Group.from_orm(
+    result = Group.model_validate(
         DbGroup.update(id, session=db.session, **group_inp.model_dump(exclude_unset=True, exclude={"scopes"}))
     ).model_dump(exclude_unset=True)
     scopes = set()
@@ -95,7 +95,7 @@ async def patch_group(
     if scopes:
         group.scopes = scopes
     db.session.commit()
-    return Group.from_orm(group)
+    return Group.model_validate(group)
 
 
 @groups.delete("/{id}", response_model=None)

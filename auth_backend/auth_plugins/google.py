@@ -71,7 +71,7 @@ class GoogleAuth(OauthMeta):
         if not user_inp.id_token:
             flow = await cls._default_flow()
             try:
-                credentials = flow.fetch_token(**user_inp.dict(exclude_unset=True))
+                credentials = flow.fetch_token(**user_inp.model_dump(exclude_unset=True))
             except oauthlib.oauth2.rfc6749.errors.InvalidGrantError as exc:
                 raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
             id_token = credentials.get("id_token")
@@ -122,7 +122,7 @@ class GoogleAuth(OauthMeta):
         """
         flow = await cls._default_flow()
         try:
-            credentials = flow.fetch_token(**user_inp.dict(exclude_unset=True))
+            credentials = flow.fetch_token(**user_inp.model_dump(exclude_unset=True))
         except oauthlib.oauth2.rfc6749.errors.OAuth2Error as exc:
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
         try:

@@ -114,7 +114,7 @@ async def patch_user(
         )
         UserGroup.delete(user_group.id, session=db.session)
     db.session.commit()
-    return UserModel.from_orm(user)
+    return UserModel.model_validate(user)
 
 
 @user.delete("/{user_id}", response_model=None)
