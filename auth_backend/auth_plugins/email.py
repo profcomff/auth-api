@@ -76,6 +76,7 @@ class EmailRegister(Base):
     password: constr(min_length=1)
     email_validator = field_validator("email")(check_email)
 
+
 class EmailChange(Base):
     email: constr(min_length=1)
 
@@ -351,7 +352,9 @@ class Email(AuthMethodMeta):
             if not user_session.user.auth_methods.email:
                 raise HTTPException(
                     status_code=401,
-                    detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").model_dump(),
+                    detail=StatusResponseModel(
+                        status="Error", message="Auth method restricted for this user"
+                    ).model_dump(),
                 )
             if not Email._validate_password(
                 schema.password,
@@ -370,7 +373,8 @@ class Email(AuthMethodMeta):
             )
             if auth_method_email.user_id != user_session.user_id:
                 raise HTTPException(
-                    status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect user session").model_dump()
+                    status_code=403,
+                    detail=StatusResponseModel(status="Error", message="Incorrect user session").model_dump(),
                 )
             user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
             user_session.user.auth_methods.email.salt.value = salt
@@ -401,7 +405,9 @@ class Email(AuthMethodMeta):
             if not auth_method_email.user.auth_methods.email:
                 raise HTTPException(
                     status_code=401,
-                    detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").model_dump(),
+                    detail=StatusResponseModel(
+                        status="Error", message="Auth method restricted for this user"
+                    ).model_dump(),
                 )
             if auth_method_email.user.auth_methods.email.confirmed.value.lower() == "false":
                 raise AuthFailed(

@@ -79,7 +79,9 @@ class TelegramAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method('user_id', telegram_user_id, user, db_session=db.session)
 
-        return await cls._create_session(user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name)
+        return await cls._create_session(
+            user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+        )
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema) -> Session:

@@ -83,6 +83,8 @@ async def too_many_requests_handler(req: starlette.requests.Request, exc: TooMan
 @app.exception_handler(LastAuthMethodDelete)
 async def last_auth_method_delete_handler(req: starlette.requests.Request, exc: LastAuthMethodDelete):
     return JSONResponse(
-        content=StatusResponseModel(status="Error", message=f"Unable to remove last authentication method").model_dump(),
+        content=StatusResponseModel(
+            status="Error", message=f"Unable to remove last authentication method"
+        ).model_dump(),
         status_code=403,
     )
