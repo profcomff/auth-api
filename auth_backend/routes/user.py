@@ -39,14 +39,14 @@ async def get_user(
         | UserInfo(
             id=user_id,
             email=user.auth_methods.email.email.value if user.auth_methods.email.email else None,
-        ).dict()
+        ).model_dump()
     )
     if "groups" in info:
-        result = result | UserGroups(groups=[group.id for group in user.groups]).dict()
+        result = result | UserGroups(groups=[group.id for group in user.groups]).model_dump()
     if "indirect_groups" in info:
-        result = result | UserIndirectGroups(indirect_groups=[group.id for group in user.indirect_groups]).dict()
+        result = result | UserIndirectGroups(indirect_groups=[group.id for group in user.indirect_groups]).model_dump()
     if "scopes" in info:
-        result = result | UserScopes(user_scopes=user.scopes).dict()
+        result = result | UserScopes(user_scopes=user.scopes).model_dump()
     if "auth_methods" in info:
         auth_methods = (
             db.session.query(AuthMethod.auth_method)
@@ -57,8 +57,8 @@ async def get_user(
             .distinct()
             .all()
         )
-        result = result | UserAuthMethods(auth_methods=(a[0] for a in auth_methods)).dict()
-    return UserGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
+        result = result | UserAuthMethods(auth_methods=(a[0] for a in auth_methods)).model_dump()
+    return UserGet(**result).model_dump(exclude_unset=True, exclude={"session_scopes"})
 
 
 @user.get("", response_model=UsersGet, response_model_exclude_unset=True)
@@ -84,7 +84,7 @@ async def get_users(
         if "scopes" in info:
             add["scopes"] = user.scopes
         result["items"].append(add)
-    return UsersGet(**result).dict(exclude_unset=True, exclude={"session_scopes"})
+    return UsersGet(**result).model_dump(exclude_unset=True, exclude={"session_scopes"})
 
 
 @user.patch("/{user_id}", response_model=UserModel)

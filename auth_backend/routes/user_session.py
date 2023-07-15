@@ -38,7 +38,7 @@ async def logout(
     session.expires = datetime.utcnow()
     db.session.commit()
     return JSONResponse(
-        status_code=200, content=StatusResponseModel(status="Success", message="StatusResponseModel successful").dict()
+        status_code=200, content=StatusResponseModel(status="Success", message="StatusResponseModel successful").model_dump()
     )
 
 
@@ -55,18 +55,18 @@ async def me(
         | UserInfo(
             id=session.user_id,
             email=session.user.auth_methods.email.email.value if session.user.auth_methods.email.email else None,
-        ).dict()
+        ).model_dump()
     )
     if "groups" in info:
-        result = result | UserGroups(groups=[group.id for group in session.user.groups]).dict()
+        result = result | UserGroups(groups=[group.id for group in session.user.groups]).model_dump()
     if "indirect_groups" in info:
         result = (
-            result | UserIndirectGroups(indirect_groups=[group.id for group in session.user.indirect_groups]).dict()
+            result | UserIndirectGroups(indirect_groups=[group.id for group in session.user.indirect_groups]).model_dump()
         )
     if "session_scopes" in info:
-        result = result | SessionScopes(session_scopes=session.scopes).dict()
+        result = result | SessionScopes(session_scopes=session.scopes).model_dump()
     if "user_scopes" in info:
-        result = result | UserScopes(user_scopes=session.user.scopes).dict()
+        result = result | UserScopes(user_scopes=session.user.scopes).model_dump()
     if "auth_methods" in info:
         auth_methods = (
             db.session.query(AuthMethod.auth_method)
@@ -77,9 +77,9 @@ async def me(
             .distinct()
             .all()
         )
-        result = result | UserAuthMethods(auth_methods=(a[0] for a in auth_methods)).dict()
+        result = result | UserAuthMethods(auth_methods=(a[0] for a in auth_methods)).model_dump()
 
-    return UserGet(**result).dict(exclude_unset=True)
+    return UserGet(**result).model_dump(exclude_unset=True)
 
 
 @user_session.post("/session", response_model=Session)

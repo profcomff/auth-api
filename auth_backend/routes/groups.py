@@ -25,7 +25,7 @@ async def get_group(
     """
     group = DbGroup.get(id, session=db.session)
     result = {}
-    result = result | Group.from_orm(group).dict()
+    result = result | Group.from_orm(group).model_dump()
     if "child" in info:
         result["child"] = group.child
     if "scopes" in info:
@@ -34,7 +34,7 @@ async def get_group(
         result["indirect_scopes"] = group.indirect_scopes
     if "users" in info:
         result["users"] = [user.id for user in group.users]
-    return GroupGet(**result).dict(exclude_unset=True)
+    return GroupGet(**result).model_dump(exclude_unset=True)
 
 
 @groups.post("", response_model=Group)
@@ -49,7 +49,7 @@ async def create_group(
         raise ObjectNotFound(Group, group_inp.parent_id)
     if DbGroup.query(session=db.session).filter(DbGroup.name == group_inp.name).one_or_none():
         raise HTTPException(
-            status_code=409, detail=StatusResponseModel(status="Error", message="Name already exists").dict()
+            status_code=409, detail=StatusResponseModel(status="Error", message="Name already exists").model_dump()
         )
     scopes = set()
     if group_inp.scopes:
@@ -62,7 +62,7 @@ async def create_group(
     for scope in scopes:
         GroupScope.create(session=db.session, group_id=group.id, scope_id=scope.id)
     db.session.commit()
-    return Group(**result).dict(exclude_unset=True)
+    return Group(**result).model_dump(exclude_unset=True)
 
 
 @groups.patch("/{id}", response_model=Group)
@@ -83,15 +83,15 @@ async def patch_group(
     group = DbGroup.get(id, session=db.session)
     if group_inp.parent_id in (row.id for row in group.child):
         raise HTTPException(
-            status_code=400, detail=StatusResponseModel(status="Error", message="Cycle detected").dict()
+            status_code=400, detail=StatusResponseModel(status="Error", message="Cycle detected").model_dump()
         )
     result = Group.from_orm(
-        DbGroup.update(id, session=db.session, **group_inp.dict(exclude_unset=True, exclude={"scopes"}))
-    ).dict(exclude_unset=True)
+        DbGroup.update(id, session=db.session, **group_inp.model_dump(exclude_unset=True, exclude={"scopes"}))
+    ).model_dump(exclude_unset=True)
     scopes = set()
     if group_inp.scopes:
         for _scope_id in group_inp.scopes:
-            scopes.add(Scope.get(session=db.session, id=_scope_id))
+            scopes.add(Scope.get(session=db.session, id=_scope_id.id))
     if scopes:
         group.scopes = scopes
     db.session.commit()
@@ -137,4 +137,4 @@ async def get_groups(
         if "users" in info:
             add["users"] = [user.id for user in group.users]
         result["items"].append(add)
-    return GroupsGet(**result).dict(exclude_unset=True)
+    return GroupsGet(**result).model_dump(exclude_unset=True)

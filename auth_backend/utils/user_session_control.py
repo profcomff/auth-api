@@ -71,5 +71,5 @@ async def check_scopes(scopes: set[Scope], user: User) -> None:
             detail=StatusResponseModel(
                 status="Error",
                 message=f"Incorrect user scopes, triggering scopes -> {[scope.name for scope in scopes - user.scopes]} ",
-            ).dict(),
+            ).model_dump(),
         )
