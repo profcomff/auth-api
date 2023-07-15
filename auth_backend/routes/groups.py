@@ -91,7 +91,7 @@ async def patch_group(
     scopes = set()
     if group_inp.scopes:
         for _scope_id in group_inp.scopes:
-            scopes.add(Scope.get(session=db.session, id=_scope_id.id))
+            scopes.add(Scope.get(session=db.session, id=_scope_id))
     if scopes:
         group.scopes = scopes
     db.session.commit()
