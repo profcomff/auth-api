@@ -19,22 +19,22 @@ from .base import app
 
 @app.exception_handler(ObjectNotFound)
 async def not_found_handler(req: starlette.requests.Request, exc: ObjectNotFound):
-    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").dict(), status_code=404)
+    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").model_dump(), status_code=404)
 
 
 @app.exception_handler(IncorrectUserAuthType)
 async def incorrect_auth_type_handler(req: starlette.requests.Request, exc: IncorrectUserAuthType):
-    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").dict(), status_code=403)
+    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").model_dump(), status_code=403)
 
 
 @app.exception_handler(AlreadyExists)
 async def already_exists_handler(req: starlette.requests.Request, exc: AlreadyExists):
-    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").dict(), status_code=409)
+    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").model_dump(), status_code=409)
 
 
 @app.exception_handler(AuthFailed)
 async def auth_failed_handler(req: starlette.requests.Request, exc: AuthFailed):
-    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").dict(), status_code=401)
+    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").model_dump(), status_code=401)
 
 
 class OauthAuthFailedStatusResponseModel(StatusResponseModel):
@@ -48,25 +48,25 @@ async def oauth_failed_handler(req: starlette.requests.Request, exc: OauthAuthFa
             status="Error",
             message=f"{exc}",
             id_token=exc.id_token,
-        ).dict(exclude_none=True),
+        ).model_dump(exclude_none=True),
         status_code=exc.status_code,
     )
 
 
 @app.exception_handler(OauthCredentialsIncorrect)
 async def oauth_creds_failed_handler(req: starlette.requests.Request, exc: OauthCredentialsIncorrect):
-    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").dict(), status_code=406)
+    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").model_dump(), status_code=406)
 
 
 @app.exception_handler(SessionExpired)
 async def session_expired_handler(req: starlette.requests.Request, exc: SessionExpired):
-    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").dict(), status_code=403)
+    return JSONResponse(content=StatusResponseModel(status="Error", message=f"{exc}").model_dump(), status_code=403)
 
 
 @app.exception_handler(Exception)
 async def http_error_handler(req: starlette.requests.Request, exc: Exception):
     return JSONResponse(
-        content=StatusResponseModel(status="Error", message="Internal server error").dict(), status_code=500
+        content=StatusResponseModel(status="Error", message="Internal server error").model_dump(), status_code=500
     )
 
 
@@ -75,7 +75,7 @@ async def too_many_requests_handler(req: starlette.requests.Request, exc: TooMan
     return JSONResponse(
         content=StatusResponseModel(
             status="Error", message=f"Too many requests. Delay time: {int(exc.delay_time.total_seconds())} seconds."
-        ).dict(),
+        ).model_dump(),
         status_code=429,
     )
 
@@ -83,6 +83,6 @@ async def too_many_requests_handler(req: starlette.requests.Request, exc: TooMan
 @app.exception_handler(LastAuthMethodDelete)
 async def last_auth_method_delete_handler(req: starlette.requests.Request, exc: LastAuthMethodDelete):
     return JSONResponse(
-        content=StatusResponseModel(status="Error", message=f"Unable to remove last authentication method").dict(),
+        content=StatusResponseModel(status="Error", message=f"Unable to remove last authentication method").model_dump(),
         status_code=403,
     )
