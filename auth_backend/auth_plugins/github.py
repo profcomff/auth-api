@@ -44,7 +44,7 @@ class GithubAuth(OauthMeta):
 
     class OauthResponseSchema(BaseModel):
         code: str | None = None
-        id_token: str | None = Field(help="LK MSU JWT token identifier")
+        id_token: str | None = Field(default=None, help="LK MSU JWT token identifier")
         scopes: list[Scope] | None = None
         session_name: str | None = None
 

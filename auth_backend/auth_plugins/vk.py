@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class VkSettings(Settings):
-    VK_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/vk'
+    VK_REDIRECT_URL: str = 'http://localhost'
     VK_CLIENT_ID: int | None = None
     VK_CLIENT_SECRET: str | None = None
 
@@ -42,7 +42,7 @@ class VkAuth(OauthMeta):
 
     class OauthResponseSchema(BaseModel):
         code: str | None = None
-        id_token: str | None = Field(help="VK JWT token identifier")
+        id_token: str | None = Field(default=None, help="VK JWT token identifier")
         scopes: list[Scope] | None = None
         session_name: str | None = None
 
