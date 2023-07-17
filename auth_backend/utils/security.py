@@ -16,7 +16,7 @@ class UnionAuth(SecurityBase):
     Основной метод находится в `__call__`
     '''
 
-    model = APIKey.construct(in_=APIKeyIn.header, name="Authorization")
+    model = APIKey.model_construct(in_=APIKeyIn.header, name="Authorization")
     scheme_name = "token"
     auto_error: bool
     allow_none: bool

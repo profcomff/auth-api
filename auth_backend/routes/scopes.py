@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_sqlalchemy import db
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 from sqlalchemy import func
 
 from auth_backend.base import StatusResponseModel
@@ -22,10 +22,12 @@ async def create_scope(
     """
     if Scope.query(session=db.session).filter(func.lower(Scope.name) == scope.name.lower()).all():
         raise HTTPException(
-            status_code=409, detail=StatusResponseModel(status="Error", message="Already exists").dict()
+            status_code=409, detail=StatusResponseModel(status="Error", message="Already exists").model_dump()
         )
     scope.name = scope.name.lower()
-    return ScopeGet.from_orm(Scope.create(**scope.dict(), creator_id=user_session.user_id, session=db.session))
+    return ScopeGet.model_validate(
+        Scope.create(**scope.model_dump(), creator_id=user_session.user_id, session=db.session)
+    )
 
 
 @scopes.get("/{id}", response_model=ScopeGet)
@@ -35,7 +37,7 @@ async def get_scope(
     """
     Scopes: `["auth.scope.read"]`
     """
-    return ScopeGet.from_orm(Scope.get(id, session=db.session))
+    return ScopeGet.model_validate(Scope.get(id, session=db.session))
 
 
 @scopes.get("", response_model=list[ScopeGet])
@@ -45,7 +47,8 @@ async def get_scopes(
     """
     Scopes: `["auth.scope.read"]`
     """
-    return parse_obj_as(list[ScopeGet], Scope.query(session=db.session).all())
+    adapter = TypeAdapter(list[ScopeGet])
+    return adapter.validate_python(Scope.query(session=db.session).all())
 
 
 @scopes.patch("/{id}", response_model=ScopeGet)
@@ -58,7 +61,9 @@ async def update_scope(
     Scopes: `["auth.scope.update"]`
     """
     scope = Scope.get(id, session=db.session)
-    return ScopeGet.from_orm(Scope.update(scope.id, **scope_inp.dict(exclude_unset=True), session=db.session))
+    return ScopeGet.model_validate(
+        Scope.update(scope.id, **scope_inp.model_dump(exclude_unset=True), session=db.session)
+    )
 
 
 @scopes.delete("/{id}", response_model=StatusResponseModel)

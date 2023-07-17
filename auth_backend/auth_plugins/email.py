@@ -1,10 +1,11 @@
 import hashlib
 import logging
 
+import pydantic
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
-from pydantic import constr, validator
+from pydantic import constr, field_validator
 from sqlalchemy import func
 
 from auth_backend.base import Base, StatusResponseModel
@@ -67,19 +68,19 @@ class EmailLogin(Base):
     password: constr(min_length=1)
     scopes: list[Scope] | None = None
     session_name: str | None = None
-    email_validator = validator("email", allow_reuse=True)(check_email)
+    email_validator = field_validator("email")(check_email)
 
 
 class EmailRegister(Base):
     email: constr(min_length=1)
     password: constr(min_length=1)
-    email_validator = validator("email", allow_reuse=True)(check_email)
+    email_validator = field_validator("email")(check_email)
 
 
 class EmailChange(Base):
     email: constr(min_length=1)
 
-    email_validator = validator("email", allow_reuse=True)(check_email)
+    email_validator = field_validator("email")(check_email)
 
 
 class RequestResetPassword(Base):
@@ -87,14 +88,14 @@ class RequestResetPassword(Base):
     password: str | None = None
     new_password: str | None = None
 
-    email_validator = validator("email", allow_reuse=True)(check_email)
+    email_validator = field_validator("email")(check_email)
 
 
 class ResetPassword(Base):
     email: constr(min_length=1)
     new_password: constr(min_length=1)
 
-    email_validator = validator("email", allow_reuse=True)(check_email)
+    email_validator = field_validator("email")(check_email)
 
 
 class EmailParams(MethodMeta):
@@ -270,7 +271,7 @@ class Email(AuthMethodMeta):
         )
         if not auth_method:
             raise HTTPException(
-                status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect link").dict()
+                status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect link").model_dump()
             )
         auth_method.user.auth_methods.email.confirmed.value = "true"
         db.session.commit()
@@ -293,7 +294,7 @@ class Email(AuthMethodMeta):
             )
         if user_session.user.auth_methods.email.email.value == scheme.email:
             raise HTTPException(
-                status_code=401, detail=StatusResponseModel(status="Error", message="Email incorrect").dict()
+                status_code=401, detail=StatusResponseModel(status="Error", message="Email incorrect").model_dump()
             )
         token = random_string()
         await user_session.user.auth_methods.email.bulk_create(
@@ -324,7 +325,7 @@ class Email(AuthMethodMeta):
         if not auth:
             raise HTTPException(
                 status_code=403,
-                detail=StatusResponseModel(status="Error", message="Incorrect confirmation token").dict(),
+                detail=StatusResponseModel(status="Error", message="Incorrect confirmation token").model_dump(),
             )
         user: User = auth.user
         if user.auth_methods.email.confirmed.value == "false":
@@ -351,7 +352,9 @@ class Email(AuthMethodMeta):
             if not user_session.user.auth_methods.email:
                 raise HTTPException(
                     status_code=401,
-                    detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").dict(),
+                    detail=StatusResponseModel(
+                        status="Error", message="Auth method restricted for this user"
+                    ).model_dump(),
                 )
             if not Email._validate_password(
                 schema.password,
@@ -370,7 +373,8 @@ class Email(AuthMethodMeta):
             )
             if auth_method_email.user_id != user_session.user_id:
                 raise HTTPException(
-                    status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect user session").dict()
+                    status_code=403,
+                    detail=StatusResponseModel(status="Error", message="Incorrect user session").model_dump(),
                 )
             user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
             user_session.user.auth_methods.email.salt.value = salt
@@ -396,12 +400,14 @@ class Email(AuthMethodMeta):
             )
             if not auth_method_email:
                 raise HTTPException(
-                    status_code=404, detail=StatusResponseModel(status="Error", message="Email not found").dict()
+                    status_code=404, detail=StatusResponseModel(status="Error", message="Email not found").model_dump()
                 )
             if not auth_method_email.user.auth_methods.email:
                 raise HTTPException(
                     status_code=401,
-                    detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").dict(),
+                    detail=StatusResponseModel(
+                        status="Error", message="Auth method restricted for this user"
+                    ).model_dump(),
                 )
             if auth_method_email.user.auth_methods.email.confirmed.value.lower() == "false":
                 raise AuthFailed(
@@ -420,10 +426,10 @@ class Email(AuthMethodMeta):
             return StatusResponseModel(status="Success", message="Reset link has been successfully mailed")
         elif not user_session and schema.password and schema.new_password:
             raise HTTPException(
-                status_code=403, detail=StatusResponseModel(status="Error", message="Missing session").dict()
+                status_code=403, detail=StatusResponseModel(status="Error", message="Missing session").model_dump()
             )
         raise HTTPException(
-            status_code=422, detail=StatusResponseModel(status="Error", message="Unprocessable entity").dict()
+            status_code=422, detail=StatusResponseModel(status="Error", message="Unprocessable entity").model_dump()
         )
 
     @staticmethod
@@ -445,7 +451,7 @@ class Email(AuthMethodMeta):
         ):
             raise HTTPException(
                 status_code=403,
-                detail=StatusResponseModel(status="Error", message="Incorrect reset token").dict(),
+                detail=StatusResponseModel(status="Error", message="Incorrect reset token").model_dump(),
             )
         salt = random_string()
         auth_method.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
