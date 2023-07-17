@@ -40,7 +40,7 @@ class TelegramAuth(OauthMeta):
     settings = TelegramSettings()
 
     class OauthResponseSchema(BaseModel):
-        id_token: str | None = Field(help="Telegram JWT token identifier")
+        id_token: str | None = Field(default=None, help="Telegram JWT token identifier")
         id: str | None = None
         first_name: str | None = None
         last_name: str | None = None

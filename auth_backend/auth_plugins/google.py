@@ -53,7 +53,7 @@ class GoogleAuth(OauthMeta):
     class OauthResponseSchema(BaseModel):
         code: str | None = None
         state: str | None = None
-        id_token: str | None = Field(help="Google JWT token identifier")
+        id_token: str | None = Field(default=None, help="Google JWT token identifier")
         scopes: list[Scope] | None = None
         session_name: str | None = None
 

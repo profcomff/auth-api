@@ -42,7 +42,7 @@ class VkAuth(OauthMeta):
 
     class OauthResponseSchema(BaseModel):
         code: str | None = None
-        id_token: str | None = Field(help="VK JWT token identifier")
+        id_token: str | None = Field(default=None, help="VK JWT token identifier")
         scopes: list[Scope] | None = None
         session_name: str | None = None
 
