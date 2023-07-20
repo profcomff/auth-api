@@ -91,7 +91,7 @@ jobs:
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
             --env SMTP_HOST='mail.profcomff.com' \
             --env SMTP_PORT='465' \
-            --env APPLICATION_HOST='${{ secrets.HOST }}' \
+            --env APPLICATION_HOST='${{ vars.HOST }}' \
             --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
             --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
             --env PHYSICS_REDIRECT_URL='${{ vars.PHYSICS_REDIRECT_URL }}' \
@@ -161,7 +161,7 @@ jobs:
             --env ENABLED_AUTH_METHODS='${{ vars.ENABLED_AUTH_METHODS }}' \
             --env SMTP_HOST='mail.profcomff.com' \
             --env SMTP_PORT='465' \
-            --env APPLICATION_HOST='${{ secrets.HOST }}' \
+            --env APPLICATION_HOST='${{ vars.HOST }}' \
             --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
             --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
             --env PHYSICS_REDIRECT_URL='${{ vars.PHYSICS_REDIRECT_URL }}' \
