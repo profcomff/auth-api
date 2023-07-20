@@ -3,6 +3,7 @@ import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from enum import Enum
 
 from fastapi.background import BackgroundTasks
 from retrying import retry
@@ -14,6 +15,12 @@ from auth_backend.settings import Settings, get_settings
 
 
 logger = logging.getLogger(__name__)
+
+
+class ActionType(str, Enum):
+    EMAIL_CONFIRMED = "email_confirmed"
+    REGISTRATION = "regitration"
+    PASSWORD_RESET = "password_reset"
 
 
 class EmailDelay:
