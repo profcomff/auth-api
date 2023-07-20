@@ -13,7 +13,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
-from auth_backend.utils.smtp import ActionType, SendEmailMessage
+from auth_backend.utils.smtp import SendEmailMessage
 
 from .auth_method import AuthMethodMeta, MethodMeta, Session, random_string
 
@@ -218,7 +218,7 @@ class Email(AuthMethodMeta):
                 "Подтверждение регистрации Твой ФФ!",
                 db.session,
                 background_tasks,
-                url=f"{settings.APPLICATION_HOST}/profile/success?token={confirmation_token}&action_type={ActionType.REGISTRATION}",
+                url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
             )
             db.session.commit()
             return StatusResponseModel(status="Success", message="Email confirmation link sent")
@@ -236,7 +236,7 @@ class Email(AuthMethodMeta):
             "Подтверждение регистрации Твой ФФ!",
             db.session,
             background_tasks,
-            url=f"{settings.APPLICATION_HOST}/profile/success?token={confirmation_token}&action_type={ActionType.REGISTRATION}",
+            url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
         )
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email confirmation link sent")
@@ -300,7 +300,7 @@ class Email(AuthMethodMeta):
             subject="Смена почты Твой ФФ!",
             dbsession=db.session,
             background_tasks=background_tasks,
-            url=f"{settings.APPLICATION_HOST}/profile/reset/email/{user_session.user_id}?token={token}&email={scheme.email}",
+            url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
         )
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email confirmation link sent")
@@ -414,7 +414,7 @@ class Email(AuthMethodMeta):
                 subject="Смена пароля Твой ФФ!",
                 dbsession=db.session,
                 background_tasks=background_tasks,
-                url=f"{settings.APPLICATION_HOST}/profile/reset/password?token={auth_method_email.user.auth_methods.email.reset_token.value}&action_type={ActionType.PASSWORD_RESET}",
+                url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_method_email.user.auth_methods.email.reset_token.value}",
             )
             return StatusResponseModel(status="Success", message="Reset link has been successfully mailed")
         elif not user_session and schema.password and schema.new_password:
