@@ -151,8 +151,14 @@ class SessionPost(Base):
         return exp
 
 
+class SessionUpdate(Base):
+    session_name: str | None = None
+    scopes: list[Scope] = []
+
+
 Group.model_rebuild()
 GroupGet.model_rebuild()
 UserScopes.model_rebuild()
 UserGet.model_rebuild()
 SessionScopes.model_rebuild()
+SessionUpdate.model_rebuild()
