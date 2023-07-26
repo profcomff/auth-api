@@ -168,12 +168,11 @@ async def update_session(
     if update_session is None:
         raise ObjectNotFound(UserSession, id)
     update_session.update(
-        update_session.id, session=db.session, **session_update_info.model_dump(exclude_unset=True, exclude='scopes')
+        update_session.id, session=db.session, **session_update_info.model_dump(exclude_unset=True, exclude={'scopes'})
     )
     scopes = await user_session_control.create_scopes_set_by_names(session_update_info.scopes)
     await user_session_control.check_scopes(scopes, current_session.user)
-    update_session.scopes = list(scope for scope in scopes)
-    db.session.commit()
+    update_session.scopes = list(scopes)
     return Session(
         session_name=session_update_info.session_name,
         user_id=current_session.user_id,
