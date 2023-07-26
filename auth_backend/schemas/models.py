@@ -151,7 +151,7 @@ class SessionPost(Base):
         return exp
 
 
-class SessionUpdate(Base):
+class SessionPatch(Base):
     session_name: str | None = None
     scopes: list[Scope] = []
 

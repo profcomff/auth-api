@@ -14,7 +14,7 @@ from auth_backend.schemas.models import (
     Session,
     SessionPost,
     SessionScopes,
-    SessionUpdate,
+    SessionPatch,
     UserAuthMethods,
     UserGet,
     UserGroups,
@@ -157,7 +157,7 @@ async def get_sessions(
 @user_session.patch("/session/{id}", response_model=Session)
 async def update_session(
     id: int,
-    session_update_info: SessionUpdate,
+    session_update_info: SessionPatch,
     current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
 ) -> Session:
     update_session: UserSession = (
