@@ -8,10 +8,11 @@ from sqlalchemy import not_
 from starlette.responses import JSONResponse
 
 from auth_backend.base import StatusResponseModel
-from auth_backend.exceptions import ObjectNotFound, SessionExpired
-from auth_backend.models.db import AuthMethod, UserSession
+from auth_backend.exceptions import AlreadyExists, ObjectNotFound, SessionExpired
+from auth_backend.models.db import AuthMethod, Scope, UserSession
 from auth_backend.schemas.models import (
     Session,
+    SessionPatch,
     SessionPost,
     SessionScopes,
     UserAuthMethods,
@@ -151,3 +152,34 @@ async def get_sessions(
             result['expires'] = session.expires
         all_sessions.append(result)
     return all_sessions
+
+
+@user_session.patch("/session/{id}", response_model=Session)
+async def update_session(
+    id: int,
+    session_update_info: SessionPatch,
+    current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
+) -> Session:
+    update_session: UserSession = (
+        UserSession.query(session=db.session)
+        .filter(UserSession.user_id == current_session.user_id, UserSession.id == id)
+        .one_or_none()
+    )
+    if update_session is None:
+        raise ObjectNotFound(UserSession, id)
+    update_session.update(
+        update_session.id, session=db.session, **session_update_info.model_dump(exclude_unset=True, exclude={'scopes'})
+    )
+    if session_update_info.scopes is not None:
+        scopes = await user_session_control.create_scopes_set_by_names(session_update_info.scopes)
+        await user_session_control.check_scopes(scopes, current_session.user)
+        update_session.scopes = list(scopes)
+    return Session(
+        session_name=session_update_info.session_name,
+        user_id=current_session.user_id,
+        token=update_session.token,
+        id=id,
+        expires=update_session.expires,
+        session_scopes=[_scope.name for _scope in update_session.scopes],
+        last_activity=update_session.last_activity,
+    )

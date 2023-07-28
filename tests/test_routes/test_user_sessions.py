@@ -170,3 +170,26 @@ def test_get_sessions(client_auth: TestClient, dbsession: Session, user_scopes):
     client_auth.delete(f'/session/{new_session1.token}', headers=header)
     all_sessions = client_auth.get("/session", headers=header, params=params)
     assert new_session1.token[-4:] not in list(all_sessions.json()[i]['token'] for i in range(len(all_sessions.json())))
+
+
+def test_patch_session(client_auth: TestClient, dbsession: Session, user_scopes):
+    user_id, body, response_ = user_scopes[1]["user_id"], user_scopes[1]["body"], user_scopes[1]["login_json"]
+    token = user_scopes[0]
+    header = {"Authorization": token}
+    params = {"info": ["session_scopes", "token", "expires"]}
+    payload = {"session_name": "test_session"}
+    new_session1 = client_auth.post("/session", headers=header, json=payload)
+    assert new_session1.status_code == status.HTTP_200_OK
+    assert new_session1.json()['session_name'] == payload['session_name']
+    patch_payload1 = {"session_name": "patch_test_session"}
+    patch_session1 = client_auth.patch(f"/session/{new_session1.json()['id']}", headers=header, json=patch_payload1)
+    assert patch_session1.status_code == status.HTTP_200_OK
+    assert patch_session1.json()['session_name'] == patch_payload1['session_name']
+    patch_payload2 = {"session_name": "patch_test_session2", "scopes": ["auth.user.read"]}
+    patch_session2 = client_auth.patch(f"/session/{new_session1.json()['id']}", headers=header, json=patch_payload2)
+    assert patch_session2.status_code == status.HTTP_403_FORBIDDEN
+    get_patch_session2 = client_auth.get("/session", headers=header, params=params)
+    assert get_patch_session2.status_code == status.HTTP_200_OK
+    for session in get_patch_session2.json():
+        if session['id'] == new_session1.json()['id']:
+            assert session["session_scopes"] == []

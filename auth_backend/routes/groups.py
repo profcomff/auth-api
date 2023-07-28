@@ -89,10 +89,9 @@ async def patch_group(
         DbGroup.update(id, session=db.session, **group_inp.model_dump(exclude_unset=True, exclude={"scopes"}))
     ).model_dump(exclude_unset=True)
     scopes = set()
-    if group_inp.scopes:
+    if group_inp.scopes is not None:
         for _scope_id in group_inp.scopes:
             scopes.add(Scope.get(session=db.session, id=_scope_id))
-    if scopes:
         group.scopes = scopes
     db.session.commit()
     return Group.model_validate(group)
