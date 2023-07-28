@@ -174,6 +174,7 @@ async def update_session(
         scopes = await user_session_control.create_scopes_set_by_names(session_update_info.scopes)
         await user_session_control.check_scopes(scopes, current_session.user)
         update_session.scopes = list(scopes)
+    db.session.commit()
     return Session(
         session_name=session_update_info.session_name,
         user_id=current_session.user_id,
