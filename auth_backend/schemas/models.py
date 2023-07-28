@@ -153,7 +153,7 @@ class SessionPost(Base):
 
 class SessionPatch(Base):
     session_name: str | None = None
-    scopes: list[Scope] = []
+    scopes: list[Scope] | None = None
 
 
 Group.model_rebuild()

@@ -12,9 +12,9 @@ from auth_backend.exceptions import AlreadyExists, ObjectNotFound, SessionExpire
 from auth_backend.models.db import AuthMethod, Scope, UserSession
 from auth_backend.schemas.models import (
     Session,
+    SessionPatch,
     SessionPost,
     SessionScopes,
-    SessionPatch,
     UserAuthMethods,
     UserGet,
     UserGroups,
@@ -170,9 +170,10 @@ async def update_session(
     update_session.update(
         update_session.id, session=db.session, **session_update_info.model_dump(exclude_unset=True, exclude={'scopes'})
     )
-    scopes = await user_session_control.create_scopes_set_by_names(session_update_info.scopes)
-    await user_session_control.check_scopes(scopes, current_session.user)
-    update_session.scopes = list(scopes)
+    if session_update_info.scopes is not None:
+        scopes = await user_session_control.create_scopes_set_by_names(session_update_info.scopes)
+        await user_session_control.check_scopes(scopes, current_session.user)
+        update_session.scopes = list(scopes)
     return Session(
         session_name=session_update_info.session_name,
         user_id=current_session.user_id,
