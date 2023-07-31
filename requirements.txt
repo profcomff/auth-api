@@ -12,6 +12,7 @@ aiohttp
 logging-profcomff
 pydantic-settings
 pytest-asyncio
+confluent-kafka
 
 # Google Auth Method
 google-api-python-client
