@@ -13,6 +13,7 @@ logging-profcomff
 pydantic-settings
 pytest-asyncio
 confluent-kafka
+event-schema-profcomff
 
 # Google Auth Method
 google-api-python-client
