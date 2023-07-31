@@ -18,7 +18,7 @@ db:
 kafka-up:
 	cd kafka && \
 		docker compose up -d
-	echo KAFKA_DSN=kafka:29092
+	echo "KAFKA_DSN=localhost:9092" | tee -a .env
 
 kafka-down:
 	cd kafka && \
