@@ -11,6 +11,13 @@ class Settings(BaseSettings):
     """Application settings"""
 
     DB_DSN: PostgresDsn = 'postgresql://postgres@localhost:5432/postgres'
+
+    KAFKA_DSN: str | None = None
+    KAFKA_USER_LOGIN_TOPIC_NAME: str | None = "test-user-login"
+    KAFKA_TIMEOUT: int = 2
+    KAFKA_LOGIN: str | None = None
+    KAFKA_PASSWORD: str | None = None
+
     ROOT_PATH: str = '/' + os.getenv('APP_NAME', '')
 
     EMAIL: str | None = None
@@ -19,7 +26,7 @@ class Settings(BaseSettings):
     SMTP_HOST: str = 'smtp.gmail.com'
     SMTP_PORT: int = 587
     ENABLED_AUTH_METHODS: list[str] | None = None
-    TOKEN_LENGTH: conint(gt=8) = 64  # type: ignore
+    TOKEN_LENGTH: conint(gt=8) = 64
     SESSION_TIME_IN_DAYS: int = 30
 
     MAX_RETRIES: int = 10

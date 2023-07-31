@@ -37,6 +37,7 @@ class YandexAuthParams(MethodMeta):
 class YandexAuth(OauthMeta):
     prefix = '/yandex'
     tags = ['Yandex']
+    _source = "yandex"
 
     fields = YandexAuthParams
     settings = YandexSettings()
@@ -169,3 +170,20 @@ class YandexAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f"https://oauth.yandex.ru/authorize?response_type=code&client_id={cls.settings.YANDEX_CLIENT_ID}&redirect_uri={quote(cls.settings.YANDEX_REDIRECT_URL)}&force_confirm=true"
         )
+
+    # def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+    #     items = []
+    #     if data.get("first_name"):
+    #         items.append({"category": "common", "param": "first_name", "value": data.get("first_name")})
+    #     if data.get("last_name"):
+    #         items.append({"category": "common", "param": "last_name", "value": data.get("last_name")})
+    #     if data.get("default_email"):
+    #         items.append({"category": "contacts", "param": "email", "value": data.get("default_email")})
+    #     if data.get("default_phone") and data.get("default_phone").get("number"):
+    #         items.append({"category": "contacts", "param": "phone", "value": data.get("default_phone").get("number")})
+    #     if data.get("birthday"):
+    #         items.append({"category": "common", "param": "birthday", "value": data.get("birthday")})
+    #     if data.get("sex"):
+    #         items.append({"category": "common", "param": "sex", "value": data.get("sex")})
+    #     result = {"items": items,  "source": self._source}
+    #     return UserLogin.model_validate(result)

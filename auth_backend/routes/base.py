@@ -6,6 +6,7 @@ from auth_backend import __version__
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.settings import get_settings
 
+from ..kafka.kafka import producer
 from .app_auth import app_auth
 from .groups import groups
 from .scopes import scopes
@@ -42,6 +43,17 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
+
+
+@app.on_event("startup")
+async def sturtup():
+    await producer().produce("test_user_login", "asdasdasd")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    producer().close()
+
 
 app.include_router(user_session)
 app.include_router(groups)

@@ -8,8 +8,8 @@ from sqlalchemy import not_
 from starlette.responses import JSONResponse
 
 from auth_backend.base import StatusResponseModel
-from auth_backend.exceptions import AlreadyExists, ObjectNotFound, SessionExpired
-from auth_backend.models.db import AuthMethod, Scope, UserSession
+from auth_backend.exceptions import ObjectNotFound, SessionExpired
+from auth_backend.models.db import AuthMethod, UserSession
 from auth_backend.schemas.models import (
     Session,
     SessionPatch,

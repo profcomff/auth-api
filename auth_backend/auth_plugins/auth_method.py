@@ -179,6 +179,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
+    _source: str = None
 
     fields: type[AuthMethodMeta] = MethodMeta
 
@@ -243,6 +244,10 @@ class AuthMethodMeta(metaclass=ABCMeta):
         if user_session and (not user_session.expired or with_expired):
             return user_session.user
         return
+
+    # @abstractmethod
+    # def _convert_data_to_userdata_format(self, data: Any) -> UserLogin:
+    #     raise NotImplementedError()
 
 
 class OauthMeta(AuthMethodMeta):

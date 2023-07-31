@@ -1,6 +1,7 @@
 import hashlib
 import logging
 
+from event_schema.auth import UserLogin
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
@@ -15,6 +16,7 @@ from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import SendEmailMessage
 
+from ..kafka.kafka import producer
 from .auth_method import AuthMethodMeta, MethodMeta, Session, random_string
 
 
@@ -122,6 +124,7 @@ class Email(AuthMethodMeta):
     prefix = "/email"
 
     fields = EmailParams
+    _source = "email"
 
     def __init__(self):
         super().__init__()
@@ -267,6 +270,10 @@ class Email(AuthMethodMeta):
                 status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect link").model_dump()
             )
         auth_method.user.auth_methods.email.confirmed.value = "true"
+        userdata = Email._convert_data_to_userdata_format({"email": auth_method.user.auth_methods.email.email.value})
+        await producer().produce(
+            settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json(), action="Approve email"
+        )
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email approved")
 
@@ -328,6 +335,8 @@ class Email(AuthMethodMeta):
         user.auth_methods.email.email.value = user.auth_methods.email.tmp_email.value
         user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
         user.auth_methods.email.tmp_email.is_deleted = True
+        userdata = Email._convert_data_to_userdata_format({"email": user.auth_methods.email.email.value})
+        await producer().produce(settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json(), action="Reset Email")
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email successfully changed")
 
@@ -452,3 +461,9 @@ class Email(AuthMethodMeta):
         auth_method.user.auth_methods.email.reset_token.is_deleted = True
         db.session.commit()
         return StatusResponseModel(status="Success", message="Password has been successfully changed")
+
+    @classmethod
+    def _convert_data_to_userdata_format(cls, data: dict[str, str]) -> UserLogin:
+        items = [{"category": "contacts", "param": "email", "value": data["email"]}]
+        result = {"items": items, "source": cls._source}
+        return UserLogin.model_validate(result)
