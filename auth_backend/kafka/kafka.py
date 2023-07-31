@@ -51,7 +51,7 @@ class AIOKafka(KafkaMeta):
         self._cancelled = True
         self._poll_thread.join()
 
-    def _produce(self, topic: str, value: Any, *, action: str) -> asyncio.Future:
+    def _produce(self, topic: str, value: Any) -> asyncio.Future:
         loop = asyncio.get_running_loop()
         result = loop.create_future()
 
@@ -59,26 +59,24 @@ class AIOKafka(KafkaMeta):
             loop.call_soon_threadsafe(result.set_result, "Kafka DSN is None")
             return result
 
-        headers = {"action": action}
-
         def callback(err: Exception, msg: str):
             if err:
                 loop.call_soon_threadsafe(result.set_exception, KafkaException(err))
             else:
                 loop.call_soon_threadsafe(result.set_result, msg)
 
-        self._producer.produce(topic, value, headers=headers, on_delivery=callback)
+        self._producer.produce(topic, value, on_delivery=callback)
         return result
 
-    async def produce(self, topic: str, value: Any, *, action: str) -> Any:
+    async def produce(self, topic: str, value: Any) -> Any:
         try:
-            return await asyncio.wait_for(self._produce(topic, value, action=action), timeout=self.__timeout)
+            return await asyncio.wait_for(self._produce(topic, value), timeout=self.__timeout)
         except asyncio.TimeoutError:
             log.critical(f"Kafka is down, timeout error occurred")
 
 
 class AIOKafkaMock(KafkaMeta):
-    async def produce(self, topic: str, value: Any, *, action: str) -> Any:
+    async def produce(self, topic: str, value: Any) -> Any:
         pass
 
     def close(self) -> None:

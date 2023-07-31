@@ -271,9 +271,7 @@ class Email(AuthMethodMeta):
             )
         auth_method.user.auth_methods.email.confirmed.value = "true"
         userdata = Email._convert_data_to_userdata_format({"email": auth_method.user.auth_methods.email.email.value})
-        await producer().produce(
-            settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json(), action="Approve email"
-        )
+        await producer().produce(settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json())
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email approved")
 
@@ -336,7 +334,7 @@ class Email(AuthMethodMeta):
         user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
         user.auth_methods.email.tmp_email.is_deleted = True
         userdata = Email._convert_data_to_userdata_format({"email": user.auth_methods.email.email.value})
-        await producer().produce(settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json(), action="Reset Email")
+        await producer().produce(settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json())
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email successfully changed")
 
