@@ -245,8 +245,9 @@ class AuthMethodMeta(metaclass=ABCMeta):
             return user_session.user
         return
 
+    # @classmethod
     # @abstractmethod
-    # def _convert_data_to_userdata_format(self, data: Any) -> UserLogin:
+    # def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
     #     raise NotImplementedError()
 
 

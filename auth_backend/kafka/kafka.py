@@ -35,11 +35,10 @@ class AIOKafka(KafkaMeta):
             }
 
     def __init__(self) -> None:
-        self._poll_thread = Thread(target=self._poll_loop)
+        self._poll_thread = Thread(target=self._poll_loop, daemon=True)
         self.__configurate()
         self._producer = Producer(self.__conf)
         self._cancelled = False
-        self._poll_thread.daemon = True
         self._poll_thread.start()
 
     def _poll_loop(self) -> None:
