@@ -45,11 +45,6 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-async def sturtup():
-    await producer().produce("test_user_login", "asdasdasd")
-
-
 @app.on_event("shutdown")
 async def shutdown_event():
     producer().close()

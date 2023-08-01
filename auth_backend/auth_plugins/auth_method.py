@@ -179,7 +179,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
-    _source: str = None
+    _source: str
 
     fields: type[AuthMethodMeta] = MethodMeta
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import ConfigDict, Field, constr, field_validator
+from pydantic import Field, constr, field_validator
 
 from auth_backend.base import Base
 from auth_backend.schemas.types.scopes import Scope
@@ -73,9 +73,6 @@ class UserGet(UserInfo, UserGroups, UserIndirectGroups, UserScopes, SessionScope
 
 class UsersGet(Base):
     items: list[UserGet]
-    # TODO[pydantic]: The following keys were removed: `fields`.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
-    model_config = ConfigDict(fields={'session_scopes': {'exclude': True}})
 
 
 class UserPatch(Base):

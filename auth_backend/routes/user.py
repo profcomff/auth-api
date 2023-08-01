@@ -84,7 +84,7 @@ async def get_users(
         if "scopes" in info:
             add["scopes"] = user.scopes
         result["items"].append(add)
-    return UsersGet(**result).model_dump(exclude_unset=True, exclude={"session_scopes"})
+    return UsersGet(**result).model_dump(exclude_unset=True)
 
 
 @user.patch("/{user_id}", response_model=UserModel)

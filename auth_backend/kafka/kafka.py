@@ -19,8 +19,8 @@ class AIOKafka(KafkaMeta):
     __devel: bool = True if __version__ == "dev" else False
     __conf: dict[str, str] = {}
     __timeout: int = get_settings().KAFKA_TIMEOUT
-    __login: str = get_settings().KAFKA_LOGIN
-    __password: str = get_settings().KAFKA_PASSWORD
+    __login: str | None = get_settings().KAFKA_LOGIN
+    __password: str | None = get_settings().KAFKA_PASSWORD
 
     def __configurate(self) -> None:
         if self.__devel:
@@ -35,7 +35,7 @@ class AIOKafka(KafkaMeta):
             }
 
     def __init__(self) -> None:
-        self._poll_thread = Thread(target=self._poll_loop, daemon=True)
+        self._poll_thread = Thread(target=self._poll_loop, daemon=True, name="Kafka Thread")
         self.__configurate()
         self._producer = Producer(self.__conf)
         self._cancelled = False
@@ -44,9 +44,9 @@ class AIOKafka(KafkaMeta):
     def _poll_loop(self) -> None:
         while not self._cancelled:
             self._producer.poll(0.1)
+        self._producer.flush()
 
     def close(self) -> None:
-        self._producer.flush()
         self._cancelled = True
         self._poll_thread.join()
 
@@ -55,7 +55,7 @@ class AIOKafka(KafkaMeta):
         result = loop.create_future()
 
         if not self.__dsn:
-            loop.call_soon_threadsafe(result.set_result, "Kafka DSN is None")
+            loop.call_soon(result.set_result, "Kafka DSN is None")
             return result
 
         def callback(err: Exception, msg: str):
@@ -68,6 +68,8 @@ class AIOKafka(KafkaMeta):
         return result
 
     async def produce(self, topic: str, value: Any) -> Any:
+        if self._cancelled:
+            return None
         try:
             return await asyncio.wait_for(self._produce(topic, value), timeout=self.__timeout)
         except asyncio.TimeoutError:
@@ -76,7 +78,7 @@ class AIOKafka(KafkaMeta):
 
 class AIOKafkaMock(KafkaMeta):
     async def produce(self, topic: str, value: Any) -> Any:
-        pass
+        log.debug(f"Kafka cluster disabled, debug msg: {topic=}, {value=}")
 
     def close(self) -> None:
         pass
