@@ -1,6 +1,9 @@
 # auth-api
  API сервиса аутентификации и авторизации в приложение Твой ФФ!
 
+![Auth Schema](https://github.com/profcomff/auth-api/assets/5656720/ab2730be-054a-454c-ab76-5475e615bb64)
+
+
 ## Запуск
 
 1) Перейдите в папку проекта
