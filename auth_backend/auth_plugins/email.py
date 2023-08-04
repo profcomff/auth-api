@@ -255,7 +255,7 @@ class Email(AuthMethodMeta):
         return Email._hash_password(password, salt) == hashed_password
 
     @staticmethod
-    async def _approve_email(token: str) -> StatusResponseModel:
+    async def _approve_email(token: str, background_tasks: BackgroundTasks) -> StatusResponseModel:
         auth_method = (
             AuthMethod.query(session=db.session)
             .filter(
@@ -271,7 +271,9 @@ class Email(AuthMethodMeta):
             )
         auth_method.user.auth_methods.email.confirmed.value = "true"
         userdata = Email._convert_data_to_userdata_format({"email": auth_method.user.auth_methods.email.email.value})
-        await producer().produce(settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json())
+        await producer().produce(
+            settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json(), bg_tasks=background_tasks
+        )
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email approved")
 
@@ -311,7 +313,7 @@ class Email(AuthMethodMeta):
         return StatusResponseModel(status="Success", message="Email confirmation link sent")
 
     @staticmethod
-    async def _reset_email(token: str) -> StatusResponseModel:
+    async def _reset_email(token: str, background_tasks: BackgroundTasks) -> StatusResponseModel:
         auth: AuthMethod = (
             AuthMethod.query(session=db.session)
             .filter(
@@ -334,7 +336,9 @@ class Email(AuthMethodMeta):
         user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
         user.auth_methods.email.tmp_email.is_deleted = True
         userdata = Email._convert_data_to_userdata_format({"email": user.auth_methods.email.email.value})
-        await producer().produce(settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json())
+        await producer().produce(
+            settings.KAFKA_USER_LOGIN_TOPIC_NAME, userdata.model_dump_json(), bg_tasks=background_tasks
+        )
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email successfully changed")
 

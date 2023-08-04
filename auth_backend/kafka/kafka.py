@@ -1,10 +1,9 @@
-import asyncio
 import logging
 from functools import lru_cache
-from threading import Thread
 from typing import Any
 
 from confluent_kafka import KafkaException, Producer
+from fastapi import BackgroundTasks
 
 from auth_backend import __version__
 from auth_backend.kafka.kafkameta import KafkaMeta
@@ -21,6 +20,7 @@ class AIOKafka(KafkaMeta):
     __timeout: int = get_settings().KAFKA_TIMEOUT
     __login: str | None = get_settings().KAFKA_LOGIN
     __password: str | None = get_settings().KAFKA_PASSWORD
+    _producer: Producer
 
     def __configurate(self) -> None:
         if self.__devel:
@@ -35,53 +35,31 @@ class AIOKafka(KafkaMeta):
             }
 
     def __init__(self) -> None:
-        self._poll_thread = Thread(target=self._poll_loop, daemon=True, name="Kafka Thread")
         self.__configurate()
         self._producer = Producer(self.__conf)
         self._cancelled = False
-        self._poll_thread.start()
 
-    def _poll_loop(self) -> None:
-        while not self._cancelled:
-            self._producer.poll(0.1)
-        self._producer.flush()
+    def delivery_callback(self, err, msg):
+        if err:
+            log.error('%% Message failed delivery: %s\n' % err)
+        else:
+            log.info('%% Message delivered to %s [%d] @ %d\n' % (msg.topic(), msg.partition(), msg.offset()))
 
-    def close(self) -> None:
-        self._cancelled = True
-        self._poll_thread.join()
-
-    def _produce(self, topic: str, value: Any) -> asyncio.Future:
-        loop = asyncio.get_running_loop()
-        result = loop.create_future()
-
-        if not self.__dsn:
-            loop.call_soon(result.set_result, "Kafka DSN is None")
-            return result
-
-        def callback(err: Exception, msg: str):
-            if err:
-                loop.call_soon_threadsafe(result.set_exception, KafkaException(err))
-            else:
-                loop.call_soon_threadsafe(result.set_result, msg)
-
-        self._producer.produce(topic, value, on_delivery=callback)
-        return result
-
-    async def produce(self, topic: str, value: Any) -> Any:
-        if self._cancelled:
-            return None
+    def _produce(self, topic: str, value: Any) -> Any:
         try:
-            return await asyncio.wait_for(self._produce(topic, value), timeout=self.__timeout)
-        except asyncio.TimeoutError:
-            log.critical(f"Kafka is down, timeout error occurred")
+            self._producer.produce(topic, value, callback=self.delivery_callback)
+        except KafkaException:
+            log.critical("Kafka is down")
+
+        self._producer.poll(0)
+
+    async def produce(self, topic: str, value: Any, *, bg_tasks: BackgroundTasks) -> Any:
+        bg_tasks.add_task(self._produce, topic, value)
 
 
 class AIOKafkaMock(KafkaMeta):
-    async def produce(self, topic: str, value: Any) -> Any:
+    async def produce(self, topic: str, value: Any, *, bg_tasks: BackgroundTasks) -> Any:
         log.debug(f"Kafka cluster disabled, debug msg: {topic=}, {value=}")
-
-    def close(self) -> None:
-        pass
 
 
 @lru_cache
