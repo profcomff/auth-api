@@ -6,7 +6,9 @@ import re
 import string
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
+from typing import final
 
+from event_schema.auth import UserLoginKey
 from fastapi import APIRouter, Depends
 from fastapi_sqlalchemy import db
 from pydantic import constr
@@ -179,6 +181,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
+    _source: str
 
     fields: type[AuthMethodMeta] = MethodMeta
 
@@ -206,6 +209,11 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @abstractmethod
     async def _login(*args, **kwargs) -> Session:
         raise NotImplementedError()
+
+    @staticmethod
+    @final
+    def generate_kafka_key(user_id: int) -> UserLoginKey:
+        return UserLoginKey.model_validate({"user_id": user_id})
 
     @staticmethod
     async def _create_session(
@@ -243,6 +251,11 @@ class AuthMethodMeta(metaclass=ABCMeta):
         if user_session and (not user_session.expired or with_expired):
             return user_session.user
         return
+
+    # @classmethod
+    # @abstractmethod
+    # def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
+    #     raise NotImplementedError()
 
 
 class OauthMeta(AuthMethodMeta):

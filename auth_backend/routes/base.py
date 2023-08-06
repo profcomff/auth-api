@@ -4,6 +4,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from auth_backend import __version__
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
+from auth_backend.kafka.kafka import producer
 from auth_backend.settings import get_settings
 
 from .groups import groups
@@ -26,7 +27,6 @@ app = FastAPI(
     redoc_url=None,
 )
 
-
 app.add_middleware(
     DBSessionMiddleware,
     db_url=str(settings.DB_DSN),
@@ -41,6 +41,12 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
+
+
+@app.on_event("startup")
+async def on_sturtup():
+    await producer().close()
+
 
 app.include_router(user_session)
 app.include_router(groups)

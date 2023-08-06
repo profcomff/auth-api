@@ -12,8 +12,9 @@ format:
 	source ./venv/bin/activate && isort ./auth_backend
 	source ./venv/bin/activate && black ./auth_backend
 
-db:
+db-up:
 	docker run -d -p 5432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust --name db-auth_api postgres:15
+
 
 migrate:
 	source ./venv/bin/activate && alembic upgrade head

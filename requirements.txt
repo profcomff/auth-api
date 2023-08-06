@@ -1,7 +1,7 @@
 fastapi
 fastapi-sqlalchemy
 psycopg2-binary
-pydantic[dotenv]
+pydantic
 uvicorn
 alembic
 SQLAlchemy
@@ -12,6 +12,8 @@ aiohttp
 logging-profcomff
 pydantic-settings
 pytest-asyncio
+confluent-kafka
+event-schema-profcomff
 
 # Google Auth Method
 google-api-python-client
