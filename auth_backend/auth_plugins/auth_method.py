@@ -181,7 +181,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
-    _source: str
 
     fields: type[AuthMethodMeta] = MethodMeta
 
@@ -213,6 +212,15 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @staticmethod
     @final
     def generate_kafka_key(user_id: int) -> UserLoginKey:
+        """
+        Мы генерируем ключи так как для сообщений с одинаковыми ключами
+        Kafka гарантирует последовательность чтений
+        Args:
+            user_id: Айди пользователя
+
+        Returns:
+            Ничего
+        """
         return UserLoginKey.model_validate({"user_id": user_id})
 
     @staticmethod
