@@ -419,6 +419,9 @@ class Email(AuthMethodMeta):
                 raise AuthFailed(
                     error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
                 )
+            if auth_method_email.user.auth_methods.email.reset_token is not None:
+                auth_method_email.user.auth_methods.email.reset_token.is_deleted = True
+                db.session.flush()
             await auth_method_email.user.auth_methods.email.create("reset_token", random_string())
             SendEmailMessage.send(
                 to_email=auth_method_email.user.auth_methods.email.email.value,

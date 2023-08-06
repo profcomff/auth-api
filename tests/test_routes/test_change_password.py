@@ -183,3 +183,45 @@ def test_with_token(client_auth: TestClient, dbsession: Session, user):
 
     response = client_auth.post("/email/login", json={"email": body["email"], "password": "changed", "scopes": []})
     assert response.status_code == status.HTTP_200_OK
+
+
+def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user_id: str):
+    token = (
+        dbsession.query(AuthMethod)
+        .filter(
+            AuthMethod.user_id == user_id, AuthMethod.param == "confirmation_token", AuthMethod.auth_method == "email"
+        )
+        .one()
+    )
+
+    response = client_auth.get(f"/email/approve?token={token.value}")
+    assert response.status_code == status.HTTP_200_OK
+
+    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.email.value})
+    assert response.status_code == status.HTTP_200_OK
+    reset_token_1: AuthMethod = (
+        dbsession.query(AuthMethod)
+        .filter(
+            AuthMethod.auth_method == "email",
+            AuthMethod.param == "reset_token",
+            AuthMethod.user_id == user_id,
+            AuthMethod.is_deleted == False,
+        )
+        .one()
+    )
+    assert reset_token_1
+
+    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.email.value})
+    assert response.status_code == status.HTTP_200_OK
+    reset_token_2: AuthMethod = (
+        dbsession.query(AuthMethod)
+        .filter(
+            AuthMethod.auth_method == "email",
+            AuthMethod.param == "reset_token",
+            AuthMethod.user_id == user_id,
+            AuthMethod.is_deleted == False,
+        )
+        .one()
+    )
+    assert reset_token_2
+    assert reset_token_1 != reset_token_2
