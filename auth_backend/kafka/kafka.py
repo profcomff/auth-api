@@ -109,7 +109,7 @@ class AIOKafkaMock(KafkaMeta):
 
 
 @lru_cache
-def producer() -> KafkaMeta:
+def get_kafka_producer() -> KafkaMeta:
     """
     Возвращает реальный клиент кафки, если задан ``KAFKA_DSN``,
     иначе Mock кафки

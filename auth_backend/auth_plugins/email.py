@@ -10,13 +10,13 @@ from sqlalchemy import func
 
 from auth_backend.base import Base, StatusResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import SendEmailMessage
 
-from ..kafka.kafka import producer
 from .auth_method import AuthMethodMeta, MethodMeta, Session, random_string
 
 
@@ -124,7 +124,6 @@ class Email(AuthMethodMeta):
     prefix = "/email"
 
     fields = EmailParams
-    _source = "email"
 
     def __init__(self):
         super().__init__()
@@ -271,7 +270,7 @@ class Email(AuthMethodMeta):
             )
         auth_method.user.auth_methods.email.confirmed.value = "true"
         userdata = Email._convert_data_to_userdata_format({"email": auth_method.user.auth_methods.email.email.value})
-        await producer().produce(
+        await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             Email.generate_kafka_key(auth_method.user.id),
             userdata,
@@ -339,7 +338,7 @@ class Email(AuthMethodMeta):
         user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
         user.auth_methods.email.tmp_email.is_deleted = True
         userdata = Email._convert_data_to_userdata_format({"email": user.auth_methods.email.email.value})
-        await producer().produce(
+        await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata, bg_tasks=background_tasks
         )
         db.session.commit()
@@ -470,5 +469,5 @@ class Email(AuthMethodMeta):
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, str]) -> UserLogin:
         items = [{"category": "contacts", "param": "email", "value": data["email"]}]
-        result = {"items": items, "source": cls._source}
+        result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)
