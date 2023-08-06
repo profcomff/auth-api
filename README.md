@@ -19,6 +19,9 @@ foo@bar:~$ venv\Scripts\activate  # На Windows
 ```console
 foo@bar:~$ pip install -r requirements.txt
 ```
+   - Бэкенд может запуститься без кластера Kafka. Просто не указывайте ``KAFKA_DSN`` в ``.env``. Если вам нужна его логика, то 
+тут находится инструкция по поднятию: ``https://github.com/profcomff/db-kafka``
+
 4) Запускайте приложение!
 ```console
 foo@bar:~$ python -m auth_backend
