@@ -37,8 +37,8 @@ class AIOKafka(KafkaMeta):
 
     def __init__(self) -> None:
         self.__configurate()
-        self._producer = Producer(self.__conf, logger=log)
-        self._cancelled = False
+        self._producer = Producer(self.__conf)
+        log.info("Kafka init done")
 
     def delivery_callback(self, err: KafkaError, msg: Message):
         if err:
@@ -47,6 +47,9 @@ class AIOKafka(KafkaMeta):
             log.info('%% Message delivered to %s [%d] @ %d\n' % (msg.topic(), msg.partition(), msg.offset()))
 
     def _produce(self, topic: str, key: UserLoginKey, value: UserLogin) -> None:
+        if topic not in self._producer.list_topics().topics:
+            log.warning(f"Message {key=}, {value=} skipped due to {topic=} don't exists")
+            return
         try:
             self._producer.produce(
                 topic, key=key.model_dump_json(), value=value.model_dump_json(), callback=self.delivery_callback
