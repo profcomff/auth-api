@@ -10,6 +10,7 @@ from .groups import groups
 from .scopes import scopes
 from .user import user
 from .user_session import user_session
+from auth_backend.kafka.kafka import producer
 
 
 settings = get_settings()
@@ -40,6 +41,10 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
+
+@app.on_event("startup")
+async def on_sturtup():
+    await producer().close()
 
 
 app.include_router(user_session)

@@ -96,10 +96,16 @@ class AIOKafka(KafkaMeta):
         """
         bg_tasks.add_task(self._produce, topic, key, value)
 
+    async def close(self) -> None:
+        self._producer.flush()
+
 
 class AIOKafkaMock(KafkaMeta):
     async def produce(self, topic: str, key: Any, value: Any, *, bg_tasks: BackgroundTasks) -> Any:
         log.debug(f"Kafka cluster disabled, debug msg: {topic=}, {key=}, {value=}")
+
+    async def close(self) -> None:
+        return
 
 
 @lru_cache
