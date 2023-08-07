@@ -88,13 +88,13 @@ class RequestResetPassword(Base):
     def check_passwords_dont_match(self) -> Self:
         if not (self.password or self.new_password):
             return self
-        assert self.new_password != self.password, "Пароли должны различаться"
+        assert self.new_password != self.password, "Passwords must be different"
         return self
 
     @model_validator(mode="after")
     def check_email_or_session(self) -> Self:
         passowrds = bool(self.password) and bool(self.new_password)
-        assert bool(self.email) ^ bool(passowrds), "Должна быть задана либо почта, либо два пароля"
+        assert bool(self.email) ^ bool(passowrds), "Either email or two passwords must be specified"
         return self
 
     email_validator = field_validator("email")(check_email)
