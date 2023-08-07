@@ -93,8 +93,8 @@ class RequestResetPassword(Base):
 
     @model_validator(mode="after")
     def check_email_or_session(self) -> Self:
-        passowrds = bool(self.password) and bool(self.new_password)
-        assert bool(self.email) ^ bool(passowrds), "Either email or two passwords must be specified"
+        is_password_way = bool(self.password) and bool(self.new_password)
+        assert bool(self.email) ^ bool(is_password_way), "Either email or two passwords must be specified"
         return self
 
     email_validator = field_validator("email")(check_email)
