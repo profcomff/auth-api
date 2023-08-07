@@ -307,7 +307,7 @@ class Email(AuthMethodMeta):
             raise HTTPException(
                 status_code=401, detail=StatusResponseModel(status="Error", message="Email incorrect").model_dump()
             )
-        token = random_string(length=32)
+        token = random_string(length=settings.TOKEN_LENGTH)
         if user_session.user.auth_methods.email.tmp_email is not None:
             user_session.user.auth_methods.email.tmp_email.is_deleted = True
             user_session.user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
@@ -424,7 +424,9 @@ class Email(AuthMethodMeta):
             if auth_method_email.user.auth_methods.email.reset_token is not None:
                 auth_method_email.user.auth_methods.email.reset_token.is_deleted = True
                 db.session.flush()
-            await auth_method_email.user.auth_methods.email.create("reset_token", random_string(length=32))
+            await auth_method_email.user.auth_methods.email.create(
+                "reset_token", random_string(length=settings.TOKEN_LENGTH)
+            )
             SendEmailMessage.send(
                 to_email=auth_method_email.user.auth_methods.email.email.value,
                 ip=request.client.host,
