@@ -37,21 +37,21 @@ def test_unprocessable_jsons_no_token(client_auth: TestClient, dbsession: Sessio
     response = client_auth.post(
         f"{url}",
         headers={"reset-token": reset_token.value},
-        json={"email": token.user.auth_methods.email.email.value, "new_password": ""},
+        json={"new_password": "", "password": ""},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = client_auth.post(
         f"{url}",
         headers={"reset-token": ""},
-        json={"email": token.user.auth_methods.email.email.value, "new_password": ""},
+        json={"new_password": "asd", "password": "ss"},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = client_auth.post(
         f"{url}",
-        headers={"reset-token": ""},
-        json={"email": token.user.auth_methods.email.email.value, "new_password": "changed"},
+        headers={"reset-token": reset_token.value},
+        json={"new_password": ""},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -69,17 +69,17 @@ def test_unprocessable_jsons_with_token(client_auth: TestClient, dbsession: Sess
 
     response = client_auth.post(
         f"{url}/request",
-        headers={"Authorization": ""},
-        json={"email": body["email"], "password": "", "new_password": "changed"},
+        headers={"Authorization": auth_token},
+        json={"email": body["email"], "password": body["password"], "new_password": "changed"},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = client_auth.post(
         f"{url}/request",
-        headers={"Authorization": ""},
-        json={"email": body["email"], "password": body["password"], "new_password": "changed"},
+        headers={"Authorization": auth_token},
+        json={"email": body["email"], "password": "", "new_password": "changed"},
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = client_auth.post(
         f"{url}/request",
@@ -91,7 +91,7 @@ def test_unprocessable_jsons_with_token(client_auth: TestClient, dbsession: Sess
     response = client_auth.post(
         f"{url}/request",
         headers={"Authorization": auth_token},
-        json={"email": body["email"], "password": body["password"], "new_password": "changed"},
+        json={"password": body["password"], "new_password": "changed"},
     )
     assert response.status_code == status.HTTP_200_OK
 
@@ -124,7 +124,7 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
         headers={"reset-token": reset_token.value + "x"},
         json={"email": token.user.auth_methods.email.email.value, "new_password": "changedstring2"},
     )
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_404_NOT_FOUND
 
     response = client_auth.post(
         f"{url}",
@@ -153,7 +153,7 @@ def test_with_token(client_auth: TestClient, dbsession: Session, user):
     response = client_auth.post(
         f"{url}/request",
         headers={"Authorization": auth_token},
-        json={"email": body["email"], "password": "wrong", "new_password": "changed"},
+        json={"password": "wrong", "new_password": "changed"},
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -167,7 +167,7 @@ def test_with_token(client_auth: TestClient, dbsession: Session, user):
     response = client_auth.post(
         f"{url}/request",
         headers={"Authorization": auth_token},
-        json={"email": body["email"], "password": body["password"], "new_password": "changed"},
+        json={"password": body["password"], "new_password": "changed"},
     )
     assert response.status_code == status.HTTP_200_OK
     reset_token = (
