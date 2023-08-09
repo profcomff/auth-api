@@ -14,12 +14,12 @@ from google.oauth2.id_token import verify_oauth2_token
 from pydantic import BaseModel, Field, Json
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed, OauthCredentialsIncorrect
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from ..kafka.kafka import producer
 from .auth_method import MethodMeta, OauthMeta, Session
 
 
@@ -51,7 +51,6 @@ class GoogleAuth(OauthMeta):
 
     prefix = '/google'
     tags = ['Google']
-    _source = 'google'
     fields = GoogleAuthParams
     settings = GoogleSettings()
 
@@ -120,8 +119,8 @@ class GoogleAuth(OauthMeta):
             async with session.get("https://www.googleapis.com/oauth2/v1/userinfo") as response:
                 userinfo = await response.json()
                 logger.debug(userinfo)
-        userdata = GoogleAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = GoogleAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
             userdata,
@@ -155,20 +154,13 @@ class GoogleAuth(OauthMeta):
         user = await cls._get_user('unique_google_id', guser_id['sub'], db_session=db.session)
         if not user:
             raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
-        userdata = GoogleAuth()._convert_data_to_userdata_format(guser_id)
-        await producer().produce(
-            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
-            GoogleAuth.generate_kafka_key(user.id),
-            userdata,
-            bg_tasks=background_tasks,
-        )
         headers = {"Authorization": f"Bearer {credentials['access_token']}"}
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.get("https://www.googleapis.com/oauth2/v1/userinfo") as response:
                 userinfo = await response.json()
                 logger.debug(userinfo)
-        userdata = GoogleAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = GoogleAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
             userdata,
@@ -202,7 +194,8 @@ class GoogleAuth(OauthMeta):
         flow.redirect_uri = cls.settings.GOOGLE_REDIRECT_URL
         return flow
 
-    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+    @classmethod
+    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
         if data.get("email"):
             items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
@@ -210,5 +203,5 @@ class GoogleAuth(OauthMeta):
             items.append({"category": "Личная информация", "param": "Полное имя", "value": data.get("name")})
         if data.get("picture"):
             items.append({"category": "Личная информация", "param": "Фото", "value": data.get("picture")})
-        result = {"items": items, "source": self._source}
+        result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

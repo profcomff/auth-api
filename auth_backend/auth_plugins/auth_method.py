@@ -6,9 +6,9 @@ import re
 import string
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import final
+from typing import Any, final
 
-from event_schema.auth import UserLoginKey
+from event_schema.auth import UserLogin, UserLoginKey
 from fastapi import APIRouter, Depends
 from fastapi_sqlalchemy import db
 from pydantic import constr
@@ -181,7 +181,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
-    _source: str
 
     fields: type[AuthMethodMeta] = MethodMeta
 
@@ -263,7 +262,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
+    def _convert_data_to_userdata_format(data: Any) -> UserLogin:
         raise NotImplementedError()
 
 

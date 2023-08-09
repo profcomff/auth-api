@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
-from auth_backend.kafka.kafka import producer
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
@@ -39,7 +39,6 @@ class TelegramAuthParams(MethodMeta):
 class TelegramAuth(OauthMeta):
     prefix = '/telegram'
     tags = ['Telegram']
-    _source = 'telegram'
     fields = TelegramAuthParams
     settings = TelegramSettings()
 
@@ -83,8 +82,8 @@ class TelegramAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', telegram_user_id, user, db_session=db.session)
-        userdata = TelegramAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = TelegramAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             TelegramAuth.generate_kafka_key(user.id),
             userdata,
@@ -111,8 +110,8 @@ class TelegramAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Telegram account', id_token)
-        userdata = TelegramAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = TelegramAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             TelegramAuth.generate_kafka_key(user.id),
             userdata,
@@ -163,7 +162,8 @@ class TelegramAuth(OauthMeta):
         else:
             raise OauthAuthFailed('Invalid user data from Telegram')
 
-    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+    @classmethod
+    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
         if data.get("first_name"):
             items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
@@ -173,5 +173,5 @@ class TelegramAuth(OauthMeta):
             items.append({"category": "Личная информация", "param": "Telegram", "value": data.get("username")})
         if data.get("photo_url"):
             items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_url")})
-        result = {"items": items, "source": self._source}
+        result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

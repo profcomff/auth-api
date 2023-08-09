@@ -104,6 +104,9 @@ class AIOKafkaMock(KafkaMeta):
     async def produce(self, topic: str, key: Any, value: Any, *, bg_tasks: BackgroundTasks) -> Any:
         log.debug(f"Kafka cluster disabled, debug msg: {topic=}, {key=}, {value=}")
 
+    async def close(self) -> None:
+        return
+
 
 @lru_cache
 def get_kafka_producer() -> KafkaMeta:

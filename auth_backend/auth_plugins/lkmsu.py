@@ -11,12 +11,12 @@ from pydantic import BaseModel, Field
 from starlette.background import BackgroundTasks
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from ..kafka.kafka import producer
 from .auth_method import MethodMeta, OauthMeta, Session
 
 
@@ -42,7 +42,6 @@ class LkmsuAuth(OauthMeta):
 
     prefix = '/lk-msu'
     tags = ['lk_msu']
-    _source = 'lk-msu'
 
     fields = LkmsuAuthParams
     settings = LkmsuSettings()
@@ -105,8 +104,8 @@ class LkmsuAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', lk_user_id, user, db_session=db.session)
-        userdata = LkmsuAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = LkmsuAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             LkmsuAuth.generate_kafka_key(user.id),
             userdata,
@@ -155,8 +154,8 @@ class LkmsuAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
-        userdata = LkmsuAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = LkmsuAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             LkmsuAuth.generate_kafka_key(user.id),
             userdata,
@@ -178,7 +177,8 @@ class LkmsuAuth(OauthMeta):
             url=f'https://lk.msu.ru/oauth/authorize?response_type=code&client_id={cls.settings.LKMSU_CLIENT_ID}&redirect_uri={quote(cls.settings.LKMSU_REDIRECT_URL)}&scope=scope.profile.view'
         )
 
-    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+    @classmethod
+    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
         if data.get("email"):
             items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
@@ -186,7 +186,7 @@ class LkmsuAuth(OauthMeta):
             items.append({"category": "Личная информация", "param": "Должность", "value": data.get("userType")['name']})
         student: dict[str, Any] = dict()
         if data.get("student"):
-            student = data.get('student')
+            student = data['student']
             if student.get("last_name"):
                 items.append({"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")})
             if student.get("first_name"):
@@ -195,33 +195,55 @@ class LkmsuAuth(OauthMeta):
                 items.append(
                     {"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")}
                 )
-            if student.get("entrants") != []:
-                entrants: dict[str | Any] = student.get("entrants")[0]
-                if entrants.get("record_book"):
-                    items.append(
-                        {"category": "Учёба", "param": "Номер зачётной книжки", "value": entrants.get("record_book")}
-                    )
-                if entrants.get('faculty') != [] and entrants.get('faculty')['name']:
-                    items.append({"category": "Учёба", "param": "Факультет", "value": entrants.get('faculty')['name']})
-                if entrants.get("educationType") != [] and entrants.get('educationType')['name']:
-                    items.append(
-                        {
-                            "category": "Учёба",
-                            "param": "Ступень обучения",
-                            "value": entrants.get('educationType')['name'],
-                        }
-                    )
-                if entrants.get("educationForm") != [] and entrants.get("educationForm")["name"]:
-                    items.append(
-                        {"category": "Учёба", "param": "Форма обучения", "value": entrants.get("educationForm")["name"]}
-                    )
-                if entrants.get("groups") != [] and entrants.get("groups")[0]["name"]:
-                    items.append(
-                        {
-                            "category": "Учёба",
-                            "param": "Академическая группа",
-                            "value": entrants.get("groups")[0]["name"],
-                        }
-                    )
-        result = {"items": items, "source": self._source}
+            if student.get("entrants") is not None and student.get("entrants") != []:
+                for entrant in student.get('entrants'):
+                    if entrant.get("record_book"):
+                        items.append(
+                            {"category": "Учёба", "param": "Номер зачётной книжки", "value": entrant.get("record_book")}
+                        )
+                    if (
+                        entrant.get('faculty') is not None
+                        and entrant.get('faculty') != []
+                        and entrant.get('faculty')['name']
+                    ):
+                        items.append(
+                            {"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty')['name']}
+                        )
+                    if (
+                        entrant.get("educationType") is not None
+                        and entrant.get("educationType") != []
+                        and entrant.get('educationType')['name']
+                    ):
+                        items.append(
+                            {
+                                "category": "Учёба",
+                                "param": "Ступень обучения",
+                                "value": entrant.get('educationType')['name'],
+                            }
+                        )
+                    if (
+                        entrant.get("educationForm") is not None
+                        and entrant.get("educationForm") != []
+                        and entrant.get("educationForm")["name"]
+                    ):
+                        items.append(
+                            {
+                                "category": "Учёба",
+                                "param": "Форма обучения",
+                                "value": entrant.get("educationForm")["name"],
+                            }
+                        )
+                    if (
+                        entrant.get("groups") is not None
+                        and entrant.get("groups") != []
+                        and entrant.get("groups")[0]["name"]
+                    ):
+                        items.append(
+                            {
+                                "category": "Учёба",
+                                "param": "Академическая группа",
+                                "value": entrant.get("groups")[0]["name"],
+                            }
+                        )
+        result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

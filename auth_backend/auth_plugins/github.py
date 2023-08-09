@@ -11,12 +11,12 @@ from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from ..kafka.kafka import producer
 from .auth_method import MethodMeta, OauthMeta, Session
 
 
@@ -42,7 +42,6 @@ class GithubAuth(OauthMeta):
 
     prefix = '/github'
     tags = ['github']
-    _source = 'github'
 
     fields = GithubAuthParams
     settings = GithubSettings()
@@ -112,8 +111,8 @@ class GithubAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', github_user_id, user, db_session=db.session)
-        userdata = GithubAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = GithubAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GithubAuth.generate_kafka_key(user.id),
             userdata,
@@ -165,8 +164,8 @@ class GithubAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
-        userdata = GithubAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = GithubAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GithubAuth.generate_kafka_key(user.id),
             userdata,
@@ -188,7 +187,8 @@ class GithubAuth(OauthMeta):
             url=f'https://github.com/login/oauth/authorize?client_id={cls.settings.GITHUB_CLIENT_ID}&redirect_uri={quote(cls.settings.GITHUB_REDIRECT_URL)}&scope=read:user%20user:email'
         )
 
-    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+    @classmethod
+    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
         if data.get("name"):
             items.append({"category": "Личная информация", "param": "Полное имя", "value": data.get("name")})
@@ -202,5 +202,5 @@ class GithubAuth(OauthMeta):
             items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
         if data.get("location"):
             items.append({"category": "Контакты", "param": "Место жительства", "value": data.get("location")})
-        result = {"items": items, "source": self._source}
+        result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

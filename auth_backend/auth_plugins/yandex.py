@@ -12,12 +12,11 @@ from pydantic import BaseModel, Field
 
 from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-
-from ..kafka.kafka import producer
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +41,6 @@ class YandexAuthParams(MethodMeta):
 class YandexAuth(OauthMeta):
     prefix = '/yandex'
     tags = ['Yandex']
-    _source = "yandex"
 
     fields = YandexAuthParams
     settings = YandexSettings()
@@ -119,8 +117,8 @@ class YandexAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', yandex_user_id, user, db_session=db.session)
-        userdata = YandexAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = YandexAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             YandexAuth.generate_kafka_key(user.id),
             userdata,
@@ -165,8 +163,8 @@ class YandexAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Yandex account', id_token)
-        userdata = YandexAuth()._convert_data_to_userdata_format(userinfo)
-        await producer().produce(
+        userdata = YandexAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             YandexAuth.generate_kafka_key(user.id),
             userdata,
@@ -190,7 +188,8 @@ class YandexAuth(OauthMeta):
             url=f"https://oauth.yandex.ru/authorize?response_type=code&client_id={cls.settings.YANDEX_CLIENT_ID}&redirect_uri={quote(cls.settings.YANDEX_REDIRECT_URL)}&force_confirm=true"
         )
 
-    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+    @classmethod
+    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
         if data.get("first_name"):
             items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
@@ -200,13 +199,11 @@ class YandexAuth(OauthMeta):
             items.append({"category": "Личная информация", "param": "Пол", "value": data.get("sex")})
         if data.get("default_email"):
             items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")})
-        # if data.get("emails"):
-        #     items.append({"category": "Контакты", "param": "Другие электронные почты", "value": data.get("emails")})
         if data.get("default_phone") and data.get("default_phone").get("number"):
             items.append(
                 {"category": "Контакты", "param": "Номер телефона", "value": data.get("default_phone").get("number")}
             )
         if data.get("birthday"):
             items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")})
-        result = {"items": items, "source": self._source}
+        result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

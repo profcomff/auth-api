@@ -17,7 +17,6 @@ from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import SendEmailMessage
 
-from ..kafka.kafka import producer
 from .auth_method import AuthMethodMeta, MethodMeta, Session, random_string
 
 
@@ -125,7 +124,6 @@ class Email(AuthMethodMeta):
     prefix = "/email"
 
     fields = EmailParams
-    _source = "email"
 
     def __init__(self):
         super().__init__()
@@ -473,6 +471,6 @@ class Email(AuthMethodMeta):
 
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, str]) -> UserLogin:
-        items = [{"category": "contacts", "param": "email", "value": data["email"]}]
+        items = [{"category": "Контакты", "param": "Электронная почта", "value": data["email"]}]
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

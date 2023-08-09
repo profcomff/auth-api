@@ -11,11 +11,11 @@ from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from ..kafka.kafka import producer
 from ..schemas.types.scopes import Scope
 from .auth_method import MethodMeta, OauthMeta, Session
 
@@ -52,7 +52,6 @@ class VkAuthParams(MethodMeta):
 class VkAuth(OauthMeta):
     prefix = '/vk'
     tags = ['vk']
-    _source = "vk"
 
     fields = VkAuthParams
     settings = VkSettings()
@@ -116,8 +115,8 @@ class VkAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
         logger.error(userinfo.get('city'))
-        userdata = VkAuth()._convert_data_to_userdata_format(userinfo['response'][0])
-        await producer().produce(
+        userdata = VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             VkAuth.generate_kafka_key(user.id),
             userdata,
@@ -163,8 +162,8 @@ class VkAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for vk account', id_token)
-        userdata = VkAuth()._convert_data_to_userdata_format(userinfo['response'][0])
-        await producer().produce(
+        userdata = VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
+        await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             VkAuth.generate_kafka_key(user.id),
             userdata,
@@ -186,7 +185,8 @@ class VkAuth(OauthMeta):
             url=f'https://oauth.vk.com/authorize?client_id={cls.settings.VK_CLIENT_ID}&redirect_uri={quote(cls.settings.VK_REDIRECT_URL)}'
         )
 
-    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+    @classmethod
+    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
         if data.get("nickname"):
             items.append({"category": "Личная информация", "param": "VK-ID", "value": data.get("nickname")})
@@ -224,6 +224,6 @@ class VkAuth(OauthMeta):
             )
         if data.get("photo_100"):
             items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_100")})
-        result = {"items": items, "source": self._source}
+        result = {"items": items, "source": cls.get_name()}
         logger.debug(result)
         return UserLogin.model_validate(result)
