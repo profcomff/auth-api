@@ -37,7 +37,7 @@ class VkSettings(Settings):
         'nickname',
         'sex',
         'career',
-        'photo_100',
+        'photo_max_orig',
     ]  # Другие данные https://dev.vk.com/ru/reference/objects/user
 
 
@@ -207,7 +207,7 @@ class VkAuth(OauthMeta):
         if data.get("mobile_phone"):
             items.append({"category": "Контакты", "param": "Номер телефона", "value": data.get("mobile_phone")})
         if data.get("home_phone"):
-            items.append({"category": "contacts", "param": "Домашний номер телефона", "value": data.get("home_phone")})
+            items.append({"category": "Контакты", "param": "Домашний номер телефона", "value": data.get("home_phone")})
         if data.get("city") != [] and data.get("city")["title"]:
             items.append({"category": "Контакты", "param": "Город", "value": data.get("city")["title"]})
         if data.get("home_town"):
@@ -222,8 +222,8 @@ class VkAuth(OauthMeta):
             items.append(
                 {"category": "Карьера", "param": "Расположение работы", "value": data.get("career")["city_name"]}
             )
-        if data.get("photo_100"):
-            items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_100")})
+        if data.get("photo_max_orig"):
+            items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_max_orig")})
         result = {"items": items, "source": cls.get_name()}
         logger.debug(result)
         return UserLogin.model_validate(result)
