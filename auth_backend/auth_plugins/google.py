@@ -1,8 +1,12 @@
 import logging
+from typing import Any
 
+import aiohttp
 import google_auth_oauthlib.flow
 import oauthlib.oauth2.rfc6749.errors
+from event_schema.auth import UserLogin
 from fastapi import Depends
+from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from google.auth.exceptions import GoogleAuthError
 from google.auth.transport import requests
@@ -15,6 +19,7 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
+from ..kafka.kafka import producer
 from .auth_method import MethodMeta, OauthMeta, Session
 
 
@@ -46,7 +51,7 @@ class GoogleAuth(OauthMeta):
 
     prefix = '/google'
     tags = ['Google']
-
+    _source = 'google'
     fields = GoogleAuthParams
     settings = GoogleSettings()
 
@@ -61,6 +66,7 @@ class GoogleAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
         user_session: UserSession | None = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
@@ -68,6 +74,7 @@ class GoogleAuth(OauthMeta):
         Если передана активная сессия пользователя, то привязывает аккаунт Google к аккаунту в
         активной сессии. иначе, создает новый пользователь и делает Google первым методом входа.
         """
+        credentials = None
         if not user_inp.id_token:
             flow = await cls._default_flow()
             try:
@@ -83,13 +90,13 @@ class GoogleAuth(OauthMeta):
                 id_token,
                 requests.Request(),
                 cls.settings.GOOGLE_CREDENTIALS['web']['client_id'],
+                clock_skew_in_seconds=1,
             )
         except GoogleAuthError as exc:
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
         user = await cls._get_user('unique_google_id', guser_id['sub'], db_session=db.session)
         if user is not None:
             raise AlreadyExists(User, user.id)
-
         # Проверяем email на blacklist/whitelist
         email: str = guser_id['email']
         assert isinstance(email, str), "Почта не строка WTF"
@@ -108,13 +115,24 @@ class GoogleAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('unique_google_id', guser_id['sub'], user, db_session=db.session)
-
+        headers = {"Authorization": f"Bearer {credentials['access_token']}"}
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get("https://www.googleapis.com/oauth2/v1/userinfo") as response:
+                userinfo = await response.json()
+                logger.debug(userinfo)
+        userdata = GoogleAuth()._convert_data_to_userdata_format(userinfo)
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            GoogleAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema):
+    async def _login(cls, user_inp: OauthResponseSchema, background_tasks: BackgroundTasks):
         """Вход в пользователя с помощью аккаунта Google
 
         Производит вход, если находит пользователя по Google client_id. Если аккаунт не найден,
@@ -130,12 +148,32 @@ class GoogleAuth(OauthMeta):
                 credentials.get("id_token"),
                 requests.Request(),
                 cls.settings.GOOGLE_CREDENTIALS['web']['client_id'],
+                clock_skew_in_seconds=1,
             )
         except GoogleAuthError as exc:
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
         user = await cls._get_user('unique_google_id', guser_id['sub'], db_session=db.session)
         if not user:
             raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
+        userdata = GoogleAuth()._convert_data_to_userdata_format(guser_id)
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            GoogleAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
+        headers = {"Authorization": f"Bearer {credentials['access_token']}"}
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get("https://www.googleapis.com/oauth2/v1/userinfo") as response:
+                userinfo = await response.json()
+                logger.debug(userinfo)
+        userdata = GoogleAuth()._convert_data_to_userdata_format(userinfo)
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            GoogleAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -163,3 +201,14 @@ class GoogleAuth(OauthMeta):
         )
         flow.redirect_uri = cls.settings.GOOGLE_REDIRECT_URL
         return flow
+
+    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+        items = []
+        if data.get("email"):
+            items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
+        if data.get("name"):
+            items.append({"category": "Личная информация", "param": "Полное имя", "value": data.get("name")})
+        if data.get("picture"):
+            items.append({"category": "Личная информация", "param": "Фото", "value": data.get("picture")})
+        result = {"items": items, "source": self._source}
+        return UserLogin.model_validate(result)

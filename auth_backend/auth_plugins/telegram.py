@@ -1,15 +1,19 @@
 import hashlib
 import hmac
 import logging
+from typing import Any
 from urllib.parse import quote, unquote
 
 import jwt
+from event_schema.auth import UserLogin
 from fastapi import Depends
+from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
 from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.kafka.kafka import producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
@@ -35,7 +39,7 @@ class TelegramAuthParams(MethodMeta):
 class TelegramAuth(OauthMeta):
     prefix = '/telegram'
     tags = ['Telegram']
-
+    _source = 'telegram'
     fields = TelegramAuthParams
     settings = TelegramSettings()
 
@@ -55,13 +59,14 @@ class TelegramAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         telegram_user_id = None
         userinfo = None
 
         if user_inp.id_token is None:
-            userinfo = cls._check(user_inp)
+            userinfo = await cls._check(user_inp)
             telegram_user_id = user_inp.id
             logger.debug(userinfo)
         else:
@@ -78,13 +83,19 @@ class TelegramAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', telegram_user_id, user, db_session=db.session)
-
+        userdata = TelegramAuth()._convert_data_to_userdata_format(userinfo)
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            TelegramAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
+    async def _login(cls, user_inp: OauthResponseSchema, background_tasks: BackgroundTasks) -> Session:
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
 
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
@@ -100,6 +111,13 @@ class TelegramAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Telegram account', id_token)
+        userdata = TelegramAuth()._convert_data_to_userdata_format(userinfo)
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            TelegramAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -144,3 +162,16 @@ class TelegramAuth(OauthMeta):
             return data_check
         else:
             raise OauthAuthFailed('Invalid user data from Telegram')
+
+    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+        items = []
+        if data.get("first_name"):
+            items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
+        if data.get("last_name"):
+            items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
+        if data.get("username"):
+            items.append({"category": "Личная информация", "param": "Telegram", "value": data.get("username")})
+        if data.get("photo_url"):
+            items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_url")})
+        result = {"items": items, "source": self._source}
+        return UserLogin.model_validate(result)

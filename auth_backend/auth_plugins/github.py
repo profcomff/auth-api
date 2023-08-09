@@ -1,9 +1,12 @@
 import logging
+from typing import Any
 from urllib.parse import quote
 
 import aiohttp
 import jwt
+from event_schema.auth import UserLogin
 from fastapi import Depends
+from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
@@ -13,6 +16,7 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
+from ..kafka.kafka import producer
 from .auth_method import MethodMeta, OauthMeta, Session
 
 
@@ -38,6 +42,7 @@ class GithubAuth(OauthMeta):
 
     prefix = '/github'
     tags = ['github']
+    _source = 'github'
 
     fields = GithubAuthParams
     settings = GithubSettings()
@@ -52,6 +57,7 @@ class GithubAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
@@ -106,13 +112,19 @@ class GithubAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', github_user_id, user, db_session=db.session)
-
+        userdata = GithubAuth()._convert_data_to_userdata_format(userinfo)
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            GithubAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
+    async def _login(cls, user_inp: OauthResponseSchema, background_tasks: BackgroundTasks) -> Session:
         """Вход в пользователя с помощью аккаунта https://github.com
 
         Производит вход, если находит пользователя по уникальному идендификатору. Если аккаунт не
@@ -153,6 +165,13 @@ class GithubAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
+        userdata = GithubAuth()._convert_data_to_userdata_format(userinfo)
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            GithubAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -168,3 +187,20 @@ class GithubAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f'https://github.com/login/oauth/authorize?client_id={cls.settings.GITHUB_CLIENT_ID}&redirect_uri={quote(cls.settings.GITHUB_REDIRECT_URL)}&scope=read:user%20user:email'
         )
+
+    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+        items = []
+        if data.get("name"):
+            items.append({"category": "Личная информация", "param": "Полное имя", "value": data.get("name")})
+        if data.get("company"):
+            items.append({"category": "Карьера", "param": "Место работы", "value": data.get("company")})
+        if data.get("url"):
+            items.append({"category": "Личная информация", "param": "GitHub", "value": data.get("url")})
+        if data.get("avatar_url"):
+            items.append({"category": "Личная информация", "param": "Фото", "value": data.get("avatar_url")})
+        if data.get("email"):
+            items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
+        if data.get("location"):
+            items.append({"category": "Контакты", "param": "Место жительства", "value": data.get("location")})
+        result = {"items": items, "source": self._source}
+        return UserLogin.model_validate(result)

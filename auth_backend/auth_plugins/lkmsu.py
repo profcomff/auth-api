@@ -1,11 +1,14 @@
 import logging
+from typing import Any
 from urllib.parse import quote
 
 import aiohttp
 import jwt
+from event_schema.auth import UserLogin
 from fastapi import Depends
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
+from starlette.background import BackgroundTasks
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.models.db import AuthMethod, User, UserSession
@@ -13,6 +16,7 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
+from ..kafka.kafka import producer
 from .auth_method import MethodMeta, OauthMeta, Session
 
 
@@ -38,6 +42,7 @@ class LkmsuAuth(OauthMeta):
 
     prefix = '/lk-msu'
     tags = ['lk_msu']
+    _source = 'lk-msu'
 
     fields = LkmsuAuthParams
     settings = LkmsuSettings()
@@ -52,6 +57,7 @@ class LkmsuAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
@@ -99,13 +105,23 @@ class LkmsuAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', lk_user_id, user, db_session=db.session)
-
+        userdata = LkmsuAuth()._convert_data_to_userdata_format(userinfo)
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            LkmsuAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
+    async def _login(
+        cls,
+        user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
+    ) -> Session:
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
 
         Производит вход, если находит пользователя по уникальному идендификатору. Если аккаунт не
@@ -139,6 +155,13 @@ class LkmsuAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
+        userdata = LkmsuAuth()._convert_data_to_userdata_format(userinfo)
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            LkmsuAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -154,3 +177,51 @@ class LkmsuAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f'https://lk.msu.ru/oauth/authorize?response_type=code&client_id={cls.settings.LKMSU_CLIENT_ID}&redirect_uri={quote(cls.settings.LKMSU_REDIRECT_URL)}&scope=scope.profile.view'
         )
+
+    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+        items = []
+        if data.get("email"):
+            items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
+        if data.get("userType"):
+            items.append({"category": "Личная информация", "param": "Должность", "value": data.get("userType")['name']})
+        student: dict[str, Any] = dict()
+        if data.get("student"):
+            student = data.get('student')
+            if student.get("last_name"):
+                items.append({"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")})
+            if student.get("first_name"):
+                items.append({"category": "Личная информация", "param": "Имя", "value": student.get("first_name")})
+            if student.get("middle_name"):
+                items.append(
+                    {"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")}
+                )
+            if student.get("entrants") != []:
+                entrants: dict[str | Any] = student.get("entrants")[0]
+                if entrants.get("record_book"):
+                    items.append(
+                        {"category": "Учёба", "param": "Номер зачётной книжки", "value": entrants.get("record_book")}
+                    )
+                if entrants.get('faculty') != [] and entrants.get('faculty')['name']:
+                    items.append({"category": "Учёба", "param": "Факультет", "value": entrants.get('faculty')['name']})
+                if entrants.get("educationType") != [] and entrants.get('educationType')['name']:
+                    items.append(
+                        {
+                            "category": "Учёба",
+                            "param": "Ступень обучения",
+                            "value": entrants.get('educationType')['name'],
+                        }
+                    )
+                if entrants.get("educationForm") != [] and entrants.get("educationForm")["name"]:
+                    items.append(
+                        {"category": "Учёба", "param": "Форма обучения", "value": entrants.get("educationForm")["name"]}
+                    )
+                if entrants.get("groups") != [] and entrants.get("groups")[0]["name"]:
+                    items.append(
+                        {
+                            "category": "Учёба",
+                            "param": "Академическая группа",
+                            "value": entrants.get("groups")[0]["name"],
+                        }
+                    )
+        result = {"items": items, "source": self._source}
+        return UserLogin.model_validate(result)

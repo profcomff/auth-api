@@ -1,9 +1,12 @@
 import logging
+from typing import Any
 from urllib.parse import quote
 
 import aiohttp
 import jwt
+from event_schema.auth import UserLogin
 from fastapi import Depends
+from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
@@ -12,6 +15,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
+from ..kafka.kafka import producer
 from ..schemas.types.scopes import Scope
 from .auth_method import MethodMeta, OauthMeta, Session
 
@@ -23,6 +27,18 @@ class VkSettings(Settings):
     VK_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/vk'
     VK_CLIENT_ID: int | None = None
     VK_CLIENT_SECRET: str | None = None
+    VK_USERDATA: list[str] | None = [
+        'bdate',
+        'activities',
+        'city',
+        'contacts',
+        'education',
+        'home_town',
+        'nickname',
+        'sex',
+        'career',
+        'photo_100',
+    ]  # Другие данные https://dev.vk.com/ru/reference/objects/user
 
 
 class VkAuthParams(MethodMeta):
@@ -36,6 +52,7 @@ class VkAuthParams(MethodMeta):
 class VkAuth(OauthMeta):
     prefix = '/vk'
     tags = ['vk']
+    _source = "vk"
 
     fields = VkAuthParams
     settings = VkSettings()
@@ -50,6 +67,7 @@ class VkAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
@@ -77,7 +95,7 @@ class VkAuth(OauthMeta):
 
                 async with session.get(
                     'https://api.vk.com/method/users.get?',
-                    params={"v": '5.131'},
+                    params={"v": '5.131', 'fields': ','.join(cls.settings.VK_USERDATA)},
                     headers={"Authorization": f"Bearer {token}"},
                 ) as response:
                     userinfo = await response.json()
@@ -97,13 +115,20 @@ class VkAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
-
+        logger.error(userinfo.get('city'))
+        userdata = VkAuth()._convert_data_to_userdata_format(userinfo['response'][0])
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            VkAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
+    async def _login(cls, user_inp: OauthResponseSchema, background_tasks: BackgroundTasks) -> Session:
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
 
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
@@ -138,6 +163,13 @@ class VkAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for vk account', id_token)
+        userdata = VkAuth()._convert_data_to_userdata_format(userinfo['response'][0])
+        await producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            VkAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -153,3 +185,45 @@ class VkAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f'https://oauth.vk.com/authorize?client_id={cls.settings.VK_CLIENT_ID}&redirect_uri={quote(cls.settings.VK_REDIRECT_URL)}'
         )
+
+    def _convert_data_to_userdata_format(self, data: dict[str, Any]) -> UserLogin:
+        items = []
+        if data.get("nickname"):
+            items.append({"category": "Личная информация", "param": "VK-ID", "value": data.get("nickname")})
+        if data.get("first_name"):
+            items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
+        if data.get("last_name"):
+            items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
+        if sex := data.get("sex"):
+            match sex:
+                case 0:
+                    items.append({"category": "Личная информация", "param": "Пол", "value": ""})
+                case 1:
+                    items.append({"category": "Личная информация", "param": "Пол", "value": "женский"})
+                case 2:
+                    items.append({"category": "Личная информация", "param": "Пол", "value": "мужской"})
+        if data.get("bdate"):
+            items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("bdate")})
+        if data.get("mobile_phone"):
+            items.append({"category": "Контакты", "param": "Номер телефона", "value": data.get("mobile_phone")})
+        if data.get("home_phone"):
+            items.append({"category": "contacts", "param": "Домашний номер телефона", "value": data.get("home_phone")})
+        if data.get("city") != [] and data.get("city")["title"]:
+            items.append({"category": "Контакты", "param": "Город", "value": data.get("city")["title"]})
+        if data.get("home_town"):
+            items.append({"category": "Контакты", "param": "Родной город", "value": data.get("home_town")})
+        if data.get("university_name"):
+            items.append({"category": "Учёба", "param": "ВУЗ", "value": data.get("university_name")})
+        if data.get("faculty_name"):
+            items.append({"category": "Учёба", "param": "Факультет", "value": data.get("faculty_name")})
+        if data.get("career") != [] and data.get("career")["company"]:
+            items.append({"category": "Карьера", "param": "Место работы", "value": data.get("career")["company"]})
+        if data.get("career") != [] and data.get("career")["city_name"]:
+            items.append(
+                {"category": "Карьера", "param": "Расположение работы", "value": data.get("career")["city_name"]}
+            )
+        if data.get("photo_100"):
+            items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_100")})
+        result = {"items": items, "source": self._source}
+        logger.debug(result)
+        return UserLogin.model_validate(result)
