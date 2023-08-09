@@ -114,6 +114,10 @@ jobs:
             --env VK_CLIENT_ID='${{ secrets.VK_CLIENT_ID }}' \
             --env VK_CLIENT_SECRET='${{ secrets.VK_CLIENT_SECRET }}' \
             --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
+            --env KAFKA_DSN='${{ secrets.KAFKA_DSN }}' \
+            --env KAFKA_LOGIN='${{ secrets.KAFKA_LOGIN }}' \
+            --env KAFKA_PASSWORD='${{ secrets.KAFKA_PASSWORD }}' \
+            --env KAFKA_USER_LOGIN_TOPIC_NAME='${{ secrets.KAFKA_USER_LOGIN_TOPIC_NAME }}' \
             --env GUNICORN_CMD_ARGS='--log-config  logging_test.conf' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
@@ -184,6 +188,10 @@ jobs:
             --env VK_CLIENT_ID='${{ secrets.VK_CLIENT_ID }}' \
             --env VK_CLIENT_SECRET='${{ secrets.VK_CLIENT_SECRET }}' \
             --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
+            --env KAFKA_DSN='${{ secrets.KAFKA_DSN }}' \
+            --env KAFKA_LOGIN='${{ secrets.KAFKA_LOGIN }}' \
+            --env KAFKA_PASSWORD='${{ secrets.KAFKA_PASSWORD }}' \
+            --env KAFKA_USER_LOGIN_TOPIC_NAME='${{ secrets.KAFKA_USER_LOGIN_TOPIC_NAME }}' \
             --env GUNICORN_CMD_ARGS='--log-config  logging_prod.conf' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest

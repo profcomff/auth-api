@@ -10,6 +10,7 @@ from sqlalchemy import func
 
 from auth_backend.base import Base, StatusResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import get_settings
@@ -271,7 +272,7 @@ class Email(AuthMethodMeta):
             )
         auth_method.user.auth_methods.email.confirmed.value = "true"
         userdata = Email._convert_data_to_userdata_format({"email": auth_method.user.auth_methods.email.email.value})
-        await producer().produce(
+        await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             Email.generate_kafka_key(auth_method.user.id),
             userdata,
@@ -339,7 +340,7 @@ class Email(AuthMethodMeta):
         user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
         user.auth_methods.email.tmp_email.is_deleted = True
         userdata = Email._convert_data_to_userdata_format({"email": user.auth_methods.email.email.value})
-        await producer().produce(
+        await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata, bg_tasks=background_tasks
         )
         db.session.commit()
@@ -420,6 +421,9 @@ class Email(AuthMethodMeta):
                 raise AuthFailed(
                     error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
                 )
+            if auth_method_email.user.auth_methods.email.reset_token is not None:
+                auth_method_email.user.auth_methods.email.reset_token.is_deleted = True
+                db.session.flush()
             await auth_method_email.user.auth_methods.email.create("reset_token", random_string())
             SendEmailMessage.send(
                 to_email=auth_method_email.user.auth_methods.email.email.value,
@@ -470,5 +474,5 @@ class Email(AuthMethodMeta):
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, str]) -> UserLogin:
         items = [{"category": "contacts", "param": "email", "value": data["email"]}]
-        result = {"items": items, "source": cls._source}
+        result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

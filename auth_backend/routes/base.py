@@ -4,6 +4,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from auth_backend import __version__
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.settings import get_settings
 
 from .groups import groups
@@ -41,6 +42,10 @@ app.add_middleware(
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    await get_kafka_producer().close()
 
 app.include_router(user_session)
 app.include_router(groups)

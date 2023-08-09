@@ -6,9 +6,9 @@ import re
 import string
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import Any, final
+from typing import final
 
-from event_schema.auth import UserLogin, UserLoginKey
+from event_schema.auth import UserLoginKey
 from fastapi import APIRouter, Depends
 from fastapi_sqlalchemy import db
 from pydantic import constr
@@ -101,8 +101,8 @@ class MethodMeta(metaclass=ABCMeta):
         ```
         """
         assert param in self.__fields__, "You cant create auth_method which not declared in __fields__"
-        if attr := getattr(self, param):
-            raise AlreadyExists(attr, attr.id)
+        if (attr := getattr(self, param)) and getattr(attr, "is_deleted") != True:
+            raise AlreadyExists(AuthMethod, attr.id)
         _method = AuthMethod(
             user_id=self.__user.id, param=param, value=value, auth_method=self.__class__.get_auth_method_name()
         )
@@ -213,6 +213,15 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @staticmethod
     @final
     def generate_kafka_key(user_id: int) -> UserLoginKey:
+        """
+        Мы генерируем ключи так как для сообщений с одинаковыми ключами
+        Kafka гарантирует последовательность чтений
+        Args:
+            user_id: Айди пользователя
+
+        Returns:
+            Ничего
+        """
         return UserLoginKey.model_validate({"user_id": user_id})
 
     @staticmethod
