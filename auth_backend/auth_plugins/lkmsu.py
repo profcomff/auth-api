@@ -185,8 +185,7 @@ class LkmsuAuth(OauthMeta):
         if data.get("userType"):
             items.append({"category": "Личная информация", "param": "Должность", "value": data.get("userType")['name']})
         student: dict[str, Any] = dict()
-        if data.get("student"):
-            student = data['student']
+        if student := data.get("student"):
             if student.get("last_name"):
                 items.append({"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")})
             if student.get("first_name"):
