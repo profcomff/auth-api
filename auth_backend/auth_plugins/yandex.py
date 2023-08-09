@@ -210,4 +210,3 @@ class YandexAuth(OauthMeta):
             items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")})
         result = {"items": items, "source": self._source}
         return UserLogin.model_validate(result)
-

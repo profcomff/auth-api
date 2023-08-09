@@ -47,6 +47,7 @@ app.add_middleware(
 async def on_shutdown():
     await get_kafka_producer().close()
 
+
 app.include_router(user_session)
 app.include_router(groups)
 app.include_router(scopes)

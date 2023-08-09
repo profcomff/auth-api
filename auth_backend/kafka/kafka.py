@@ -18,6 +18,7 @@ class AIOKafka(KafkaMeta):
     """
     Класс для работы с Kafka
     """
+
     __dsn = get_settings().KAFKA_DSN
     __devel: bool = True if __version__ == "dev" else False
     __conf: dict[str, str] = {}
@@ -98,11 +99,12 @@ class AIOKafka(KafkaMeta):
     async def close(self) -> None:
         self._producer.flush()
 
+
 class AIOKafkaMock(KafkaMeta):
     async def produce(self, topic: str, key: Any, value: Any, *, bg_tasks: BackgroundTasks) -> Any:
         log.debug(f"Kafka cluster disabled, debug msg: {topic=}, {key=}, {value=}")
 
-        
+
 @lru_cache
 def get_kafka_producer() -> KafkaMeta:
     """
