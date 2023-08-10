@@ -189,19 +189,18 @@ class VkAuth(OauthMeta):
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
         if data.get("nickname"):
-            items.append({"category": "Личная информация", "param": "VK-ID", "value": data.get("nickname")})
+            items.append({"category": "Контакты", "param": "VK-ID", "value": data.get("nickname")})
         if data.get("first_name"):
             items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
         if data.get("last_name"):
             items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
         if sex := data.get("sex"):
-            match sex:
-                case 0:
-                    items.append({"category": "Личная информация", "param": "Пол", "value": ""})
-                case 1:
-                    items.append({"category": "Личная информация", "param": "Пол", "value": "женский"})
-                case 2:
-                    items.append({"category": "Личная информация", "param": "Пол", "value": "мужской"})
+            if sex != 1 and sex != 2:
+                items.append({"category": "Личная информация", "param": "Пол", "value": None})
+            elif sex == 1:
+                items.append({"category": "Личная информация", "param": "Пол", "value": "женский"})
+            elif sex == 2:
+                items.append({"category": "Личная информация", "param": "Пол", "value": "мужской"})
         if data.get("bdate"):
             items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("bdate")})
         if data.get("mobile_phone"):

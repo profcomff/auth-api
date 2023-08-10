@@ -183,7 +183,7 @@ class LkmsuAuth(OauthMeta):
         if data.get("email"):
             items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
         if data.get("userType"):
-            items.append({"category": "Личная информация", "param": "Должность", "value": data.get("userType")['name']})
+            items.append({"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']})
         student: dict[str, Any] = dict()
         if student := data.get("student"):
             if student.get("last_name"):
@@ -194,25 +194,21 @@ class LkmsuAuth(OauthMeta):
                 items.append(
                     {"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")}
                 )
-            if student.get("entrants") is not None and student.get("entrants") != []:
+            if student.get("entrants") and student.get("entrants") != []:
                 for entrant in student.get('entrants'):
                     if entrant.get("record_book"):
                         items.append(
-                            {"category": "Учёба", "param": "Номер зачётной книжки", "value": entrant.get("record_book")}
+                            {
+                                "category": "Учёба",
+                                "param": "Номер студенческого билета",
+                                "value": entrant.get("record_book"),
+                            }
                         )
-                    if (
-                        entrant.get('faculty') is not None
-                        and entrant.get('faculty') != []
-                        and entrant.get('faculty')['name']
-                    ):
+                    if entrant.get('faculty') and entrant.get('faculty').get("name"):
                         items.append(
-                            {"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty')['name']}
+                            {"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty').get("name")}
                         )
-                    if (
-                        entrant.get("educationType") is not None
-                        and entrant.get("educationType") != []
-                        and entrant.get('educationType')['name']
-                    ):
+                    if entrant.get("educationType") and entrant.get("educationType").get("name"):
                         items.append(
                             {
                                 "category": "Учёба",
@@ -220,11 +216,7 @@ class LkmsuAuth(OauthMeta):
                                 "value": entrant.get('educationType')['name'],
                             }
                         )
-                    if (
-                        entrant.get("educationForm") is not None
-                        and entrant.get("educationForm") != []
-                        and entrant.get("educationForm")["name"]
-                    ):
+                    if entrant.get("educationForm") and entrant.get("educationForm").get("name"):
                         items.append(
                             {
                                 "category": "Учёба",
@@ -232,16 +224,12 @@ class LkmsuAuth(OauthMeta):
                                 "value": entrant.get("educationForm")["name"],
                             }
                         )
-                    if (
-                        entrant.get("groups") is not None
-                        and entrant.get("groups") != []
-                        and entrant.get("groups")[0]["name"]
-                    ):
+                    if entrant.get("groups") and entrant.get("groups") != [] and entrant.get("groups")[0].get("name"):
                         items.append(
                             {
                                 "category": "Учёба",
                                 "param": "Академическая группа",
-                                "value": entrant.get("groups")[0]["name"],
+                                "value": entrant.get("groups")[0].get("name"),
                             }
                         )
         result = {"items": items, "source": cls.get_name()}

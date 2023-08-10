@@ -170,7 +170,7 @@ class TelegramAuth(OauthMeta):
         if data.get("last_name"):
             items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
         if data.get("username"):
-            items.append({"category": "Личная информация", "param": "Telegram", "value": data.get("username")})
+            items.append({"category": "Контакты", "param": "Telegram", "value": data.get("username")})
         if data.get("photo_url"):
             items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_url")})
         result = {"items": items, "source": cls.get_name()}

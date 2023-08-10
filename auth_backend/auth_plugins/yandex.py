@@ -195,8 +195,13 @@ class YandexAuth(OauthMeta):
             items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
         if data.get("last_name"):
             items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
-        if data.get("sex"):
-            items.append({"category": "Личная информация", "param": "Пол", "value": data.get("sex")})
+        if sex := data.get("sex"):
+            if sex == "male":
+                items.append({"category": "Личная информация", "param": "Пол", "value": "мужской"})
+            elif sex == "female":
+                items.append({"category": "Личная информация", "param": "Пол", "value": "женский"})
+            else:
+                items.append({"category": "Личная информация", "param": "Пол", "value": None})
         if data.get("default_email"):
             items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")})
         if data.get("default_phone") and data.get("default_phone").get("number"):
