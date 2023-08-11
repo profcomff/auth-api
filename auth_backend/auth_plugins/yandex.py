@@ -191,24 +191,20 @@ class YandexAuth(OauthMeta):
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
-        if data.get("first_name"):
-            items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
-        if data.get("last_name"):
-            items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
-        if sex := data.get("sex"):
-            if sex == "male":
-                items.append({"category": "Личная информация", "param": "Пол", "value": "мужской"})
-            elif sex == "female":
-                items.append({"category": "Личная информация", "param": "Пол", "value": "женский"})
-            else:
-                items.append({"category": "Личная информация", "param": "Пол", "value": None})
-        if data.get("default_email"):
-            items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")})
+        items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
+        items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
+        sex = data.get("sex")
+        if sex == "male":
+            items.append({"category": "Личная информация", "param": "Пол", "value": "мужской"})
+        elif sex == "female":
+            items.append({"category": "Личная информация", "param": "Пол", "value": "женский"})
+        else:
+            items.append({"category": "Личная информация", "param": "Пол", "value": None})
+        items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")})
         if data.get("default_phone") and data.get("default_phone").get("number"):
             items.append(
                 {"category": "Контакты", "param": "Номер телефона", "value": data.get("default_phone").get("number")}
             )
-        if data.get("birthday"):
-            items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")})
+        items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")})
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

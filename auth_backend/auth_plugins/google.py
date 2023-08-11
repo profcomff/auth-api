@@ -197,11 +197,8 @@ class GoogleAuth(OauthMeta):
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
-        if data.get("email"):
-            items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
-        if data.get("name"):
-            items.append({"category": "Личная информация", "param": "Полное имя", "value": data.get("name")})
-        if data.get("picture"):
-            items.append({"category": "Личная информация", "param": "Фото", "value": data.get("picture")})
+        items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
+        items.append({"category": "Личная информация", "param": "Полное имя", "value": data.get("name")})
+        items.append({"category": "Личная информация", "param": "Фото", "value": data.get("picture")})
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

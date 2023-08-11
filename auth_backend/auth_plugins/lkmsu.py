@@ -180,30 +180,22 @@ class LkmsuAuth(OauthMeta):
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
-        if data.get("email"):
-            items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
-        if data.get("userType"):
-            items.append({"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']})
+        items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
+        items.append({"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']})
         student: dict[str, Any] = dict()
         if student := data.get("student"):
-            if student.get("last_name"):
-                items.append({"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")})
-            if student.get("first_name"):
-                items.append({"category": "Личная информация", "param": "Имя", "value": student.get("first_name")})
-            if student.get("middle_name"):
-                items.append(
-                    {"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")}
-                )
-            if student.get("entrants") and student.get("entrants") != []:
+            items.append({"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")})
+            items.append({"category": "Личная информация", "param": "Имя", "value": student.get("first_name")})
+            items.append({"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")})
+            if student.get("entrants") != []:
                 for entrant in student.get('entrants'):
-                    if entrant.get("record_book"):
-                        items.append(
-                            {
-                                "category": "Учёба",
-                                "param": "Номер студенческого билета",
-                                "value": entrant.get("record_book"),
-                            }
-                        )
+                    items.append(
+                        {
+                            "category": "Учёба",
+                            "param": "Номер студенческого билета",
+                            "value": entrant.get("record_book"),
+                        }
+                    )
                     if entrant.get('faculty') and entrant.get('faculty').get("name"):
                         items.append(
                             {"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty').get("name")}

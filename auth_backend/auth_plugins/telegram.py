@@ -165,13 +165,9 @@ class TelegramAuth(OauthMeta):
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
-        if data.get("first_name"):
-            items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
-        if data.get("last_name"):
-            items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
-        if data.get("username"):
-            items.append({"category": "Контакты", "param": "Telegram", "value": data.get("username")})
-        if data.get("photo_url"):
-            items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_url")})
+        items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
+        items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
+        items.append({"category": "Контакты", "param": "Telegram", "value": data.get("username")})
+        items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_url")})
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

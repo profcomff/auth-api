@@ -188,40 +188,30 @@ class VkAuth(OauthMeta):
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
-        if data.get("nickname"):
-            items.append({"category": "Контакты", "param": "VK-ID", "value": data.get("nickname")})
-        if data.get("first_name"):
-            items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
-        if data.get("last_name"):
-            items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
-        if sex := data.get("sex"):
-            if sex != 1 and sex != 2:
-                items.append({"category": "Личная информация", "param": "Пол", "value": None})
-            elif sex == 1:
-                items.append({"category": "Личная информация", "param": "Пол", "value": "женский"})
-            elif sex == 2:
-                items.append({"category": "Личная информация", "param": "Пол", "value": "мужской"})
-        if data.get("bdate"):
-            items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("bdate")})
-        if data.get("mobile_phone"):
-            items.append({"category": "Контакты", "param": "Номер телефона", "value": data.get("mobile_phone")})
-        if data.get("home_phone"):
-            items.append({"category": "Контакты", "param": "Домашний номер телефона", "value": data.get("home_phone")})
+        items.append({"category": "Контакты", "param": "VK-ID", "value": data.get("nickname")})
+        items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
+        items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
+        sex = data.get("sex")
+        if sex != 1 and sex != 2:
+            items.append({"category": "Личная информация", "param": "Пол", "value": None})
+        elif sex == 1:
+            items.append({"category": "Личная информация", "param": "Пол", "value": "женский"})
+        elif sex == 2:
+            items.append({"category": "Личная информация", "param": "Пол", "value": "мужской"})
+        items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("bdate")})
+        items.append({"category": "Контакты", "param": "Номер телефона", "value": data.get("mobile_phone")})
+        items.append({"category": "Контакты", "param": "Домашний номер телефона", "value": data.get("home_phone")})
         if data.get("city") != [] and data.get("city")["title"]:
             items.append({"category": "Контакты", "param": "Город", "value": data.get("city")["title"]})
-        if data.get("home_town"):
-            items.append({"category": "Контакты", "param": "Родной город", "value": data.get("home_town")})
-        if data.get("university_name"):
-            items.append({"category": "Учёба", "param": "ВУЗ", "value": data.get("university_name")})
-        if data.get("faculty_name"):
-            items.append({"category": "Учёба", "param": "Факультет", "value": data.get("faculty_name")})
+        items.append({"category": "Контакты", "param": "Родной город", "value": data.get("home_town")})
+        items.append({"category": "Учёба", "param": "ВУЗ", "value": data.get("university_name")})
+        items.append({"category": "Учёба", "param": "Факультет", "value": data.get("faculty_name")})
         if data.get("career") != [] and data.get("career")["company"]:
             items.append({"category": "Карьера", "param": "Место работы", "value": data.get("career")["company"]})
         if data.get("career") != [] and data.get("career")["city_name"]:
             items.append(
                 {"category": "Карьера", "param": "Расположение работы", "value": data.get("career")["city_name"]}
             )
-        if data.get("photo_max_orig"):
             items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_max_orig")})
         result = {"items": items, "source": cls.get_name()}
         logger.debug(result)
