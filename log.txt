@@ -1,0 +1,108 @@
+An error happened on auth_backend\auth_plugins\auth_method.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 6086: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\github.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 1946: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\google.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 2464: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\lkmsu.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 1938: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\vk.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 1804: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\yandex.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 1977: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\auth_method.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 6111: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\google.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 2489: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\vk.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 1829: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\github.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 1971: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\lkmsu.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 1963: character maps to <undefined>
+An error happened on auth_backend\auth_plugins\yandex.py.
+Traceback (most recent call last):
+  File "C:\Users\user\PycharmProjects\auth-api\venv\Lib\site-packages\bump_pydantic\main.py", line 119, in run_codemods
+    code = fp.read()
+           ^^^^^^^^^
+  File "C:\Users\user\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1251.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x98 in position 2002: character maps to <undefined>
