@@ -27,6 +27,7 @@ class LkmsuSettings(Settings):
     LKMSU_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/lk-msu'
     LKMSU_CLIENT_ID: str | None = None
     LKMSU_CLIENT_SECRET: str | None = None
+    LKMSU_FACULTY_NAME: str = 'Физический факультет'
 
 
 class LkmsuAuthParams(MethodMeta):
@@ -178,26 +179,23 @@ class LkmsuAuth(OauthMeta):
         )
 
     @classmethod
-    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
-        items = []
-        items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
-        items.append({"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']})
+    def get_entrants(cls, data: dict[str, Any], items: list):
         student: dict[str, Any] = dict()
         if student := data.get("student"):
             items.append({"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")})
             items.append({"category": "Личная информация", "param": "Имя", "value": student.get("first_name")})
             items.append({"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")})
-            faculties = []
+            faculties_names = []
             for entrant in student.get('entrants'):
                 if entrant.get('faculty') is None:
                     continue
                 else:
-                    faculties.append(entrant.get('faculty').get("faculty_id"))
+                    faculties_names.append(entrant.get('faculty').get("name"))
             for entrant in student.get('entrants'):
                 if (
-                    3 in faculties
-                    and entrant.get('faculty') is not None
-                    and entrant.get('faculty').get("faculty_id") != 3
+                        cls.settings.LKMSU_FACULTY_NAME in faculties_names
+                        and entrant.get('faculty') is not None
+                        and entrant.get('faculty').get("name") != cls.settings.LKMSU_FACULTY_NAME
                 ):  # 3 - id Физического факультета
                     continue
 
@@ -270,7 +268,13 @@ class LkmsuAuth(OauthMeta):
                             "value": entrant.get("groups")[0].get("name"),
                         }
                     )
-                if 3 not in faculties:
+                if cls.settings.LKMSU_FACULTY_NAME not in faculties_names:
                     break
+    @classmethod
+    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+        items = []
+        items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
+        items.append({"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']})
+        cls.get_entrants(data, items)
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

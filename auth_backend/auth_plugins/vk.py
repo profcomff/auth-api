@@ -210,11 +210,9 @@ class VkAuth(OauthMeta):
         items.append({"category": "Учёба", "param": "Факультет", "value": data.get("faculty_name")})
         if data.get("career") is None:
             items.append({"category": "Карьера", "param": "Место работы", "value": data.get("career")})
-        else:
-            items.append({"category": "Карьера", "param": "Место работы", "value": data.get("career").get("company")})
-        if data.get("career"):
             items.append({"category": "Карьера", "param": "Расположение работы", "value": data.get("career")})
         else:
+            items.append({"category": "Карьера", "param": "Место работы", "value": data.get("career").get("company")})
             items.append(
                 {"category": "Карьера", "param": "Расположение работы", "value": data.get("career").get("city_name")}
             )
