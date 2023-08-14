@@ -193,9 +193,9 @@ class LkmsuAuth(OauthMeta):
                     faculties_names.append(entrant.get('faculty').get("name"))
             for entrant in student.get('entrants'):
                 if (
-                        cls.settings.LKMSU_FACULTY_NAME in faculties_names
-                        and entrant.get('faculty') is not None
-                        and entrant.get('faculty').get("name") != cls.settings.LKMSU_FACULTY_NAME
+                    cls.settings.LKMSU_FACULTY_NAME in faculties_names
+                    and entrant.get('faculty') is not None
+                    and entrant.get('faculty').get("name") != cls.settings.LKMSU_FACULTY_NAME
                 ):  # 3 - id Физического факультета
                     continue
 
@@ -270,6 +270,7 @@ class LkmsuAuth(OauthMeta):
                     )
                 if cls.settings.LKMSU_FACULTY_NAME not in faculties_names:
                     break
+
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
