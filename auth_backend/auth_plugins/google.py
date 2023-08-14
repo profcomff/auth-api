@@ -154,12 +154,7 @@ class GoogleAuth(OauthMeta):
         user = await cls._get_user('unique_google_id', guser_id['sub'], db_session=db.session)
         if not user:
             raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
-        headers = {"Authorization": f"Bearer {credentials['access_token']}"}
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get("https://www.googleapis.com/oauth2/v1/userinfo") as response:
-                userinfo = await response.json()
-                logger.debug(userinfo)
-        userdata = GoogleAuth._convert_data_to_userdata_format(userinfo)
+        userdata = GoogleAuth._convert_data_to_userdata_format(guser_id)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
