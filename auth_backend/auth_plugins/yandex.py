@@ -201,10 +201,9 @@ class YandexAuth(OauthMeta):
         else:
             items.append({"category": "Личная информация", "param": "Пол", "value": None})
         items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")})
-        if data.get("default_phone") and data.get("default_phone").get("number"):
-            items.append(
-                {"category": "Контакты", "param": "Номер телефона", "value": data.get("default_phone").get("number")}
-            )
+        items.append(
+            {"category": "Контакты", "param": "Номер телефона", "value": data.get("default_phone", {}).get("number")}
+        )
         items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")})
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

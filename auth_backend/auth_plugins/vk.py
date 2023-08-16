@@ -201,21 +201,14 @@ class VkAuth(OauthMeta):
         items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("bdate")})
         items.append({"category": "Контакты", "param": "Номер телефона", "value": data.get("mobile_phone")})
         items.append({"category": "Контакты", "param": "Домашний номер телефона", "value": data.get("home_phone")})
-        if data.get("city") is None:
-            items.append({"category": "Контакты", "param": "Город", "value": data.get("city")})
-        else:
-            items.append({"category": "Контакты", "param": "Город", "value": data.get("city").get("title")})
+        items.append({"category": "Контакты", "param": "Город", "value": data.get("city", {}).get("title")})
         items.append({"category": "Контакты", "param": "Родной город", "value": data.get("home_town")})
         items.append({"category": "Учёба", "param": "ВУЗ", "value": data.get("university_name")})
         items.append({"category": "Учёба", "param": "Факультет", "value": data.get("faculty_name")})
-        if data.get("career") is None:
-            items.append({"category": "Карьера", "param": "Место работы", "value": data.get("career")})
-            items.append({"category": "Карьера", "param": "Расположение работы", "value": data.get("career")})
-        else:
-            items.append({"category": "Карьера", "param": "Место работы", "value": data.get("career").get("company")})
-            items.append(
-                {"category": "Карьера", "param": "Расположение работы", "value": data.get("career").get("city_name")}
-            )
+        items.append({"category": "Карьера", "param": "Место работы", "value": data.get("career", {}).get("company")})
+        items.append(
+            {"category": "Карьера", "param": "Расположение работы", "value": data.get("career", {}).get("city_name")}
+        )
         items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_max_orig")})
         result = {"items": items, "source": cls.get_name()}
         logger.debug(result)

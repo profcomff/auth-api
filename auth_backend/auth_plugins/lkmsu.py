@@ -179,103 +179,63 @@ class LkmsuAuth(OauthMeta):
         )
 
     @classmethod
-    def get_entrants(cls, data: dict[str, Any], items: list):
-        student: dict[str, Any] = dict()
-        if student := data.get("student"):
-            items.append({"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")})
-            items.append({"category": "Личная информация", "param": "Имя", "value": student.get("first_name")})
-            items.append({"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")})
-            faculties_names = []
-            for entrant in student.get('entrants'):
-                if entrant.get('faculty') is None:
-                    continue
-                else:
-                    faculties_names.append(entrant.get('faculty').get("name"))
-            for entrant in student.get('entrants'):
-                if (
-                    cls.settings.LKMSU_FACULTY_NAME in faculties_names
-                    and entrant.get('faculty') is not None
-                    and entrant.get('faculty').get("name") != cls.settings.LKMSU_FACULTY_NAME
-                ):  # 3 - id Физического факультета
-                    continue
+    def get_student(cls, data: dict[str, Any], items):
+        student: dict[str, Any] = data.get("student", {})
+        items.append({"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")})
+        items.append({"category": "Личная информация", "param": "Имя", "value": student.get("first_name")})
+        items.append({"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")})
+        return student
 
-                items.append(
-                    {
-                        "category": "Учёба",
-                        "param": "Номер студенческого билета",
-                        "value": entrant.get("record_book"),
-                    }
-                )
-                if entrant.get('faculty') is None:
-                    items.append({"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty')})
-                else:
-                    items.append(
-                        {"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty').get("name")}
-                    )
-                if entrant.get("educationType") is None:
-                    items.append(
-                        {
-                            "category": "Учёба",
-                            "param": "Ступень обучения",
-                            "value": entrant.get('educationType'),
-                        }
-                    )
-                else:
-                    items.append(
-                        {
-                            "category": "Учёба",
-                            "param": "Ступень обучения",
-                            "value": entrant.get('educationType').get("name"),
-                        }
-                    )
-                if entrant.get("educationForm") is None:
-                    items.append(
-                        {
-                            "category": "Учёба",
-                            "param": "Форма обучения",
-                            "value": entrant.get("educationForm"),
-                        }
-                    )
-                else:
-                    items.append(
-                        {
-                            "category": "Учёба",
-                            "param": "Форма обучения",
-                            "value": entrant.get("educationForm").get("name"),
-                        }
-                    )
-                if entrant.get("groups") and entrant.get("groups") != []:
-                    items.append(
-                        {
-                            "category": "Учёба",
-                            "param": "Академическая группа",
-                            "value": entrant.get("groups"),
-                        }
-                    )
-                elif not entrant.get("groups"):
-                    items.append(
-                        {
-                            "category": "Учёба",
-                            "param": "Академическая группа",
-                            "value": None,
-                        }
-                    )
-                else:
-                    items.append(
-                        {
-                            "category": "Учёба",
-                            "param": "Академическая группа",
-                            "value": entrant.get("groups")[0].get("name"),
-                        }
-                    )
-                if cls.settings.LKMSU_FACULTY_NAME not in faculties_names:
-                    break
+    @classmethod
+    def get_entrants(cls, data: dict[str, Any], items: list, student: dict[str, Any]):
+        faculties_names = []
+        for entrant in student.get('entrants'):
+            faculties_names.append(entrant.get('faculty', {}).get("name"))
+        for entrant in student.get('entrants'):
+            if (
+                cls.settings.LKMSU_FACULTY_NAME in faculties_names
+                and entrant.get('faculty', {}).get("name") != cls.settings.LKMSU_FACULTY_NAME
+            ):  # 3 - id Физического факультета
+                continue
+
+            items.append(
+                {
+                    "category": "Учёба",
+                    "param": "Номер студенческого билета",
+                    "value": entrant.get("record_book"),
+                }
+            )
+            items.append({"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty', {}).get("name")})
+            items.append(
+                {
+                    "category": "Учёба",
+                    "param": "Ступень обучения",
+                    "value": entrant.get('educationType', {}).get("name"),
+                }
+            )
+            items.append(
+                {
+                    "category": "Учёба",
+                    "param": "Форма обучения",
+                    "value": entrant.get("educationForm", {}).get("name"),
+                }
+            )
+            items.append(
+                {
+                    "category": "Учёба",
+                    "param": "Академическая группа",
+                    "value": entrant.get("groups", [{}]).append({})[0].get("name"),
+                }
+            )
+            if cls.settings.LKMSU_FACULTY_NAME not in faculties_names:
+                break
 
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = []
         items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
         items.append({"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']})
-        cls.get_entrants(data, items)
+        student = cls.get_student(data, items)
+        cls.get_entrants(data, items, student)
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)
