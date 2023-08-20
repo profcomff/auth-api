@@ -101,7 +101,7 @@ class MethodMeta(metaclass=ABCMeta):
         ```
         """
         assert param in self.__fields__, "You cant create auth_method which not declared in __fields__"
-        if (attr := getattr(self, param)) and getattr(attr, "is_deleted") != True:
+        if (attr := getattr(self, param)) and getattr(attr, "is_deleted") is not True:
             raise AlreadyExists(AuthMethod, attr.id)
         _method = AuthMethod(
             user_id=self.__user.id, param=param, value=value, auth_method=self.__class__.get_auth_method_name()
@@ -135,7 +135,7 @@ class MethodMeta(metaclass=ABCMeta):
         """
         for k in map.keys():
             assert k in self.__fields__, "You cant create auth_method which not declared in __fields__"
-            if (attr := getattr(self, k)) and getattr(attr, "is_deleted") != True:
+            if (attr := getattr(self, k)) and getattr(attr, "is_deleted") is not True:
                 raise AlreadyExists(AuthMethod, attr.id)
         methods: list[AuthMethod] = []
         for k, v in map.items():

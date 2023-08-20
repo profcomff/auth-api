@@ -21,7 +21,7 @@ def test_unprocessable_jsons_no_token(client_auth: TestClient, dbsession: Sessio
     assert response.status_code == status.HTTP_200_OK
 
     response = client_auth.post(
-        f"{url}/request",
+        f"{url}/restore",
         json={
             "email": token.user.auth_methods.email.email.value,
         },
@@ -63,28 +63,21 @@ def test_unprocessable_jsons_with_token(client_auth: TestClient, dbsession: Sess
     response = client_auth.post(
         f"{url}/request",
         headers={"Authorization": auth_token},
-        json={"email": body["email"], "password": "", "new_password": "changed"},
+        json={"password": "", "new_password": "changed"},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = client_auth.post(
         f"{url}/request",
         headers={"Authorization": auth_token},
-        json={"email": body["email"], "password": body["password"], "new_password": "changed"},
+        json={"password": "", "new_password": "changed"},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     response = client_auth.post(
         f"{url}/request",
         headers={"Authorization": auth_token},
-        json={"email": body["email"], "password": "", "new_password": "changed"},
-    )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-
-    response = client_auth.post(
-        f"{url}/request",
-        headers={"Authorization": ""},
-        json={"email": body["email"], "password": body["password"], "new_password": ""},
+        json={"password": body["password"], "new_password": ""},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -104,13 +97,13 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
         )
         .one()
     )
-    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.email.value})
+    response = client_auth.post(f"{url}/restore", json={"email": token.user.auth_methods.email.email.value})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
 
-    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.email.value})
+    response = client_auth.post(f"{url}/restore", json={"email": token.user.auth_methods.email.email.value})
     assert response.status_code == status.HTTP_200_OK
     reset_token: AuthMethod = (
         dbsession.query(AuthMethod)
@@ -122,14 +115,14 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
     response = client_auth.post(
         f"{url}",
         headers={"reset-token": reset_token.value + "x"},
-        json={"email": token.user.auth_methods.email.email.value, "new_password": "changedstring2"},
+        json={"new_password": "changedstring2"},
     )
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
     response = client_auth.post(
         f"{url}",
         headers={"reset-token": reset_token.value},
-        json={"email": token.user.auth_methods.email.email.value, "new_password": "changedstring2"},
+        json={"new_password": "changedstring2"},
     )
     assert response.status_code == status.HTTP_200_OK
 
@@ -160,7 +153,7 @@ def test_with_token(client_auth: TestClient, dbsession: Session, user):
     response = client_auth.post(
         f"{url}/request",
         headers={"Authorization": auth_token + "wrong"},
-        json={"email": body["email"], "password": body["password"], "new_password": "changed"},
+        json={"password": body["password"], "new_password": "changed"},
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -197,7 +190,7 @@ def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user
     response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
 
-    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.email.value})
+    response = client_auth.post(f"{url}/restore", json={"email": token.user.auth_methods.email.email.value})
     assert response.status_code == status.HTTP_200_OK
     reset_token_1: AuthMethod = (
         dbsession.query(AuthMethod)
@@ -211,7 +204,7 @@ def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user
     )
     assert reset_token_1
 
-    response = client_auth.post(f"{url}/request", json={"email": token.user.auth_methods.email.email.value})
+    response = client_auth.post(f"{url}/restore", json={"email": token.user.auth_methods.email.email.value})
     assert response.status_code == status.HTTP_200_OK
     reset_token_2: AuthMethod = (
         dbsession.query(AuthMethod)
