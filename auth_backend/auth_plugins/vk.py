@@ -187,29 +187,23 @@ class VkAuth(OauthMeta):
 
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
-        items = []
-        items.append({"category": "Контакты", "param": "VK-ID", "value": data.get("nickname")})
-        items.append({"category": "Личная информация", "param": "Имя", "value": data.get("first_name")})
-        items.append({"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")})
-        sex = data.get("sex")
-        if sex != 1 and sex != 2:
-            items.append({"category": "Личная информация", "param": "Пол", "value": None})
-        elif sex == 1:
-            items.append({"category": "Личная информация", "param": "Пол", "value": "женский"})
-        elif sex == 2:
-            items.append({"category": "Личная информация", "param": "Пол", "value": "мужской"})
-        items.append({"category": "Личная информация", "param": "Дата рождения", "value": data.get("bdate")})
-        items.append({"category": "Контакты", "param": "Номер телефона", "value": data.get("mobile_phone")})
-        items.append({"category": "Контакты", "param": "Домашний номер телефона", "value": data.get("home_phone")})
-        items.append({"category": "Контакты", "param": "Город", "value": data.get("city", {}).get("title")})
-        items.append({"category": "Контакты", "param": "Родной город", "value": data.get("home_town")})
-        items.append({"category": "Учёба", "param": "ВУЗ", "value": data.get("university_name")})
-        items.append({"category": "Учёба", "param": "Факультет", "value": data.get("faculty_name")})
-        items.append({"category": "Карьера", "param": "Место работы", "value": data.get("career", {}).get("company")})
-        items.append(
-            {"category": "Карьера", "param": "Расположение работы", "value": data.get("career", {}).get("city_name")}
-        )
-        items.append({"category": "Личная информация", "param": "Фото", "value": data.get("photo_max_orig")})
+        if sex := str(data.get('sex')) is not None:
+            sex = sex.replace('1', 'женский').replace('2', 'мужской')
+        items = [
+            {"category": "Контакты", "param": "VK-ID", "value": data.get("nickname")},
+            {"category": "Личная информация", "param": "Имя", "value": data.get("first_name")},
+            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
+            {"category": "Личная информация", "param": "Дата рождения", "value": data.get("bdate")},
+            {"category": "Контакты", "param": "Номер телефона", "value": data.get("mobile_phone")},
+            {"category": "Контакты", "param": "Домашний номер телефона", "value": data.get("home_phone")},
+            {"category": "Контакты", "param": "Город", "value": data.get("city", {}).get("title")},
+            {"category": "Контакты", "param": "Родной город", "value": data.get("home_town")},
+            {"category": "Учёба", "param": "ВУЗ", "value": data.get("university_name")},
+            {"category": "Учёба", "param": "Факультет", "value": data.get("faculty_name")},
+            {"category": "Карьера", "param": "Место работы", "value": data.get("career", {}).get("company")},
+            {"category": "Карьера", "param": "Расположение работы", "value": data.get("career", {}).get("city_name")},
+            {"category": "Личная информация", "param": "Фото", "value": data.get("photo_max_orig")},
+            {"category": "Личная информация", "param": "Пол", "value": sex},
+        ]
         result = {"items": items, "source": cls.get_name()}
-        logger.debug(result)
         return UserLogin.model_validate(result)

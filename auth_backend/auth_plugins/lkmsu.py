@@ -181,9 +181,13 @@ class LkmsuAuth(OauthMeta):
     @classmethod
     def get_student(cls, data: dict[str, Any], items):
         student: dict[str, Any] = data.get("student", {})
-        items.append({"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")})
-        items.append({"category": "Личная информация", "param": "Имя", "value": student.get("first_name")})
-        items.append({"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")})
+        items.extend(
+            [
+                {"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")},
+                {"category": "Личная информация", "param": "Имя", "value": student.get("first_name")},
+                {"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")},
+            ]
+        )
         return student
 
     @classmethod
@@ -197,44 +201,42 @@ class LkmsuAuth(OauthMeta):
                 and entrant.get('faculty', {}).get("name") != cls.settings.LKMSU_FACULTY_NAME
             ):  # 3 - id Физического факультета
                 continue
-
-            items.append(
-                {
-                    "category": "Учёба",
-                    "param": "Номер студенческого билета",
-                    "value": entrant.get("record_book"),
-                }
-            )
-            items.append({"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty', {}).get("name")})
-            items.append(
-                {
-                    "category": "Учёба",
-                    "param": "Ступень обучения",
-                    "value": entrant.get('educationType', {}).get("name"),
-                }
-            )
-            items.append(
-                {
-                    "category": "Учёба",
-                    "param": "Форма обучения",
-                    "value": entrant.get("educationForm", {}).get("name"),
-                }
-            )
-            items.append(
-                {
-                    "category": "Учёба",
-                    "param": "Академическая группа",
-                    "value": entrant.get("groups", [{}]).append({})[0].get("name"),
-                }
+            group = entrant.get("groups", [{}])
+            group.append({})
+            items.extend(
+                [
+                    {
+                        "category": "Учёба",
+                        "param": "Номер студенческого билета",
+                        "value": entrant.get("record_book"),
+                    },
+                    {"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty', {}).get("name")},
+                    {
+                        "category": "Учёба",
+                        "param": "Ступень обучения",
+                        "value": entrant.get('educationType', {}).get("name"),
+                    },
+                    {
+                        "category": "Учёба",
+                        "param": "Форма обучения",
+                        "value": entrant.get("educationForm", {}).get("name"),
+                    },
+                    {
+                        "category": "Учёба",
+                        "param": "Академическая группа",
+                        "value": group[0].get("name"),
+                    },
+                ]
             )
             if cls.settings.LKMSU_FACULTY_NAME not in faculties_names:
                 break
 
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
-        items = []
-        items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
-        items.append({"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']})
+        items = [
+            {"category": "Контакты", "param": "Электронная почта", "value": data.get("email")},
+            {"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']},
+        ]
         student = cls.get_student(data, items)
         cls.get_entrants(data, items, student)
         result = {"items": items, "source": cls.get_name()}

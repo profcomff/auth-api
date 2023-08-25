@@ -189,12 +189,13 @@ class GithubAuth(OauthMeta):
 
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
-        items = []
-        items.append({"category": "Личная информация", "param": "Полное имя", "value": data.get("name")})
-        items.append({"category": "Карьера", "param": "Место работы", "value": data.get("company")})
-        items.append({"category": "Личная информация", "param": "GitHub", "value": data.get("url")})
-        items.append({"category": "Личная информация", "param": "Фото", "value": data.get("avatar_url")})
-        items.append({"category": "Контакты", "param": "Электронная почта", "value": data.get("email")})
-        items.append({"category": "Контакты", "param": "Место жительства", "value": data.get("location")})
+        items = [
+            {"category": "Личная информация", "param": "Полное имя", "value": data.get("name")},
+            {"category": "Карьера", "param": "Место работы", "value": data.get("company")},
+            {"category": "Личная информация", "param": "GitHub", "value": data.get("url")},
+            {"category": "Личная информация", "param": "Фото", "value": data.get("avatar_url")},
+            {"category": "Контакты", "param": "Электронная почта", "value": data.get("email")},
+            {"category": "Контакты", "param": "Место жительства", "value": data.get("location")},
+        ]
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

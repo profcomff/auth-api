@@ -193,22 +193,20 @@ class YandexAuth(OauthMeta):
         items = []
         if sex := data.get("sex") is not None:
             sex = sex.replace('female', 'женский').replace('male', 'мужской')
-        items.extend(
-            [
-                {"category": "Личная информация", "param": "Имя", "value": data.get("first_name")},
-                {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
-                {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
-                {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
-                {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
-                {"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")},
-                {
-                    "category": "Контакты",
-                    "param": "Номер телефона",
-                    "value": data.get("default_phone", {}).get("number"),
-                },
-                {"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")},
-                items.append({"category": "Личная информация", "param": "Пол", "value": sex}),
-            ]
-        )
+        items = [
+            {"category": "Личная информация", "param": "Имя", "value": data.get("first_name")},
+            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
+            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
+            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
+            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
+            {"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")},
+            {
+                "category": "Контакты",
+                "param": "Номер телефона",
+                "value": data.get("default_phone", {}).get("number"),
+            },
+            {"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")},
+            items.append({"category": "Личная информация", "param": "Пол", "value": sex}),
+        ]
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)
