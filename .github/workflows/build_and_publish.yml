@@ -112,6 +112,7 @@ jobs:
             --env TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' \
             --env VK_REDIRECT_URL='${{ vars.VK_REDIRECT_URL }}' \
             --env VK_CLIENT_ID='${{ secrets.VK_CLIENT_ID }}' \
+            --env VK_CLIENT_ACCESS_TOKEN='${{ secrets.VK_CLIENT_ACCESS_TOKEN }}' \
             --env VK_CLIENT_SECRET='${{ secrets.VK_CLIENT_SECRET }}' \
             --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
             --env KAFKA_DSN='${{ secrets.KAFKA_DSN }}' \
@@ -186,6 +187,7 @@ jobs:
             --env TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' \
             --env VK_REDIRECT_URL='${{ vars.VK_REDIRECT_URL }}' \
             --env VK_CLIENT_ID='${{ secrets.VK_CLIENT_ID }}' \
+            --env VK_CLIENT_ACCESS_TOKEN='${{ secrets.VK_CLIENT_ACCESS_TOKEN }}' \
             --env VK_CLIENT_SECRET='${{ secrets.VK_CLIENT_SECRET }}' \
             --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
             --env KAFKA_DSN='${{ secrets.KAFKA_DSN }}' \
