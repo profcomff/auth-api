@@ -192,9 +192,6 @@ class LkmsuAuth(OauthMeta):
         full_name = concantenate_strings([first_name, last_name, middle_name])
         if not full_name:
             full_name = None
-        full_name = concantenate_strings(
-            [student.get("first_name"), student.get("last_name"), student.get("middle_name")]
-        )
         items = [
             {"category": "Личная информация", "param": "Полное имя", "value": full_name},
         ]
@@ -212,8 +209,8 @@ class LkmsuAuth(OauthMeta):
                 and entrant.get('faculty', {}).get("name") != cls.settings.LKMSU_FACULTY_NAME
             ):
                 continue
-            group = entrant.get("groups", [{}])
-            group.append({})
+            if not (group := entrant.get("groups")):
+                group = [{}]
             items = [
                 {
                     "category": "Учёба",
