@@ -147,7 +147,7 @@ class Email(AuthMethodMeta):
         self.tags = ["Email"]
 
     @classmethod
-    async def _login(cls, user_inp: EmailLogin) -> Session:
+    async def _login(cls, user_inp: EmailLogin, background_tasks: BackgroundTasks) -> Session:
         query = (
             AuthMethod.query(session=db.session)
             .filter(
@@ -169,6 +169,13 @@ class Email(AuthMethodMeta):
             query.user.auth_methods.email.salt.value,
         ):
             raise AuthFailed(error="Incorrect login or password")
+        userdata = await Email._convert_data_to_userdata_format({"email": query.user.auth_methods.email.email.value})
+        await get_kafka_producer().produce(
+            settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            Email.generate_kafka_key(query.user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             query.user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -475,4 +482,4 @@ class Email(AuthMethodMeta):
     async def _convert_data_to_userdata_format(cls, data: dict[str, str]) -> UserLogin:
         items = [{"category": "Контакты", "param": "Электронная почта", "value": data["email"]}]
         result = {"items": items, "source": cls.get_name()}
-        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))
+        return UserLogin.model_validate(result)
