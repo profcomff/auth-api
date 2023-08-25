@@ -38,6 +38,7 @@ class VkSettings(Settings):
         'sex',
         'career',
         'photo_max_orig',
+        'domain'
     ]  # Другие данные https://dev.vk.com/ru/reference/objects/user
 
 
@@ -183,15 +184,24 @@ class VkAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f'https://oauth.vk.com/authorize?client_id={cls.settings.VK_CLIENT_ID}&redirect_uri={quote(cls.settings.VK_REDIRECT_URL)}'
         )
+    @classmethod
+    def get_career(cls, data: dict[str | Any]) -> list[dict[str | Any]]:
+        career = data.get('career', [])
+        career.append({})
+        return [
+            {"category": "Карьера", "param": "Место работы", "value": career[0].get("company")},
+            {"category": "Карьера", "param": "Расположение работы", "value": career[0].get("city_name")},
+        ]
 
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
-        if sex := str(data.get('sex')) is not None:
+        if (sex := str(data.get('sex'))) is not None:
             sex = sex.replace('1', 'женский').replace('2', 'мужской')
+        full_name = " ".join([data.get("first_name"), data.get("last_name")]).strip()
         items = [
-            {"category": "Контакты", "param": "VK-ID", "value": data.get("nickname")},
-            {"category": "Личная информация", "param": "Имя", "value": data.get("first_name")},
-            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
+            {"category": "Контакты", "param": "VK ID", "value": str(data.get("id"))},
+            {"category": "Контакты", "param": "Имя пользователя VK", "value": data.get("domain")},
+            {"category": "Личная информация", "param": "Полное имя", "value": full_name},
             {"category": "Личная информация", "param": "Дата рождения", "value": data.get("bdate")},
             {"category": "Контакты", "param": "Номер телефона", "value": data.get("mobile_phone")},
             {"category": "Контакты", "param": "Домашний номер телефона", "value": data.get("home_phone")},
@@ -199,10 +209,10 @@ class VkAuth(OauthMeta):
             {"category": "Контакты", "param": "Родной город", "value": data.get("home_town")},
             {"category": "Учёба", "param": "ВУЗ", "value": data.get("university_name")},
             {"category": "Учёба", "param": "Факультет", "value": data.get("faculty_name")},
-            {"category": "Карьера", "param": "Место работы", "value": data.get("career", {}).get("company")},
-            {"category": "Карьера", "param": "Расположение работы", "value": data.get("career", {}).get("city_name")},
             {"category": "Личная информация", "param": "Фото", "value": data.get("photo_max_orig")},
             {"category": "Личная информация", "param": "Пол", "value": sex},
         ]
+        career = cls.get_career(data)
+        items.extend(career)
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

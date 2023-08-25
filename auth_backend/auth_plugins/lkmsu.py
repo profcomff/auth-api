@@ -179,19 +179,17 @@ class LkmsuAuth(OauthMeta):
         )
 
     @classmethod
-    def get_student(cls, data: dict[str, Any], items):
+    def get_student(cls, data: dict[str, Any]) -> (dict[str | Any], list[dict[str | Any]]):
         student: dict[str, Any] = data.get("student", {})
-        items.extend(
-            [
-                {"category": "Личная информация", "param": "Фамилия", "value": student.get("last_name")},
-                {"category": "Личная информация", "param": "Имя", "value": student.get("first_name")},
-                {"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")},
-            ]
-        )
-        return student
+        full_name = " ".join([student.get("first_name"), student.get("last_name")]).strip()
+        items = [
+            {"category": "Личная информация", "param": "Полное имя", "value": full_name},
+            {"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")},
+        ]
+        return student, items
 
     @classmethod
-    def get_entrants(cls, data: dict[str, Any], items: list, student: dict[str, Any]):
+    def get_entrants(cls, data: dict[str, Any], student: dict[str, Any]) -> list[dict[str, Any]]:
         faculties_names = []
         for entrant in student.get('entrants'):
             faculties_names.append(entrant.get('faculty', {}).get("name"))
@@ -203,8 +201,7 @@ class LkmsuAuth(OauthMeta):
                 continue
             group = entrant.get("groups", [{}])
             group.append({})
-            items.extend(
-                [
+            items = [
                     {
                         "category": "Учёба",
                         "param": "Номер студенческого билета",
@@ -227,17 +224,20 @@ class LkmsuAuth(OauthMeta):
                         "value": group[0].get("name"),
                     },
                 ]
-            )
             if cls.settings.LKMSU_FACULTY_NAME not in faculties_names:
                 break
+            return items
 
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = [
             {"category": "Контакты", "param": "Электронная почта", "value": data.get("email")},
             {"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']},
+            {"category": "Контакты", "param": "LKMSU ID", "value": str(data.get("user_id"))},
         ]
-        student = cls.get_student(data, items)
-        cls.get_entrants(data, items, student)
+        student, student_items = cls.get_student(data)
+        entrants_items = cls.get_entrants(data, student)
+        items.extend(student_items)
+        items.extend(entrants_items)
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)

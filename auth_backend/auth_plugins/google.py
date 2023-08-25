@@ -85,7 +85,7 @@ class GoogleAuth(OauthMeta):
             id_token = user_inp.id_token
 
         try:
-            guser_id = verify_oauth2_token(
+            userinfo = verify_oauth2_token(
                 id_token,
                 requests.Request(),
                 cls.settings.GOOGLE_CREDENTIALS['web']['client_id'],
@@ -93,11 +93,11 @@ class GoogleAuth(OauthMeta):
             )
         except GoogleAuthError as exc:
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
-        user = await cls._get_user('unique_google_id', guser_id['sub'], db_session=db.session)
+        user = await cls._get_user('unique_google_id', userinfo['sub'], db_session=db.session)
         if user is not None:
             raise AlreadyExists(User, user.id)
         # Проверяем email на blacklist/whitelist
-        email: str = guser_id['email']
+        email: str = userinfo['email']
         assert isinstance(email, str), "Почта не строка WTF"
         _, domain = email.split('@', 2)
         if cls.settings.GOOGLE_WHITELIST_DOMAINS is not None and domain not in cls.settings.GOOGLE_WHITELIST_DOMAINS:
@@ -113,8 +113,9 @@ class GoogleAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('unique_google_id', guser_id['sub'], user, db_session=db.session)
-        userdata = GoogleAuth._convert_data_to_userdata_format(guser_id)
+        await cls._register_auth_method('unique_google_id', userinfo['sub'], user, db_session=db.session)
+        userdata = GoogleAuth._convert_data_to_userdata_format(userinfo)
+        logger.error(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
@@ -138,7 +139,7 @@ class GoogleAuth(OauthMeta):
         except oauthlib.oauth2.rfc6749.errors.OAuth2Error as exc:
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
         try:
-            guser_id = verify_oauth2_token(
+            userinfo = verify_oauth2_token(
                 credentials.get("id_token"),
                 requests.Request(),
                 cls.settings.GOOGLE_CREDENTIALS['web']['client_id'],
@@ -146,10 +147,10 @@ class GoogleAuth(OauthMeta):
             )
         except GoogleAuthError as exc:
             raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
-        user = await cls._get_user('unique_google_id', guser_id['sub'], db_session=db.session)
+        user = await cls._get_user('unique_google_id', userinfo['sub'], db_session=db.session)
         if not user:
             raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
-        userdata = GoogleAuth._convert_data_to_userdata_format(guser_id)
+        userdata = GoogleAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
@@ -187,6 +188,7 @@ class GoogleAuth(OauthMeta):
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = [
+            {"category": "Контакты", "param": "Google ID", "value": str(data.get("sub"))},
             {"category": "Контакты", "param": "Электронная почта", "value": data.get("email")},
             {"category": "Личная информация", "param": "Полное имя", "value": data.get("name")},
             {"category": "Личная информация", "param": "Фото", "value": data.get("picture")},

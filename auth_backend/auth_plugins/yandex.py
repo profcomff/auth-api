@@ -190,15 +190,12 @@ class YandexAuth(OauthMeta):
 
     @classmethod
     def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
-        items = []
-        if sex := data.get("sex") is not None:
+        if (sex := data.get("sex")) is not None:
             sex = sex.replace('female', 'женский').replace('male', 'мужской')
+        full_name = " ".join([data.get("first_name"), data.get("last_name")]).strip()
         items = [
-            {"category": "Личная информация", "param": "Имя", "value": data.get("first_name")},
-            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
-            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
-            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
-            {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
+            {"category": "Контакты", "param": "Yandex ID", "value": str(data.get("id"))},
+            {"category": "Личная информация", "param": "Полное имя", "value": full_name},
             {"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")},
             {
                 "category": "Контакты",
@@ -206,7 +203,7 @@ class YandexAuth(OauthMeta):
                 "value": data.get("default_phone", {}).get("number"),
             },
             {"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")},
-            items.append({"category": "Личная информация", "param": "Пол", "value": sex}),
+            {"category": "Личная информация", "param": "Пол", "value": sex},
         ]
         result = {"items": items, "source": cls.get_name()}
         return UserLogin.model_validate(result)
