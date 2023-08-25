@@ -1,19 +1,24 @@
 import hashlib
 import hmac
 import logging
+from typing import Any
 from urllib.parse import quote, unquote
 
 import jwt
+from event_schema.auth import UserLogin
 from fastapi import Depends
+from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
 from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
+from auth_backend.utils.string import concantenate_strings
 
 
 logger = logging.getLogger(__name__)
@@ -35,7 +40,6 @@ class TelegramAuthParams(MethodMeta):
 class TelegramAuth(OauthMeta):
     prefix = '/telegram'
     tags = ['Telegram']
-
     fields = TelegramAuthParams
     settings = TelegramSettings()
 
@@ -55,13 +59,14 @@ class TelegramAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         telegram_user_id = None
         userinfo = None
 
         if user_inp.id_token is None:
-            userinfo = cls._check(user_inp)
+            userinfo = await cls._check(user_inp)
             telegram_user_id = user_inp.id
             logger.debug(userinfo)
         else:
@@ -78,13 +83,19 @@ class TelegramAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', telegram_user_id, user, db_session=db.session)
-
+        userdata = await TelegramAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            TelegramAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
+    async def _login(cls, user_inp: OauthResponseSchema, background_tasks: BackgroundTasks) -> Session:
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
 
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
@@ -100,6 +111,13 @@ class TelegramAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Telegram account', id_token)
+        userdata = await TelegramAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            TelegramAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -144,3 +162,21 @@ class TelegramAuth(OauthMeta):
             return data_check
         else:
             raise OauthAuthFailed('Invalid user data from Telegram')
+
+    @classmethod
+    async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+        first_name, last_name = '', ''
+        if 'first_name' in data.keys() and data['first_name'] is not None:
+            first_name = data['first_name']
+        if 'last_name' in data.keys() and data['last_name'] is not None:
+            last_name = data['last_name']
+        full_name = concantenate_strings([first_name, last_name])
+        if not full_name:
+            full_name = None
+        items = [
+            {"category": "Личная информация", "param": "Полное имя", "value": full_name},
+            {"category": "Контакты", "param": "Имя пользователя Telegram", "value": data.get("username")},
+            {"category": "Личная информация", "param": "Фото", "value": data.get("photo_url")},
+        ]
+        result = {"items": items, "source": cls.get_name()}
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))

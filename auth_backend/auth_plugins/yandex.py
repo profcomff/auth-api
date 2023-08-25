@@ -1,18 +1,23 @@
 import logging
+from typing import Any
 from urllib.parse import quote
 
 import aiohttp
 import jwt
+from event_schema.auth import UserLogin
 from fastapi import Depends
+from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
 from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
+from auth_backend.utils.string import concantenate_strings
 
 
 logger = logging.getLogger(__name__)
@@ -51,6 +56,7 @@ class YandexAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
@@ -112,13 +118,19 @@ class YandexAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', yandex_user_id, user, db_session=db.session)
-
+        userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            YandexAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
+    async def _login(cls, user_inp: OauthResponseSchema, background_tasks: BackgroundTasks) -> Session:
         """Вход в пользователя с помощью аккаунта Yandex
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
         найден, возвращает ошибка.
@@ -152,6 +164,13 @@ class YandexAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Yandex account', id_token)
+        userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            YandexAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -170,20 +189,32 @@ class YandexAuth(OauthMeta):
             url=f"https://oauth.yandex.ru/authorize?response_type=code&client_id={cls.settings.YANDEX_CLIENT_ID}&redirect_uri={quote(cls.settings.YANDEX_REDIRECT_URL)}&force_confirm=true"
         )
 
-    # @classmethod
-    # def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
-    #     items = []
-    #     if data.get("first_name"):
-    #         items.append({"category": "common", "param": "first_name", "value": data.get("first_name")})
-    #     if data.get("last_name"):
-    #         items.append({"category": "common", "param": "last_name", "value": data.get("last_name")})
-    #     if data.get("default_email"):
-    #         items.append({"category": "contacts", "param": "email", "value": data.get("default_email")})
-    #     if data.get("default_phone") and data.get("default_phone").get("number"):
-    #         items.append({"category": "contacts", "param": "phone", "value": data.get("default_phone").get("number")})
-    #     if data.get("birthday"):
-    #         items.append({"category": "common", "param": "birthday", "value": data.get("birthday")})
-    #     if data.get("sex"):
-    #         items.append({"category": "common", "param": "sex", "value": data.get("sex")})
-    #     result = {"items": items,  "source": cls.get_name()}
-    #     return UserLogin.model_validate(result)
+    @classmethod
+    async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+        if (sex := data.get("sex")) is not None:
+            sex = sex.replace('female', 'женский').replace('male', 'мужской')
+        first_name, last_name = '', ''
+        if 'first_name' in data.keys() and data['first_name'] is not None:
+            first_name = data['first_name']
+        if 'last_name' in data.keys() and data['last_name'] is not None:
+            last_name = data['last_name']
+        full_name = concantenate_strings([first_name, last_name])
+        if not full_name:
+            full_name = None
+        items = [
+            {"category": "Личная информация", "param": "Полное имя", "value": full_name},
+            {"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")},
+            {
+                "category": "Контакты",
+                "param": "Номер телефона",
+                "value": data.get("default_phone", {}).get("number"),
+            },
+            {
+                "category": "Личная информация",
+                "param": "Дата рождения",
+                "value": None if data.get("birthday") else data.get("birthday"),
+            },
+            {"category": "Личная информация", "param": "Пол", "value": sex},
+        ]
+        result = {"items": items, "source": cls.get_name()}
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))
