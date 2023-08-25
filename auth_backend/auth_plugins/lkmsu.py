@@ -202,28 +202,28 @@ class LkmsuAuth(OauthMeta):
             group = entrant.get("groups", [{}])
             group.append({})
             items = [
-                    {
-                        "category": "Учёба",
-                        "param": "Номер студенческого билета",
-                        "value": entrant.get("record_book"),
-                    },
-                    {"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty', {}).get("name")},
-                    {
-                        "category": "Учёба",
-                        "param": "Ступень обучения",
-                        "value": entrant.get('educationType', {}).get("name"),
-                    },
-                    {
-                        "category": "Учёба",
-                        "param": "Форма обучения",
-                        "value": entrant.get("educationForm", {}).get("name"),
-                    },
-                    {
-                        "category": "Учёба",
-                        "param": "Академическая группа",
-                        "value": group[0].get("name"),
-                    },
-                ]
+                {
+                    "category": "Учёба",
+                    "param": "Номер студенческого билета",
+                    "value": entrant.get("record_book"),
+                },
+                {"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty', {}).get("name")},
+                {
+                    "category": "Учёба",
+                    "param": "Ступень обучения",
+                    "value": entrant.get('educationType', {}).get("name"),
+                },
+                {
+                    "category": "Учёба",
+                    "param": "Форма обучения",
+                    "value": entrant.get("educationForm", {}).get("name"),
+                },
+                {
+                    "category": "Учёба",
+                    "param": "Академическая группа",
+                    "value": group[0].get("name"),
+                },
+            ]
             if cls.settings.LKMSU_FACULTY_NAME not in faculties_names:
                 break
             return items

@@ -38,7 +38,7 @@ class VkSettings(Settings):
         'sex',
         'career',
         'photo_max_orig',
-        'domain'
+        'domain',
     ]  # Другие данные https://dev.vk.com/ru/reference/objects/user
 
 
@@ -184,6 +184,7 @@ class VkAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f'https://oauth.vk.com/authorize?client_id={cls.settings.VK_CLIENT_ID}&redirect_uri={quote(cls.settings.VK_REDIRECT_URL)}'
         )
+
     @classmethod
     def get_career(cls, data: dict[str | Any]) -> list[dict[str | Any]]:
         career = data.get('career', [])
