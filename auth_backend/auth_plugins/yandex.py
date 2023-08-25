@@ -201,10 +201,13 @@ class YandexAuth(OauthMeta):
                 {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
                 {"category": "Личная информация", "param": "Фамилия", "value": data.get("last_name")},
                 {"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")},
-                {"category": "Контакты", "param": "Номер телефона",
-                 "value": data.get("default_phone", {}).get("number")},
+                {
+                    "category": "Контакты",
+                    "param": "Номер телефона",
+                    "value": data.get("default_phone", {}).get("number"),
+                },
                 {"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")},
-                items.append({"category": "Личная информация", "param": "Пол", "value": sex})
+                items.append({"category": "Личная информация", "param": "Пол", "value": sex}),
             ]
         )
         result = {"items": items, "source": cls.get_name()}
