@@ -199,7 +199,7 @@ class LkmsuAuth(OauthMeta):
             if (
                 cls.settings.LKMSU_FACULTY_NAME in faculties_names
                 and entrant.get('faculty', {}).get("name") != cls.settings.LKMSU_FACULTY_NAME
-            ):  # 3 - id Физического факультета
+            ):
                 continue
             group = entrant.get("groups", [{}])
             group.append({})

@@ -114,7 +114,6 @@ class VkAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
-        logger.error(userinfo.get('city'))
         userdata = VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
