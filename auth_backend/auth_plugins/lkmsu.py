@@ -179,7 +179,7 @@ class LkmsuAuth(OauthMeta):
         )
 
     @classmethod
-    def get_student(cls, data: dict[str, Any]) -> (dict[str | Any], list[dict[str | Any]]):
+    def get_student(cls, data: dict[str, Any]) -> tuple[dict[str | Any], list[dict[str | Any]]]:
         student: dict[str, Any] = data.get("student", {})
         full_name = " ".join([student.get("first_name"), student.get("last_name")]).strip()
         items = [
@@ -189,7 +189,8 @@ class LkmsuAuth(OauthMeta):
         return student, items
 
     @classmethod
-    def get_entrants(cls, data: dict[str, Any], student: dict[str, Any]) -> list[dict[str, Any]]:
+    def get_entrants(cls, data: dict[str, Any]) -> list[dict[str, Any]]:
+        student: dict[str, Any] = data.get("student", {})
         faculties_names = []
         for entrant in student.get('entrants'):
             faculties_names.append(entrant.get('faculty', {}).get("name"))
@@ -235,8 +236,8 @@ class LkmsuAuth(OauthMeta):
             {"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']},
             {"category": "Контакты", "param": "LKMSU ID", "value": str(data.get("user_id"))},
         ]
-        student, student_items = cls.get_student(data)
-        entrants_items = cls.get_entrants(data, student)
+        student_items = cls.get_student(data)
+        entrants_items = cls.get_entrants(data)
         items.extend(student_items)
         items.extend(entrants_items)
         result = {"items": items, "source": cls.get_name()}

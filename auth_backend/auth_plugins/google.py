@@ -115,7 +115,6 @@ class GoogleAuth(OauthMeta):
             user = user_session.user
         await cls._register_auth_method('unique_google_id', userinfo['sub'], user, db_session=db.session)
         userdata = GoogleAuth._convert_data_to_userdata_format(userinfo)
-        logger.error(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
