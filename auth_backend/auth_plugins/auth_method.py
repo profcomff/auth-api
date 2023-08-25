@@ -6,9 +6,9 @@ import re
 import string
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import final
+from typing import Any, final
 
-from event_schema.auth import UserLoginKey
+from event_schema.auth import UserLogin, UserLoginKey
 from fastapi import APIRouter, Depends
 from fastapi_sqlalchemy import db
 from pydantic import constr
@@ -260,10 +260,10 @@ class AuthMethodMeta(metaclass=ABCMeta):
             return user_session.user
         return
 
-    # @classmethod
-    # @abstractmethod
-    # def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
-    #     raise NotImplementedError()
+    @classmethod
+    @abstractmethod
+    async def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
+        raise NotImplementedError()
 
 
 class OauthMeta(AuthMethodMeta):
@@ -340,3 +340,11 @@ class OauthMeta(AuthMethodMeta):
         for method in auth_methods:
             method.is_deleted = True
         db_session.flush()
+
+    @classmethod
+    def userdata_process_empty_strings(cls, userdata: UserLogin) -> UserLogin:
+        '''Изменяет значения с пустыми строками в параметре категории юзердаты на None'''
+        for item in userdata.items:
+            if item.value == '':
+                item.value = None
+        return userdata

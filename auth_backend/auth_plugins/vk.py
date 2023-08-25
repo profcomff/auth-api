@@ -1,16 +1,21 @@
 import logging
+from typing import Any
 from urllib.parse import quote
 
 import aiohttp
 import jwt
+from event_schema.auth import UserLogin
 from fastapi import Depends
+from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
+from auth_backend.utils.string import concantenate_strings
 
 from ..schemas.types.scopes import Scope
 from .auth_method import MethodMeta, OauthMeta, Session
@@ -23,6 +28,20 @@ class VkSettings(Settings):
     VK_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/vk'
     VK_CLIENT_ID: int | None = None
     VK_CLIENT_SECRET: str | None = None
+    VK_CLIENT_ACCESS_TOKEN: str | None = None
+    VK_USERDATA: list[str] | None = [
+        'bdate',
+        'activities',
+        'city',
+        'contacts',
+        'education',
+        'home_town',
+        'nickname',
+        'sex',
+        'career',
+        'photo_max_orig',
+        'domain',
+    ]  # Другие данные https://dev.vk.com/ru/reference/objects/user
 
 
 class VkAuthParams(MethodMeta):
@@ -50,6 +69,7 @@ class VkAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
@@ -77,7 +97,7 @@ class VkAuth(OauthMeta):
 
                 async with session.get(
                     'https://api.vk.com/method/users.get?',
-                    params={"v": '5.131'},
+                    params={"v": '5.131', 'fields': ','.join(cls.settings.VK_USERDATA)},
                     headers={"Authorization": f"Bearer {token}"},
                 ) as response:
                     userinfo = await response.json()
@@ -97,13 +117,19 @@ class VkAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
-
+        userdata = await VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
+        await get_kafka_producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            VkAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
+    async def _login(cls, user_inp: OauthResponseSchema, background_tasks: BackgroundTasks) -> Session:
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
 
         Производит вход, если находит пользователя по уникаотному идендификатору. Если аккаунт не
@@ -127,7 +153,7 @@ class VkAuth(OauthMeta):
 
             async with session.get(
                 'https://api.vk.com/method/users.get?',
-                params={"v": '5.131'},
+                params={"v": '5.131', 'fields': ','.join(cls.settings.VK_USERDATA)},
                 headers={"Authorization": f"Bearer {token}"},
             ) as response:
                 userinfo = await response.json()
@@ -138,6 +164,13 @@ class VkAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for vk account', id_token)
+        userdata = await VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
+        await get_kafka_producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            VkAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -153,3 +186,57 @@ class VkAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f'https://oauth.vk.com/authorize?client_id={cls.settings.VK_CLIENT_ID}&redirect_uri={quote(cls.settings.VK_REDIRECT_URL)}'
         )
+
+    @classmethod
+    async def get_career(cls, data: dict[str | Any]) -> list[dict[str | Any]]:
+        if not (career := data.get('career')):
+            career = [{}]
+        company_name = career[0].get("company")
+        if (group_id := career[0].get("group_id")) is not None:
+            payload = {
+                'access_token': cls.settings.VK_CLIENT_ACCESS_TOKEN,
+                'v': '5.131',
+                'group_id': group_id,
+                'fields': 'name',
+            }
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    'https://api.vk.com/method/groups.getById?',
+                    params=payload,
+                ) as response:
+                    company_info = await response.json()
+                    company_name = company_info.get('response', [{}])[0].get('name')
+        return [
+            {"category": "Карьера", "param": "Место работы", "value": company_name},
+            {"category": "Карьера", "param": "Расположение работы", "value": career[0].get("city_name")},
+        ]
+
+    @classmethod
+    async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+        if (sex := str(data.get('sex'))) is not None:
+            sex = sex.replace('1', 'женский').replace('2', 'мужской')
+        first_name, last_name = '', ''
+        if 'first_name' in data.keys() and data['first_name'] is not None:
+            first_name = data['first_name']
+        if 'last_name' in data.keys() and data['last_name'] is not None:
+            last_name = data['last_name']
+        full_name = concantenate_strings([first_name, last_name])
+        if not full_name:
+            full_name = None
+        items = [
+            {"category": "Контакты", "param": "Имя пользователя VK", "value": data.get("domain")},
+            {"category": "Личная информация", "param": "Полное имя", "value": full_name},
+            {"category": "Личная информация", "param": "Дата рождения", "value": data.get("bdate")},
+            {"category": "Контакты", "param": "Номер телефона", "value": data.get("mobile_phone")},
+            {"category": "Контакты", "param": "Домашний номер телефона", "value": data.get("home_phone")},
+            {"category": "Контакты", "param": "Город", "value": data.get("city", {}).get("title")},
+            {"category": "Контакты", "param": "Родной город", "value": data.get("home_town")},
+            {"category": "Учёба", "param": "ВУЗ", "value": data.get("university_name")},
+            {"category": "Учёба", "param": "Факультет", "value": data.get("faculty_name")},
+            {"category": "Личная информация", "param": "Фото", "value": data.get("photo_max_orig")},
+            {"category": "Личная информация", "param": "Пол", "value": sex},
+        ]
+        career = await cls.get_career(data)
+        items.extend(career)
+        result = {"items": items, "source": cls.get_name()}
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))

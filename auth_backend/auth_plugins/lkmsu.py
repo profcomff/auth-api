@@ -1,17 +1,22 @@
 import logging
+from typing import Any
 from urllib.parse import quote
 
 import aiohttp
 import jwt
+from event_schema.auth import UserLogin
 from fastapi import Depends
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
+from starlette.background import BackgroundTasks
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
+from auth_backend.utils.string import concantenate_strings
 
 from .auth_method import MethodMeta, OauthMeta, Session
 
@@ -23,6 +28,7 @@ class LkmsuSettings(Settings):
     LKMSU_REDIRECT_URL: str = 'https://app.test.profcomff.com/auth/oauth-authorized/lk-msu'
     LKMSU_CLIENT_ID: str | None = None
     LKMSU_CLIENT_SECRET: str | None = None
+    LKMSU_FACULTY_NAME: str = 'Физический факультет'
 
 
 class LkmsuAuthParams(MethodMeta):
@@ -52,6 +58,7 @@ class LkmsuAuth(OauthMeta):
     async def _register(
         cls,
         user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий
@@ -99,13 +106,23 @@ class LkmsuAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', lk_user_id, user, db_session=db.session)
-
+        userdata = await LkmsuAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            LkmsuAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
 
     @classmethod
-    async def _login(cls, user_inp: OauthResponseSchema) -> Session:
+    async def _login(
+        cls,
+        user_inp: OauthResponseSchema,
+        background_tasks: BackgroundTasks,
+    ) -> Session:
         """Вход в пользователя с помощью аккаунта https://lk.msu.ru
 
         Производит вход, если находит пользователя по уникальному идендификатору. Если аккаунт не
@@ -139,6 +156,13 @@ class LkmsuAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
+        userdata = await LkmsuAuth._convert_data_to_userdata_format(userinfo)
+        await get_kafka_producer().produce(
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            LkmsuAuth.generate_kafka_key(user.id),
+            userdata,
+            bg_tasks=background_tasks,
+        )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -154,3 +178,75 @@ class LkmsuAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f'https://lk.msu.ru/oauth/authorize?response_type=code&client_id={cls.settings.LKMSU_CLIENT_ID}&redirect_uri={quote(cls.settings.LKMSU_REDIRECT_URL)}&scope=scope.profile.view'
         )
+
+    @classmethod
+    def get_student(cls, data: dict[str, Any]) -> list[dict[str | Any]]:
+        student: dict[str, Any] = data.get("student", {})
+        first_name, last_name, middle_name = '', '', ''
+        if 'first_name' in data.keys() and data['first_name'] is not None:
+            first_name = data['first_name']
+        if 'last_name' in data.keys() and data['last_name'] is not None:
+            last_name = data['last_name']
+        if 'middle_name' in data.keys() and data['middle_name'] is not None:
+            middle_name = data['middle_name']
+        full_name = concantenate_strings([first_name, last_name, middle_name])
+        if not full_name:
+            full_name = None
+        items = [
+            {"category": "Личная информация", "param": "Полное имя", "value": full_name},
+        ]
+        return items
+
+    @classmethod
+    def get_entrants(cls, data: dict[str, Any]) -> list[dict[str, Any]]:
+        student: dict[str, Any] = data.get("student", {})
+        faculties_names = []
+        for entrant in student.get('entrants'):
+            faculties_names.append(entrant.get('faculty', {}).get("name"))
+        for entrant in student.get('entrants'):
+            if (
+                cls.settings.LKMSU_FACULTY_NAME in faculties_names
+                and entrant.get('faculty', {}).get("name") != cls.settings.LKMSU_FACULTY_NAME
+            ):
+                continue
+            if not (group := entrant.get("groups")):
+                group = [{}]
+            items = [
+                {
+                    "category": "Учёба",
+                    "param": "Номер студенческого билета",
+                    "value": entrant.get("record_book"),
+                },
+                {"category": "Учёба", "param": "Факультет", "value": entrant.get('faculty', {}).get("name")},
+                {
+                    "category": "Учёба",
+                    "param": "Ступень обучения",
+                    "value": entrant.get('educationType', {}).get("name"),
+                },
+                {
+                    "category": "Учёба",
+                    "param": "Форма обучения",
+                    "value": entrant.get("educationForm", {}).get("name"),
+                },
+                {
+                    "category": "Учёба",
+                    "param": "Академическая группа",
+                    "value": group[0].get("name"),
+                },
+            ]
+            if cls.settings.LKMSU_FACULTY_NAME not in faculties_names:
+                break
+            return items
+
+    @classmethod
+    async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+        items = [
+            {"category": "Контакты", "param": "Электронная почта", "value": data.get("email")},
+            {"category": "Учёба", "param": "Должность", "value": data.get("userType", {}).get('name')},
+        ]
+        student_items = cls.get_student(data)
+        entrants_items = cls.get_entrants(data)
+        items.extend(student_items)
+        items.extend(entrants_items)
+        result = {"items": items, "source": cls.get_name()}
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))
