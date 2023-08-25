@@ -1,5 +1,3 @@
-import random
-import string
 from datetime import datetime
 
 from fastapi import HTTPException
@@ -11,13 +9,10 @@ from auth_backend.models.db import Scope, User, UserSession, UserSessionScope
 from auth_backend.schemas.models import Session
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from auth_backend.settings import get_settings
+from auth_backend.utils.string import random_string
 
 
 settings = get_settings()
-
-
-def random_string(length: int = 32) -> str:
-    return "".join([random.choice(string.ascii_letters) for _ in range(length)])
 
 
 async def create_session(

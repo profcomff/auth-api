@@ -18,6 +18,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
+from auth_backend.utils.string import concantenate_strings
 
 
 logger = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ class TelegramAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', telegram_user_id, user, db_session=db.session)
-        userdata = TelegramAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await TelegramAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             TelegramAuth.generate_kafka_key(user.id),
@@ -110,7 +111,7 @@ class TelegramAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Telegram account', id_token)
-        userdata = TelegramAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await TelegramAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             TelegramAuth.generate_kafka_key(user.id),
@@ -163,12 +164,19 @@ class TelegramAuth(OauthMeta):
             raise OauthAuthFailed('Invalid user data from Telegram')
 
     @classmethod
-    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
-        full_name = " ".join([data.get("first_name"), data.get("last_name")]).strip()
+    async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+        first_name, last_name = '', ''
+        if 'first_name' in data.keys() and data['first_name'] is not None:
+            first_name = data['first_name']
+        if 'last_name' in data.keys() and data['last_name'] is not None:
+            last_name = data['last_name']
+        full_name = concantenate_strings([first_name, last_name])
+        if not full_name:
+            full_name = None
         items = [
             {"category": "Личная информация", "param": "Полное имя", "value": full_name},
             {"category": "Контакты", "param": "Имя пользователя Telegram", "value": data.get("username")},
             {"category": "Личная информация", "param": "Фото", "value": data.get("photo_url")},
         ]
         result = {"items": items, "source": cls.get_name()}
-        return UserLogin.model_validate(result)
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))

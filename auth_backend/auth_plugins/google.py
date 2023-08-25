@@ -114,7 +114,7 @@ class GoogleAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('unique_google_id', userinfo['sub'], user, db_session=db.session)
-        userdata = GoogleAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await GoogleAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
@@ -149,7 +149,7 @@ class GoogleAuth(OauthMeta):
         user = await cls._get_user('unique_google_id', userinfo['sub'], db_session=db.session)
         if not user:
             raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
-        userdata = GoogleAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await GoogleAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
@@ -185,12 +185,14 @@ class GoogleAuth(OauthMeta):
         return flow
 
     @classmethod
-    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+    async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+        full_name = data.get('name')
+        if isinstance(full_name, str):
+            full_name = full_name.strip()
         items = [
-            {"category": "Контакты", "param": "Google ID", "value": str(data.get("sub"))},
             {"category": "Контакты", "param": "Электронная почта", "value": data.get("email")},
             {"category": "Личная информация", "param": "Полное имя", "value": data.get("name")},
             {"category": "Личная информация", "param": "Фото", "value": data.get("picture")},
         ]
         result = {"items": items, "source": cls.get_name()}
-        return UserLogin.model_validate(result)
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))

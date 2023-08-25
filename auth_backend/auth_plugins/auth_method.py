@@ -262,7 +262,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
+    async def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
         raise NotImplementedError()
 
 
@@ -340,3 +340,11 @@ class OauthMeta(AuthMethodMeta):
         for method in auth_methods:
             method.is_deleted = True
         db_session.flush()
+
+    @classmethod
+    def userdata_process_empty_strings(cls, userdata: UserLogin) -> UserLogin:
+        '''Изменяет значения с пустыми строками в параметре категории юзердаты на None'''
+        for item in userdata.items:
+            if item.value == '':
+                item.value = None
+        return userdata

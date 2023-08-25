@@ -269,7 +269,9 @@ class Email(AuthMethodMeta):
                 status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect link").model_dump()
             )
         auth_method.user.auth_methods.email.confirmed.value = "true"
-        userdata = Email._convert_data_to_userdata_format({"email": auth_method.user.auth_methods.email.email.value})
+        userdata = await Email._convert_data_to_userdata_format(
+            {"email": auth_method.user.auth_methods.email.email.value}
+        )
         await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             Email.generate_kafka_key(auth_method.user.id),
@@ -337,7 +339,7 @@ class Email(AuthMethodMeta):
         user.auth_methods.email.email.value = user.auth_methods.email.tmp_email.value
         user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
         user.auth_methods.email.tmp_email.is_deleted = True
-        userdata = Email._convert_data_to_userdata_format({"email": user.auth_methods.email.email.value})
+        userdata = await Email._convert_data_to_userdata_format({"email": user.auth_methods.email.email.value})
         await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata, bg_tasks=background_tasks
         )
@@ -470,7 +472,7 @@ class Email(AuthMethodMeta):
         return StatusResponseModel(status="Success", message="Password has been successfully changed")
 
     @classmethod
-    def _convert_data_to_userdata_format(cls, data: dict[str, str]) -> UserLogin:
+    async def _convert_data_to_userdata_format(cls, data: dict[str, str]) -> UserLogin:
         items = [{"category": "Контакты", "param": "Электронная почта", "value": data["email"]}]
         result = {"items": items, "source": cls.get_name()}
-        return UserLogin.model_validate(result)
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))

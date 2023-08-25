@@ -17,6 +17,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
+from auth_backend.utils.string import concantenate_strings
 
 
 logger = logging.getLogger(__name__)
@@ -117,7 +118,7 @@ class YandexAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', yandex_user_id, user, db_session=db.session)
-        userdata = YandexAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             YandexAuth.generate_kafka_key(user.id),
@@ -163,7 +164,7 @@ class YandexAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for Yandex account', id_token)
-        userdata = YandexAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             YandexAuth.generate_kafka_key(user.id),
@@ -189,12 +190,18 @@ class YandexAuth(OauthMeta):
         )
 
     @classmethod
-    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+    async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         if (sex := data.get("sex")) is not None:
             sex = sex.replace('female', 'женский').replace('male', 'мужской')
-        full_name = " ".join([data.get("first_name"), data.get("last_name")]).strip()
+        first_name, last_name = '', ''
+        if 'first_name' in data.keys() and data['first_name'] is not None:
+            first_name = data['first_name']
+        if 'last_name' in data.keys() and data['last_name'] is not None:
+            last_name = data['last_name']
+        full_name = concantenate_strings([first_name, last_name])
+        if not full_name:
+            full_name = None
         items = [
-            {"category": "Контакты", "param": "Yandex ID", "value": str(data.get("id"))},
             {"category": "Личная информация", "param": "Полное имя", "value": full_name},
             {"category": "Контакты", "param": "Электронная почта", "value": data.get("default_email")},
             {
@@ -202,8 +209,12 @@ class YandexAuth(OauthMeta):
                 "param": "Номер телефона",
                 "value": data.get("default_phone", {}).get("number"),
             },
-            {"category": "Личная информация", "param": "Дата рождения", "value": data.get("birthday")},
+            {
+                "category": "Личная информация",
+                "param": "Дата рождения",
+                "value": None if data.get("birthday") else data.get("birthday"),
+            },
             {"category": "Личная информация", "param": "Пол", "value": sex},
         ]
         result = {"items": items, "source": cls.get_name()}
-        return UserLogin.model_validate(result)
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))

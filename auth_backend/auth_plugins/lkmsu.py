@@ -16,6 +16,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
+from auth_backend.utils.string import concantenate_strings
 
 from .auth_method import MethodMeta, OauthMeta, Session
 
@@ -105,7 +106,7 @@ class LkmsuAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', lk_user_id, user, db_session=db.session)
-        userdata = LkmsuAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await LkmsuAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             LkmsuAuth.generate_kafka_key(user.id),
@@ -155,7 +156,7 @@ class LkmsuAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
-        userdata = LkmsuAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await LkmsuAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             LkmsuAuth.generate_kafka_key(user.id),
@@ -179,14 +180,25 @@ class LkmsuAuth(OauthMeta):
         )
 
     @classmethod
-    def get_student(cls, data: dict[str, Any]) -> tuple[dict[str | Any], list[dict[str | Any]]]:
+    def get_student(cls, data: dict[str, Any]) -> list[dict[str | Any]]:
         student: dict[str, Any] = data.get("student", {})
-        full_name = " ".join([student.get("first_name"), student.get("last_name")]).strip()
+        first_name, last_name, middle_name = '', '', ''
+        if 'first_name' in data.keys() and data['first_name'] is not None:
+            first_name = data['first_name']
+        if 'last_name' in data.keys() and data['last_name'] is not None:
+            last_name = data['last_name']
+        if 'middle_name' in data.keys() and data['middle_name'] is not None:
+            middle_name = data['middle_name']
+        full_name = concantenate_strings([first_name, last_name, middle_name])
+        if not full_name:
+            full_name = None
+        full_name = concantenate_strings(
+            [student.get("first_name"), student.get("last_name"), student.get("middle_name")]
+        )
         items = [
             {"category": "Личная информация", "param": "Полное имя", "value": full_name},
-            {"category": "Личная информация", "param": "Отчество", "value": student.get("middle_name")},
         ]
-        return student, items
+        return items
 
     @classmethod
     def get_entrants(cls, data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -230,15 +242,14 @@ class LkmsuAuth(OauthMeta):
             return items
 
     @classmethod
-    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+    async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         items = [
             {"category": "Контакты", "param": "Электронная почта", "value": data.get("email")},
-            {"category": "Учёба", "param": "Должность", "value": data.get("userType")['name']},
-            {"category": "Контакты", "param": "LKMSU ID", "value": str(data.get("user_id"))},
+            {"category": "Учёба", "param": "Должность", "value": data.get("userType", {}).get('name')},
         ]
         student_items = cls.get_student(data)
         entrants_items = cls.get_entrants(data)
         items.extend(student_items)
         items.extend(entrants_items)
         result = {"items": items, "source": cls.get_name()}
-        return UserLogin.model_validate(result)
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))

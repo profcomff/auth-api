@@ -111,7 +111,7 @@ class GithubAuth(OauthMeta):
         else:
             user = user_session.user
         await cls._register_auth_method('user_id', github_user_id, user, db_session=db.session)
-        userdata = GithubAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await GithubAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GithubAuth.generate_kafka_key(user.id),
@@ -164,7 +164,7 @@ class GithubAuth(OauthMeta):
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for lk msu account', id_token)
-        userdata = GithubAuth._convert_data_to_userdata_format(userinfo)
+        userdata = await GithubAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GithubAuth.generate_kafka_key(user.id),
@@ -188,18 +188,17 @@ class GithubAuth(OauthMeta):
         )
 
     @classmethod
-    def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
+    async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         full_name = data.get('name')
         if isinstance(full_name, str):
             full_name = full_name.strip()
         items = [
             {"category": "Личная информация", "param": "Полное имя", "value": full_name},
             {"category": "Карьера", "param": "Место работы", "value": data.get("company")},
-            {"category": "Личная информация", "param": "GitHub", "value": data.get("url")},
             {"category": "Личная информация", "param": "Фото", "value": data.get("avatar_url")},
             {"category": "Контакты", "param": "Электронная почта", "value": data.get("email")},
             {"category": "Контакты", "param": "Место жительства", "value": data.get("location")},
-            {"category": "Контакты", "param": "GitHub ID", "value": str(data.get("id"))},
+            {"category": "Контакты", "param": "Имя пользователя GitHub", "value": data.get("login")},
         ]
         result = {"items": items, "source": cls.get_name()}
-        return UserLogin.model_validate(result)
+        return cls.userdata_process_empty_strings(UserLogin.model_validate(result))
