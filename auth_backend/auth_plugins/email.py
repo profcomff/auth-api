@@ -1,11 +1,12 @@
 import hashlib
 import logging
+from typing import Self
 
 from event_schema.auth import UserLogin
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
-from pydantic import constr, field_validator
+from pydantic import constr, field_validator, model_validator
 from sqlalchemy import func
 
 from auth_backend.base import Base, StatusResponseModel
@@ -78,19 +79,26 @@ class EmailChange(Base):
     email_validator = field_validator("email")(check_email)
 
 
-class RequestResetPassword(Base):
-    email: constr(min_length=1)
-    password: str | None = None
-    new_password: str | None = None
-
-    email_validator = field_validator("email")(check_email)
-
-
 class ResetPassword(Base):
-    email: constr(min_length=1)
+    password: constr(min_length=1)
     new_password: constr(min_length=1)
 
+    @model_validator(mode="after")
+    def check_passwords_dont_match(self) -> Self:
+        if not (self.password or self.new_password):
+            return self
+        assert self.new_password != self.password, "Passwords must be different"
+        return self
+
+
+class RequestResetForgottenPassword(Base):
+    email: constr(min_length=1)
+
     email_validator = field_validator("email")(check_email)
+
+
+class ResetForgottenPassword(Base):
+    new_password: constr(min_length=1)
 
 
 class EmailParams(MethodMeta):
@@ -142,7 +150,13 @@ class Email(AuthMethodMeta):
             response_model=StatusResponseModel,
         )
         self.router.add_api_route(
-            "/reset/password", self._reset_password, methods=["POST"], response_model=StatusResponseModel
+            "/reset/password/restore",
+            self._request_reset_forgotten_password,
+            methods=["POST"],
+            response_model=StatusResponseModel,
+        )
+        self.router.add_api_route(
+            "/reset/password", self._reset_forgotten_password, methods=["POST"], response_model=StatusResponseModel
         )
         self.tags = ["Email"]
 
@@ -295,8 +309,6 @@ class Email(AuthMethodMeta):
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
     ) -> StatusResponseModel:
-        if user_session.expired:
-            raise SessionExpired(user_session.token)
         if not user_session.user.auth_methods.email:
             raise IncorrectUserAuthType()
         if user_session.user.auth_methods.email.confirmed.value == "false":
@@ -307,7 +319,11 @@ class Email(AuthMethodMeta):
             raise HTTPException(
                 status_code=401, detail=StatusResponseModel(status="Error", message="Email incorrect").model_dump()
             )
-        token = random_string()
+        token = random_string(length=settings.TOKEN_LENGTH)
+        if user_session.user.auth_methods.email.tmp_email is not None:
+            user_session.user.auth_methods.email.tmp_email.is_deleted = True
+            user_session.user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
+            db.session.flush()
         await user_session.user.auth_methods.email.bulk_create(
             {"tmp_email_confirmation_token": token, "tmp_email": scheme.email}
         )
@@ -356,103 +372,40 @@ class Email(AuthMethodMeta):
     @staticmethod
     async def _request_reset_password(
         request: Request,
-        schema: RequestResetPassword,
+        schema: ResetPassword,
         background_tasks: BackgroundTasks,
-        user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
+        user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
     ) -> StatusResponseModel:
-        salt = random_string()
-        if user_session and schema.new_password and schema.password:
-            if user_session.expired:
-                raise SessionExpired(user_session.token)
-            if not user_session.user.auth_methods.email:
-                raise HTTPException(
-                    status_code=401,
-                    detail=StatusResponseModel(
-                        status="Error", message="Auth method restricted for this user"
-                    ).model_dump(),
-                )
-            if not Email._validate_password(
-                schema.password,
-                user_session.user.auth_methods.email.hashed_password.value,
-                user_session.user.auth_methods.email.salt.value,
-            ):
-                raise AuthFailed(error="Incorrect password")
-            auth_method_email: AuthMethod = (
-                AuthMethod.query(session=db.session)
-                .filter(
-                    AuthMethod.auth_method == Email.get_name(),
-                    AuthMethod.param == "email",
-                    AuthMethod.value == schema.email,
-                )
-                .one_or_none()
-            )
-            if auth_method_email.user_id != user_session.user_id:
-                raise HTTPException(
-                    status_code=403,
-                    detail=StatusResponseModel(status="Error", message="Incorrect user session").model_dump(),
-                )
-            user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
-            user_session.user.auth_methods.email.salt.value = salt
-            SendEmailMessage.send(
-                to_email=user_session.user.auth_methods.email.email.value,
-                ip=request.client.host,
-                message_file_name="password_change_notification.html",
-                subject="Смена пароля Твой ФФ!",
-                dbsession=db.session,
-                background_tasks=background_tasks,
-            )
-            db.session.commit()
-            return StatusResponseModel(status="Success", message="Password has been successfully changed")
-        elif not user_session and not schema.password and not schema.new_password:
-            auth_method_email: AuthMethod = (
-                AuthMethod.query(session=db.session)
-                .filter(
-                    AuthMethod.auth_method == Email.get_name(),
-                    AuthMethod.param == "email",
-                    AuthMethod.value == schema.email,
-                )
-                .one_or_none()
-            )
-            if not auth_method_email:
-                raise HTTPException(
-                    status_code=404, detail=StatusResponseModel(status="Error", message="Email not found").model_dump()
-                )
-            if not auth_method_email.user.auth_methods.email:
-                raise HTTPException(
-                    status_code=401,
-                    detail=StatusResponseModel(
-                        status="Error", message="Auth method restricted for this user"
-                    ).model_dump(),
-                )
-            if auth_method_email.user.auth_methods.email.confirmed.value.lower() == "false":
-                raise AuthFailed(
-                    error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
-                )
-            if auth_method_email.user.auth_methods.email.reset_token is not None:
-                auth_method_email.user.auth_methods.email.reset_token.is_deleted = True
-                db.session.flush()
-            await auth_method_email.user.auth_methods.email.create("reset_token", random_string())
-            SendEmailMessage.send(
-                to_email=auth_method_email.user.auth_methods.email.email.value,
-                ip=request.client.host,
-                message_file_name="password_change_confirmation.html",
-                subject="Смена пароля Твой ФФ!",
-                dbsession=db.session,
-                background_tasks=background_tasks,
-                url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_method_email.user.auth_methods.email.reset_token.value}",
-            )
-            return StatusResponseModel(status="Success", message="Reset link has been successfully mailed")
-        elif not user_session and schema.password and schema.new_password:
+        if not user_session.user.auth_methods.email:
             raise HTTPException(
-                status_code=403, detail=StatusResponseModel(status="Error", message="Missing session").model_dump()
+                status_code=401,
+                detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").model_dump(),
             )
-        raise HTTPException(
-            status_code=422, detail=StatusResponseModel(status="Error", message="Unprocessable entity").model_dump()
+        salt = random_string()
+        if not Email._validate_password(
+            schema.password,
+            user_session.user.auth_methods.email.hashed_password.value,
+            user_session.user.auth_methods.email.salt.value,
+        ):
+            raise AuthFailed(error="Incorrect password")
+        user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
+        user_session.user.auth_methods.email.salt.value = salt
+        SendEmailMessage.send(
+            to_email=user_session.user.auth_methods.email.email.value,
+            ip=request.client.host,
+            message_file_name="password_change_notification.html",
+            subject="Смена пароля Твой ФФ!",
+            dbsession=db.session,
+            background_tasks=background_tasks,
         )
+        db.session.commit()
+        return StatusResponseModel(status="Success", message="Password has been successfully changed")
 
     @staticmethod
-    async def _reset_password(schema: ResetPassword, reset_token: str = Header(min_length=1)) -> StatusResponseModel:
-        auth_method = (
+    async def _request_reset_forgotten_password(
+        request: Request, schema: RequestResetForgottenPassword, background_tasks: BackgroundTasks
+    ) -> StatusResponseModel:
+        auth_method_email: AuthMethod = (
             AuthMethod.query(session=db.session)
             .filter(
                 AuthMethod.auth_method == Email.get_name(),
@@ -461,15 +414,52 @@ class Email(AuthMethodMeta):
             )
             .one_or_none()
         )
-        if not auth_method:
-            raise HTTPException(status_code=404, detail=StatusResponseModel(status="Error", message="Email not found"))
-        if (
-            not auth_method.user.auth_methods.email.reset_token
-            or auth_method.user.auth_methods.email.reset_token.value != reset_token
-        ):
+        if not auth_method_email:
             raise HTTPException(
-                status_code=403,
-                detail=StatusResponseModel(status="Error", message="Incorrect reset token").model_dump(),
+                status_code=404, detail=StatusResponseModel(status="Error", message="Email not found").model_dump()
+            )
+        if not auth_method_email.user.auth_methods.email:
+            raise HTTPException(
+                status_code=401,
+                detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").model_dump(),
+            )
+        if auth_method_email.user.auth_methods.email.confirmed.value.lower() == "false":
+            raise AuthFailed(
+                error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
+            )
+        if auth_method_email.user.auth_methods.email.reset_token is not None:
+            auth_method_email.user.auth_methods.email.reset_token.is_deleted = True
+            db.session.flush()
+        await auth_method_email.user.auth_methods.email.create(
+            "reset_token", random_string(length=settings.TOKEN_LENGTH)
+        )
+        SendEmailMessage.send(
+            to_email=auth_method_email.user.auth_methods.email.email.value,
+            ip=request.client.host,
+            message_file_name="password_change_confirmation.html",
+            subject="Смена пароля Твой ФФ!",
+            dbsession=db.session,
+            background_tasks=background_tasks,
+            url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_method_email.user.auth_methods.email.reset_token.value}",
+        )
+        return StatusResponseModel(status="Success", message="Reset link has been successfully mailed")
+
+    @staticmethod
+    async def _reset_forgotten_password(
+        schema: ResetForgottenPassword, reset_token: str = Header(min_length=1)
+    ) -> StatusResponseModel:
+        auth_method = (
+            AuthMethod.query(session=db.session)
+            .filter(
+                AuthMethod.auth_method == Email.get_name(),
+                AuthMethod.param == "reset_token",
+                AuthMethod.value == reset_token,
+            )
+            .one_or_none()
+        )
+        if not auth_method:
+            raise HTTPException(
+                status_code=403, detail=StatusResponseModel(status="Error", message="Invalid reset token").model_dump()
             )
         salt = random_string()
         auth_method.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
