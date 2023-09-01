@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-import aiohttp
 import google_auth_oauthlib.flow
 import oauthlib.oauth2.rfc6749.errors
 from event_schema.auth import UserLogin

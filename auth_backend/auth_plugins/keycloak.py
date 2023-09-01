@@ -60,8 +60,7 @@ class KeycloakAuth(OauthMeta):
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
-        """Создает аккаунт или привязывает существующий
-        """
+        """Создает аккаунт или привязывает существующий"""
         keycloak_user_id = None
         userinfo = None
 
@@ -121,8 +120,7 @@ class KeycloakAuth(OauthMeta):
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema, background_tasks: BackgroundTasks) -> Session:
-        """Вход в пользователя с помощью аккаунта https://keycloak.com
-        """
+        """Вход в пользователя с помощью аккаунта https://keycloak.com"""
         form = aiohttp.FormData()
         keycloak_user_id = None
         userinfo = None
