@@ -120,7 +120,7 @@ class KeycloakAuth(OauthMeta):
 
     @classmethod
     async def _login(cls, user_inp: OauthResponseSchema, background_tasks: BackgroundTasks) -> Session:
-        """Вход в пользователя с помощью аккаунта https://keycloak.com"""
+        """Вход в пользователя с помощью аккаунта Keycloak"""
         form = aiohttp.FormData()
         keycloak_user_id = None
         userinfo = None
