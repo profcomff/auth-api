@@ -4,6 +4,7 @@ from .auth_method import MethodMeta
 from .email import Email
 from .github import GithubAuth
 from .google import GoogleAuth
+from .keycloak import KeycloakAuth
 from .lkmsu import LkmsuAuth
 from .mymsu import MyMsuAuth
 from .physics import PhysicsAuth
@@ -59,6 +60,7 @@ class MethodsDict:
     vk_auth: VkAuth.fields = None
     github_auth: GithubAuth.fields = None
     yandex_auth: YandexAuth.fields = None
+    keycloak_auth: KeycloakAuth.fields = None
 
     def __new__(cls, methods: list[AuthMethod], user: User, *args, **kwargs):
         obj = super(MethodsDict, cls).__new__(cls)
