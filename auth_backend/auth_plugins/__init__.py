@@ -8,6 +8,7 @@ from .physics import PhysicsAuth
 from .telegram import TelegramAuth
 from .vk import VkAuth
 from .yandex import YandexAuth
+from .keycloak import KeycloakAuth
 
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "TelegramAuth",
     "VkAuth",
     "GithubAuth",
+    "KeycloakAuth",
 ]
