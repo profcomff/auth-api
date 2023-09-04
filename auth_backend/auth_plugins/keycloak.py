@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class KeycloakSettings(Settings):
-    KEYCLOAK_ROOT_URL: str | None
+    KEYCLOAK_ROOT_URL: str | None = None
     KEYCLOAK_REDIRECT_URL: str | None = 'https://app.test.profcomff.com/auth/oauth-authorized/keycloak'
     KEYCLOAK_CLIENT_ID: str | None = None
     KEYCLOAK_CLIENT_SECRET: str | None = None
