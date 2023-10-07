@@ -190,3 +190,9 @@ foo@bar:~$ python -m auth_backend
     - Ручки `/login` и `/register` имеют сигнатуры `async def _login(...)` и `async def _register(...)` соответственно
     - Ручка `/login` обязательно возвращает объект https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/models/db.py#L117
     - Ручки `/auth_url` и `/redirect_url` методов OAuth2 обязательно возвращают оъект https://github.com/profcomff/auth-api/blob/1ce51bd532bd6f57c0abe922c7dd1a809d030723/auth_backend/auth_plugins/auth_method.py#L115-L116
+  
+## Contributing
+
+- Основная [информация](https://github.com/profcomff/.github/wiki/%255Bdev%255D-Backend-%25D1%2580%25D0%25B0%25D0%25B7%25D1%2580%25D0%25B0%25D0%25B1%25D0%25BE%25D1%2582%25D0%25BA%25D0%25B0) по разработке наших приложений
+
+- Основная информация по разработке Auth API [тут](https://github.com/profcomff/auth-api/blob/main/CONTRIBUTING.md) и [тут](https://github.com/profcomff/.github/wiki/Сервис-авторизации)
