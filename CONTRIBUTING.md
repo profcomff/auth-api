@@ -6,7 +6,7 @@
 
 3. PostgreSQL. Запустить команду
 ```console
-docker run -d -p 5432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust --name db-userdata_api postgres:15
+docker run -d -p 5432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust --name db-auth_api postgres:15
 ```
 
 4. Опционально Kafka Cluster(если планиурется запускать userdata worker). Запуск описан [тут](https://github.com/profcomff/db-kafka)
