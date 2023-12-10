@@ -31,6 +31,13 @@ async def get_user(
 ) -> dict[str, Any]:
     """
     Scopes: `["auth.user.read"]`
+    Это get-метод.
+    Args:
+        user_id: int
+        info: 
+        _:
+    Returns:   
+    
     """
     result: dict[str, str | int] = {}
     user = User.get(user_id, session=db.session)
