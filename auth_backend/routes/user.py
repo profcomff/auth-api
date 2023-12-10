@@ -32,12 +32,16 @@ async def get_user(
     """
     Scopes: `["auth.user.read"]`
     Это get-метод.
+    Получение информации о пользователе по ID.
     Args:
-        user_id: int
-        info: 
-        _:
-    Returns:   
-    
+        user_id: int: ID пользователя int.
+        info: Опциональный список информации для получения (группы, косвенные группы, области, методы аутентификации)  List.
+            Значение по умолчанию [].
+            Кроме этого он может содержать только значения из списка ["groups", "indirect_groups", "scopes", "auth_methods"].
+        _: UserSession: Сессия пользователя, которая НЕ может быть None. Также указано, что нужны Scopes: `["auth.user.read"]`.
+    Returns:
+        dict[str, Any]: Информация о пользователе возвращается в виде словаря,
+        исключая незаданные поля и session_scope.
     """
     result: dict[str, str | int] = {}
     user = User.get(user_id, session=db.session)
