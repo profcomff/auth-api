@@ -43,6 +43,7 @@ async def get_user(
         dict[str, Any]: Информация о пользователе возвращается в виде словаря,
         исключая незаданные поля и session_scope.
     """
+    
     result: dict[str, str | int] = {}
     user = User.get(user_id, session=db.session)
     result = (
