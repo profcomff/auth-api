@@ -43,7 +43,7 @@ async def get_user(
         dict[str, Any]: Информация о пользователе возвращается в виде словаря,
         исключая незаданные поля и session_scope.
     """
-    
+
     result: dict[str, str | int] = {}
     user = User.get(user_id, session=db.session)
     result = (
@@ -133,7 +133,7 @@ async def patch_user(
         user_inp: Данные с информацией для обновления пользователя, включая обновленные группы.
         _: UserSession: Сессия пользователя, которая НЕ может быть None. Также указано, что нужны Scopes: `["auth.user.update"]`.
     Returns:
-        Возвращает обновленную информацию о пользователе в виде объекта модели пользователя (UserModel).    
+        Возвращает обновленную информацию о пользователе в виде объекта модели пользователя (UserModel).
     """
     user = User.get(user_id, session=db.session)
     groups = set()
