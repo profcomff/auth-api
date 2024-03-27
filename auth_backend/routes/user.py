@@ -31,7 +31,20 @@ async def get_user(
 ) -> dict[str, Any]:
     """
     Scopes: `["auth.user.read"]`
+    Этот эндпоинт предназначен для получения информации о пользователе по ID.
+    Args:
+        user_id: int: ID пользователя,
+        info: list=Literal["groups", "indirect_groups", "scopes", "auth_methods"]: Опциональный список
+            информации для получения (группы (groups), косвенные группы (indirect_groups),
+            области (scopes), методы аутентификации (auth_methods)).
+            Значение по умолчанию [].
+        _: UserSession: Сессия пользователя, которая НЕ может быть None. Также указано, что
+            нужны Scopes: `["auth.user.read"]`.
+    Returns:
+        dict[str, Any]: Информация о пользователе возвращается в виде словаря,
+        исключая незаданные поля и session_scope: list[PinchedScope] | None = None .
     """
+
     result: dict[str, str | int] = {}
     user = User.get(user_id, session=db.session)
     result = (
@@ -68,6 +81,23 @@ async def get_users(
 ) -> dict[str, Any]:
     """
     Scopes: `["auth.user.read"]`
+    Эндпоинт предназначен для получения информации о пользователях на основе указанных параметров.
+
+    Запрос:
+        Метод: GET
+        Заголовки: Ожидает токен авторизации с необходимым разрешением.
+    Args:
+        _: UserSession: Сессия пользователя, которая НЕ может быть None. Также указано, что
+            нужны Scopes: `["auth.user.read"]`.
+        info: List: Опциональны список строк, указывающих дополнительную информацию для
+            получения. Возможные значения:
+                "groups": Получает информацию о группах, связанных с пользователями.
+                "indirect_groups": Получает информацию о косвенно связанных группах.
+                "scopes": Получает информацию о разрешениях пользователя.
+            Значение по умолчанию [].
+    Returns:
+        dict[str, Any]: Информация о пользователях возвращается в виде словаря,
+        исключая незаданные поля
     """
     users = User.query(session=db.session).all()
     result = {}
@@ -95,6 +125,18 @@ async def patch_user(
 ) -> UserInfo:
     """
     Scopes: `["auth.user.update"]`
+    Предназначен для обновления информации о пользователе, включая связанные с ними группы.
+
+    Запрос:
+        Метод: PATCH
+        Заголовки: Ожидает токен авторизации с необходимым разрешением.
+    Args:
+        user_id: int: ID пользователя, информацию о котором нужно обновить.
+        user_inp: UserPatch: Данные с информацией для обновления пользователя, включая обновленные группы.
+        _: UserSession: Сессия пользователя, которая НЕ может быть None. Также указано, что
+            нужны Scopes: `["auth.user.update"]`.
+    Returns:
+        Возвращает обновленную информацию о пользователе в виде объекта модели пользователя (UserModel).
     """
     user = User.get(user_id, session=db.session)
     groups = set()
@@ -124,6 +166,16 @@ async def delete_user(
 ) -> None:
     """
     Scopes: `["auth.user.delete"]`
+    Предназначен для удаления информации о пользователе.
+
+    Запрос:
+        Метод: DELETE
+        Заголовки: Ожидает токен авторизации с необходимым разрешением.
+    Args:
+        user_id: int: ID пользователя, информацию о котором нужно удалить.
+        current_user: UserSession: Сессия пользователя, которая НЕ может быть None. Также указано, что нужны Scopes: `["auth.user.delete"]`.
+    Returns:
+        None
     """
     logger.debug(f'User id={current_user.id} triggered delete_user')
     user: User = User.get(user_id, session=db.session)
