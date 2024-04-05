@@ -1,4 +1,4 @@
-fastapi==0.108.0
+fastapi
 fastapi-sqlalchemy
 psycopg2-binary
 pydantic
