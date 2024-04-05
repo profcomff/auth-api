@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
-from auth_backend.models.db import Group
+from auth_backend.models.db import Group, Scope, User
 
 
 # revision identifiers, used by Alembic.
@@ -43,8 +43,10 @@ def upgrade():
 
     if root_group_id is None:
         group: Group = Group.create(name="root", session=session)
-        for scope in session.execute(sa.text("SELECT * FROM \"scope\"")):
-            group.scopes.add(scope["id"])
+        scopes = session.execute(sa.text("SELECT id FROM \"scope\"")).fetchall()
+        for scope_id in scopes:
+            scope_id = Scope.get(scope_id[0], with_deleted=True, session=session)
+            group.scopes.add(scope_id)
         root_group_id = group.id
 
     try:
@@ -54,8 +56,10 @@ def upgrade():
 
     if users_group_id is None:
         group: Group = Group.create(name="users", session=session)
-        for user in session.execute(sa.text("SELECT * FROM \"user\"")):
-            group.users.append(user["id"])
+        users = session.execute(sa.text("SELECT id FROM \"user\"")).fetchall()
+        for user_id in users:
+            user = User.get(user_id[0], with_deleted=True, session=session)
+            group.users.append(user)
         users_group_id = group.id
 
     session.flush()
