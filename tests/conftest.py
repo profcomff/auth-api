@@ -47,7 +47,7 @@ def client_auth():
     patcher1.stop()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def dbsession():
     settings = get_settings()
     engine = create_engine(str(settings.DB_DSN))
