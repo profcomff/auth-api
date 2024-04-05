@@ -42,20 +42,6 @@ class User(BaseDbModel):
         secondaryjoin="and_(Group.id==UserGroup.group_id, not_(Group.is_deleted))",
     )
 
-    @classmethod
-    def create(cls, *, session: Session, **kwargs) -> User:
-        user = super().create(session=session, **kwargs)
-        try:
-            users_group_id = DynamicOption.get("users_group_id", session=session)
-            group = session.get(Group, users_group_id.value)
-            if group:
-                group.users.append(user)
-            else:
-                logger.info(f"Can't to add user {user.id=} to group users {users_group_id.value=}")
-        except Exception:
-            logger.error("Failed to add user to users group", exc_info=True)
-        return user
-
     @hybrid_property
     def scopes(self) -> set[Scope]:
         _scopes = set()
@@ -224,20 +210,6 @@ class Scope(BaseDbModel):
         primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
         secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",
     )
-
-    @classmethod
-    def create(cls, *, session: Session, **kwargs) -> User:
-        scope = super().create(session=session, **kwargs)
-        try:
-            root_group_id = DynamicOption.get("root_group_id", session=session)
-            group = session.get(Group, root_group_id.value)
-            if group:
-                group.scopes.add(scope)
-            else:
-                logger.info(f"Can't to add scope {scope.id=} to group users {root_group_id.id=}")
-        except Exception:
-            logger.error("Failed to add scope to root group", exc_info=True)
-        return scope
 
     @classmethod
     def get_by_name(cls, name: str, *, with_deleted: bool = False, session: Session) -> Scope:
