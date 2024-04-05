@@ -44,7 +44,17 @@ class User(BaseDbModel):
 
     @classmethod
     def create(cls, *, session: Session, **kwargs) -> User:
-        user = super().create(session=session, **kwargs)
+        user: User = super().create(session=session, **kwargs)
+        users_group_id = DynamicOption.get("users_group_id", session=session).value
+        if users_group_id:
+            users_group = Group.query(with_deleted=True, session=session).get(users_group_id)
+        else:
+            logger.error("Fail to obtain root group id")
+        if users_group:
+            user.groups.append(users_group)
+        else:
+            logger.error("Root group not found")
+        session.flush()
         return user
 
     @hybrid_property
@@ -218,7 +228,17 @@ class Scope(BaseDbModel):
 
     @classmethod
     def create(cls, *, session: Session, **kwargs) -> Scope:
-        scope = super().create(session=session, **kwargs)
+        scope: Scope = super().create(session=session, **kwargs)
+        root_group_id = DynamicOption.get("root_group_id", session=session).value
+        if root_group_id:
+            root_group = Group.query(with_deleted=True, session=session).get(root_group_id)
+        else:
+            logger.error("Fail to obtain root group id")
+        if root_group:
+            scope.groups.append(root_group)
+        else:
+            logger.error("Root group not found")
+        session.flush()
         return scope
 
     @classmethod
