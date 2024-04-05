@@ -12,8 +12,8 @@ class DynamicOption(Base):
     value_integer: Mapped[int] = mapped_column(Integer, nullable=True)
     value_double: Mapped[float] = mapped_column(Double, nullable=True)
     value_string: Mapped[str] = mapped_column(String, nullable=True)
-    create_ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC))
-    update_ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC))
+    create_ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    update_ts: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     @property
     def value(self) -> str | float | int:

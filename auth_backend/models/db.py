@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 class User(BaseDbModel):
     __auth_methods_cached = None
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
-    create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.now(datetime.UTC))
+    create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     update_ts: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.now(datetime.UTC), onupdate=datetime.datetime.now(datetime.UTC)
+        DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
     )
     _auth_methods: Mapped[list[AuthMethod]] = relationship(
         "AuthMethod",
@@ -107,9 +107,9 @@ class Group(BaseDbModel):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String, unique=False, nullable=False)
     parent_id: Mapped[int] = mapped_column(Integer, ForeignKey("group.id"), nullable=True)
-    create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.now(datetime.UTC))
+    create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     update_ts: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.now(datetime.UTC), onupdate=datetime.datetime.now(datetime.UTC)
+        DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
     )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -161,9 +161,9 @@ class AuthMethod(BaseDbModel):
     auth_method: Mapped[str] = mapped_column(String)
     param: Mapped[str] = mapped_column(String)
     value: Mapped[str] = mapped_column(String, nullable=False)
-    create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.now(datetime.UTC))
+    create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     update_ts: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.datetime.now(datetime.UTC), onupdate=datetime.datetime.now(datetime.UTC)
+        DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
     )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -176,7 +176,7 @@ class AuthMethod(BaseDbModel):
 
 
 def session_expires_date():
-    return datetime.datetime.now(datetime.UTC)() + datetime.timedelta(days=settings.SESSION_TIME_IN_DAYS)
+    return datetime.datetime.utcnow() + datetime.timedelta(days=settings.SESSION_TIME_IN_DAYS)
 
 
 class UserSession(BaseDbModel):
@@ -184,8 +184,8 @@ class UserSession(BaseDbModel):
     user_id: Mapped[int] = mapped_column(Integer, sqlalchemy.ForeignKey("user.id"))
     expires: Mapped[datetime.datetime] = mapped_column(DateTime, default=session_expires_date)
     token: Mapped[str] = mapped_column(String, unique=True)
-    last_activity: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.now(datetime.UTC))
-    create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.now(datetime.UTC))
+    last_activity: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
+    create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     user: Mapped[User] = relationship(
         "User",
         foreign_keys=[user_id],
@@ -202,7 +202,7 @@ class UserSession(BaseDbModel):
 
     @hybrid_property
     def expired(self) -> bool:
-        return self.expires <= datetime.datetime.now(datetime.UTC)()
+        return self.expires <= datetime.datetime.utcnow()
 
 
 class Scope(BaseDbModel):
@@ -264,6 +264,6 @@ class UserSessionScope(BaseDbModel):
 
 
 class UserMessageDelay(BaseDbModel):
-    delay_time: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.now(datetime.UTC))
+    delay_time: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     user_email: Mapped[str] = mapped_column(String, unique=False)
     user_ip: Mapped[str] = mapped_column(String, unique=False)
