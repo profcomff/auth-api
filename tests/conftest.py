@@ -133,7 +133,9 @@ def group(dbsession, parent_id):
 
     yield _group
     for row in _ids:
-        Group.delete(row, session=dbsession)
+        group: Group = Group.get(row, session=dbsession)
+        group.users.clear()
+        group.delete(session=dbsession)
     dbsession.commit()
 
 
