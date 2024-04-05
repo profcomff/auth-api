@@ -78,7 +78,7 @@ class GoogleAuth(OauthMeta):
             try:
                 credentials = flow.fetch_token(**user_inp.model_dump(exclude_unset=True))
             except oauthlib.oauth2.rfc6749.errors.InvalidGrantError as exc:
-                raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
+                raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}', 'Запрос к АПИ Гугла неуспешен')
             id_token = credentials.get("id_token")
         else:
             id_token = user_inp.id_token
@@ -91,7 +91,7 @@ class GoogleAuth(OauthMeta):
                 clock_skew_in_seconds=1,
             )
         except GoogleAuthError as exc:
-            raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
+            raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}', 'Запрос к АПИ Гугла неуспешен')
         user = await cls._get_user('unique_google_id', userinfo['sub'], db_session=db.session)
         if user is not None:
             raise AlreadyExists(User, user.id)
@@ -101,13 +101,16 @@ class GoogleAuth(OauthMeta):
         _, domain = email.split('@', 2)
         if cls.settings.GOOGLE_WHITELIST_DOMAINS is not None and domain not in cls.settings.GOOGLE_WHITELIST_DOMAINS:
             raise OauthAuthFailed(
-                f'Google account must be {cls.settings.GOOGLE_WHITELIST_DOMAINS}, got {domain}', status_code=422
+                f'Google account must be {cls.settings.GOOGLE_WHITELIST_DOMAINS}, got {domain}',
+                f'Google аккаунт должен быть из {cls.settings.GOOGLE_WHITELIST_DOMAINS}, получено: {domain}',
+                status_code=422
             )
         if cls.settings.GOOGLE_BLACKLIST_DOMAINS is not None and domain in cls.settings.GOOGLE_BLACKLIST_DOMAINS:
             raise OauthAuthFailed(
-                f'Google account must be not {cls.settings.GOOGLE_BLACKLIST_DOMAINS}, got {domain}', status_code=422
+                f'Google account must be not {cls.settings.GOOGLE_BLACKLIST_DOMAINS}, got {domain}',
+                f'Google аккаунт должен быть из {cls.settings.GOOGLE_BLACKLIST_DOMAINS}, получено: {domain}',
+                status_code=422
             )
-
         if user_session is None:
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
@@ -135,7 +138,7 @@ class GoogleAuth(OauthMeta):
         try:
             credentials = flow.fetch_token(**user_inp.model_dump(exclude_unset=True))
         except oauthlib.oauth2.rfc6749.errors.OAuth2Error as exc:
-            raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
+            raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}', 'Запрос к АПИ Гугла неуспешен')
         try:
             userinfo = verify_oauth2_token(
                 credentials.get("id_token"),
@@ -144,10 +147,10 @@ class GoogleAuth(OauthMeta):
                 clock_skew_in_seconds=1,
             )
         except GoogleAuthError as exc:
-            raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}')
+            raise OauthCredentialsIncorrect(f'Google account response invalid: {exc}', 'Запрос к АПИ Гугла неуспешен')
         user = await cls._get_user('unique_google_id', userinfo['sub'], db_session=db.session)
         if not user:
-            raise OauthAuthFailed('No users found for google account', id_token=credentials.get("id_token"))
+            raise OauthAuthFailed('No users found for google account', 'Не найдено пользователей с таким гугл аккаунтом', id_token=credentials.get("id_token"))
         userdata = await GoogleAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,

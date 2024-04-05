@@ -172,17 +172,19 @@ class Email(AuthMethodMeta):
             .one_or_none()
         )
         if not query:
-            raise AuthFailed(error="Incorrect login or password")
+            raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
         if query.user.auth_methods.email.confirmed.value.lower() == "false":
             raise AuthFailed(
-                error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
+                "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
+                "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту"
             )
         if query.user.auth_methods.email.email.value.lower() != user_inp.email.lower() or not Email._validate_password(
             user_inp.password,
             query.user.auth_methods.email.hashed_password.value,
             query.user.auth_methods.email.salt.value,
         ):
-            raise AuthFailed(error="Incorrect login or password")
+            raise AuthFailed("Incorrect login or password",
+                             "Некорректный логин или пароль")
         userdata = await Email._convert_data_to_userdata_format({"email": query.user.auth_methods.email.email.value})
         await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME,
@@ -244,7 +246,7 @@ class Email(AuthMethodMeta):
                 url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
             )
             db.session.commit()
-            return StatusResponseModel(status="Success", message="Email confirmation link sent")
+            return StatusResponseModel(status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту")
         if user_session:
             user = await cls._get_user(user_session=user_session, db_session=db.session)
             if not user:
@@ -262,7 +264,7 @@ class Email(AuthMethodMeta):
             url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
         )
         db.session.commit()
-        return StatusResponseModel(status="Success", message="Email confirmation link sent")
+        return StatusResponseModel(status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту")
 
     @staticmethod
     def _hash_password(password: str, salt: str) -> str:
@@ -287,7 +289,7 @@ class Email(AuthMethodMeta):
         )
         if not auth_method:
             raise HTTPException(
-                status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect link").model_dump()
+                status_code=403, detail=StatusResponseModel(status="Error", message="Incorrect link", ru="Некорректная ссылка").model_dump()
             )
         auth_method.user.auth_methods.email.confirmed.value = "true"
         userdata = await Email._convert_data_to_userdata_format(
@@ -300,7 +302,7 @@ class Email(AuthMethodMeta):
             bg_tasks=background_tasks,
         )
         db.session.commit()
-        return StatusResponseModel(status="Success", message="Email approved")
+        return StatusResponseModel(status="Success", message="Email approved", ru="Почта подтверждена")
 
     @staticmethod
     async def _request_reset_email(
@@ -313,11 +315,12 @@ class Email(AuthMethodMeta):
             raise IncorrectUserAuthType()
         if user_session.user.auth_methods.email.confirmed.value == "false":
             raise AuthFailed(
-                error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
+                "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
+                "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту"
             )
         if user_session.user.auth_methods.email.email.value == scheme.email:
             raise HTTPException(
-                status_code=401, detail=StatusResponseModel(status="Error", message="Email incorrect").model_dump()
+                status_code=401, detail=StatusResponseModel(status="Error", message="Email incorrect", ru="Некорректная почта").model_dump()
             )
         token = random_string(length=settings.TOKEN_LENGTH)
         if user_session.user.auth_methods.email.tmp_email is not None:
@@ -337,7 +340,7 @@ class Email(AuthMethodMeta):
             url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
         )
         db.session.commit()
-        return StatusResponseModel(status="Success", message="Email confirmation link sent")
+        return StatusResponseModel(status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту")
 
     @staticmethod
     async def _reset_email(token: str, background_tasks: BackgroundTasks) -> StatusResponseModel:
@@ -352,12 +355,13 @@ class Email(AuthMethodMeta):
         if not auth:
             raise HTTPException(
                 status_code=403,
-                detail=StatusResponseModel(status="Error", message="Incorrect confirmation token").model_dump(),
+                detail=StatusResponseModel(status="Error", message="Incorrect confirmation token", ru="Неправильный токен подтверждения").model_dump(),
             )
         user: User = auth.user
         if user.auth_methods.email.confirmed.value == "false":
             raise AuthFailed(
-                error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
+                "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
+                "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту"
             )
         user.auth_methods.email.email.value = user.auth_methods.email.tmp_email.value
         user.auth_methods.email.tmp_email_confirmation_token.is_deleted = True
@@ -367,7 +371,7 @@ class Email(AuthMethodMeta):
             settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata, bg_tasks=background_tasks
         )
         db.session.commit()
-        return StatusResponseModel(status="Success", message="Email successfully changed")
+        return StatusResponseModel(status="Success", message="Email successfully changed", ru="Почта изменена")
 
     @staticmethod
     async def _request_reset_password(
@@ -379,7 +383,7 @@ class Email(AuthMethodMeta):
         if not user_session.user.auth_methods.email:
             raise HTTPException(
                 status_code=401,
-                detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").model_dump(),
+                detail=StatusResponseModel(status="Error", message="Auth method restricted for this user", ru="Метод аутентификации не установлен для пользователя").model_dump(),
             )
         salt = random_string()
         if not Email._validate_password(
@@ -387,7 +391,8 @@ class Email(AuthMethodMeta):
             user_session.user.auth_methods.email.hashed_password.value,
             user_session.user.auth_methods.email.salt.value,
         ):
-            raise AuthFailed(error="Incorrect password")
+            raise AuthFailed("Incorrect password",
+                             "Неправильный пароль")
         user_session.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
         user_session.user.auth_methods.email.salt.value = salt
         SendEmailMessage.send(
@@ -399,7 +404,7 @@ class Email(AuthMethodMeta):
             background_tasks=background_tasks,
         )
         db.session.commit()
-        return StatusResponseModel(status="Success", message="Password has been successfully changed")
+        return StatusResponseModel(status="Success", message="Password has been successfully changed", ru="Пароль изменен")
 
     @staticmethod
     async def _request_reset_forgotten_password(
@@ -416,16 +421,17 @@ class Email(AuthMethodMeta):
         )
         if not auth_method_email:
             raise HTTPException(
-                status_code=404, detail=StatusResponseModel(status="Error", message="Email not found").model_dump()
+                status_code=404, detail=StatusResponseModel(status="Error", message="Email not found", ru="Почта не найдена").model_dump()
             )
         if not auth_method_email.user.auth_methods.email:
             raise HTTPException(
                 status_code=401,
-                detail=StatusResponseModel(status="Error", message="Auth method restricted for this user").model_dump(),
+                detail=StatusResponseModel(status="Error", message="Auth method restricted for this user", ru="Метод аутентификации не установлен для пользователя").model_dump(),
             )
         if auth_method_email.user.auth_methods.email.confirmed.value.lower() == "false":
             raise AuthFailed(
-                error="Registration wasn't completed. Try to registrate again and do not forget to approve your email"
+                "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
+                "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту"
             )
         if auth_method_email.user.auth_methods.email.reset_token is not None:
             auth_method_email.user.auth_methods.email.reset_token.is_deleted = True
@@ -442,7 +448,7 @@ class Email(AuthMethodMeta):
             background_tasks=background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_method_email.user.auth_methods.email.reset_token.value}",
         )
-        return StatusResponseModel(status="Success", message="Reset link has been successfully mailed")
+        return StatusResponseModel(status="Success", message="Reset link has been successfully mailed", ru="Ссылка отправлена на почту")
 
     @staticmethod
     async def _reset_forgotten_password(
@@ -459,14 +465,14 @@ class Email(AuthMethodMeta):
         )
         if not auth_method:
             raise HTTPException(
-                status_code=403, detail=StatusResponseModel(status="Error", message="Invalid reset token").model_dump()
+                status_code=403, detail=StatusResponseModel(status="Error", message="Invalid reset token", ru="Неправильный токен сброса").model_dump()
             )
         salt = random_string()
         auth_method.user.auth_methods.email.hashed_password.value = Email._hash_password(schema.new_password, salt)
         auth_method.user.auth_methods.email.salt.value = salt
         auth_method.user.auth_methods.email.reset_token.is_deleted = True
         db.session.commit()
-        return StatusResponseModel(status="Success", message="Password has been successfully changed")
+        return StatusResponseModel(status="Success", message="Password has been successfully changed", ru="Пароль изменен")
 
     @classmethod
     async def _convert_data_to_userdata_format(cls, data: dict[str, str]) -> UserLogin:

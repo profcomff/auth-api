@@ -49,7 +49,7 @@ async def create_group(
         raise ObjectNotFound(Group, group_inp.parent_id)
     if DbGroup.query(session=db.session).filter(DbGroup.name == group_inp.name).one_or_none():
         raise HTTPException(
-            status_code=409, detail=StatusResponseModel(status="Error", message="Name already exists").model_dump()
+            status_code=409, detail=StatusResponseModel(status="Error", message="Name already exists", ru="Имя уже существует").model_dump()
         )
     scopes = set()
     if group_inp.scopes:
@@ -83,7 +83,7 @@ async def patch_group(
     group = DbGroup.get(id, session=db.session)
     if group_inp.parent_id in (row.id for row in group.child):
         raise HTTPException(
-            status_code=400, detail=StatusResponseModel(status="Error", message="Cycle detected").model_dump()
+            status_code=400, detail=StatusResponseModel(status="Error", message="Cycle detected", ru="Найден цикл").model_dump()
         )
     result = Group.model_validate(
         DbGroup.update(id, session=db.session, **group_inp.model_dump(exclude_unset=True, exclude={"scopes"}))
