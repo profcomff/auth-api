@@ -235,6 +235,8 @@ def yandex_user(dbsession) -> User:
     dbsession.add(user_id)
     dbsession.commit()
     yield user
+    user.sessions.clear()
+    user.groups.clear()
     dbsession.query(AuthMethod).filter(AuthMethod.user_id == user.id).delete()
     dbsession.query(User).filter(User.id == user.id).delete()
     dbsession.commit()
