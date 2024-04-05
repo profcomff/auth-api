@@ -83,8 +83,10 @@ def test_get_all(client, dbsession):
     assert group in [row["id"] for row in response]
     assert child in [row["id"] for row in response]
     response = client.get("/group", params={"info": ["child"]}).json()["items"]
-    child_ = [row["child"] for row in response]
-    assert child in [row["id"] for row in child_[0]]
+    child_ = []
+    for row in response:
+        child_.extend(row["child"])
+    assert child in [row["id"] for row in child_]
 
     for row in (dbsession.query(Group).get(child), dbsession.query(Group).get(group)):
         dbsession.delete(row)
