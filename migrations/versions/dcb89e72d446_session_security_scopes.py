@@ -5,10 +5,12 @@ Revises: 7c1cd7ceacd8
 Create Date: 2024-04-06 02:06:15.967235
 
 """
-from alembic import op
+
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.orm import Session
-from auth_backend.models.db import Group, User, Scope, GroupScope, UserSession, UserSessionScope
+
+from auth_backend.models.db import Group, GroupScope, Scope, User, UserSession, UserSessionScope
 
 
 # revision identifiers, used by Alembic.
