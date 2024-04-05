@@ -185,6 +185,8 @@ def user_scopes(dbsession, user):
         "auth.group.read",
         "auth.group.delete",
         "auth.group.update",
+        "auth.session.create",
+        "auth.session.update"
     ]
     scopes = []
     for i in scopes_names:

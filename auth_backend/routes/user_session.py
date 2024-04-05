@@ -88,7 +88,7 @@ async def me(
 
 @user_session.post("/session", response_model=Session)
 async def create_session(
-    new_session: SessionPost, session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
+    new_session: SessionPost, session: UserSession = Depends(UnionAuth(scopes=["auth.session.create"], allow_none=False, auto_error=True))
 ):
     return await user_session_control.create_session(
         session.user,
@@ -159,7 +159,7 @@ async def get_sessions(
 async def update_session(
     id: int,
     session_update_info: SessionPatch,
-    current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
+    current_session: UserSession = Depends(UnionAuth(scopes=["auth.session.update"], allow_none=False, auto_error=True)),
 ) -> Session:
     update_session: UserSession = (
         UserSession.query(session=db.session)
