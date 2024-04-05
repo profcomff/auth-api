@@ -176,7 +176,7 @@ class Email(AuthMethodMeta):
         if query.user.auth_methods.email.confirmed.value.lower() == "false":
             raise AuthFailed(
                 "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
-                "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту"
+                "Регистрация не была завершена. Попробуйте зарегистрироваться снова и не забудьте подтвердить почту"
             )
         if query.user.auth_methods.email.email.value.lower() != user_inp.email.lower() or not Email._validate_password(
             user_inp.password,
