@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import logging
 import datetime
+import logging
 from typing import Iterator
 
 import sqlalchemy.orm
@@ -10,9 +10,9 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, Session, backref, mapped_column, relationship
 
 from auth_backend.exceptions import ObjectNotFound
+from auth_backend.models.base import BaseDbModel
 from auth_backend.models.dynamic_settings import DynamicOption
 from auth_backend.settings import get_settings
-from auth_backend.models.base import BaseDbModel
 
 
 settings = get_settings()

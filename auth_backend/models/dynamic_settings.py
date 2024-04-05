@@ -1,7 +1,7 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, String, Integer, Double
-from sqlalchemy.orm import Mapped, mapped_column, Session
+from sqlalchemy import DateTime, Double, Integer, String
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from .base import Base
 
