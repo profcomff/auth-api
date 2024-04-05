@@ -22,7 +22,8 @@ async def create_scope(
     """
     if Scope.query(session=db.session).filter(func.lower(Scope.name) == scope.name.lower()).all():
         raise HTTPException(
-            status_code=409, detail=StatusResponseModel(status="Error", message="Already exists",ru="Уже существует").model_dump()
+            status_code=409,
+            detail=StatusResponseModel(status="Error", message="Already exists", ru="Уже существует").model_dump(),
         )
     scope.name = scope.name.lower()
     return ScopeGet.model_validate(

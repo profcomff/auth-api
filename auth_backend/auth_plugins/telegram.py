@@ -110,7 +110,9 @@ class TelegramAuth(OauthMeta):
 
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
-            raise OauthAuthFailed('No users found for Telegram account', 'Не найдено пользователей с таким ТГ аккаунтом', id_token)
+            raise OauthAuthFailed(
+                'No users found for Telegram account', 'Не найдено пользователей с таким ТГ аккаунтом', id_token
+            )
         userdata = await TelegramAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,

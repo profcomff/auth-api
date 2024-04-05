@@ -163,7 +163,9 @@ class GithubAuth(OauthMeta):
         user = await cls._get_user('user_id', github_user_id, db_session=db.session)
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
-            raise OauthAuthFailed('No users found for github account', 'Не найдено пользователей для аккаунта GitHub', id_token)
+            raise OauthAuthFailed(
+                'No users found for github account', 'Не найдено пользователей для аккаунта GitHub', id_token
+            )
         userdata = await GithubAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,

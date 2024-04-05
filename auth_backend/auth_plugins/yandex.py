@@ -108,13 +108,13 @@ class YandexAuth(OauthMeta):
             raise OauthAuthFailed(
                 f'Yandex account must be {cls.settings.YANDEX_WHITELIST_DOMAINS}, got {domain}',
                 f'Аккаунт Яндекс должен быть из {cls.settings.YANDEX_WHITELIST_DOMAINS}, получено {domain}',
-                status_code=422
+                status_code=422,
             )
         if cls.settings.YANDEX_BLACKLIST_DOMAINS is not None and domain in cls.settings.YANDEX_BLACKLIST_DOMAINS:
             raise OauthAuthFailed(
                 f'Yandex account must be not {cls.settings.YANDEX_BLACKLIST_DOMAINS}, got {domain}',
                 f'Аккаунт Яндекс должен быть не из {cls.settings.YANDEX_BLACKLIST_DOMAINS}, получено {domain}',
-                status_code=422
+                status_code=422,
             )
 
         if user_session is None:
@@ -153,7 +153,7 @@ class YandexAuth(OauthMeta):
                 token_result = await response.json()
                 logger.debug(token_result)
             if 'access_token' not in token_result:
-                raise OauthAuthFailed('Invalid credentials for Yandex account' , 'Неправильные учетные данные')
+                raise OauthAuthFailed('Invalid credentials for Yandex account', 'Неправильные учетные данные')
             token = token_result['access_token']
 
             get_headers = {"Authorization": f"OAuth {token}"}
@@ -167,7 +167,9 @@ class YandexAuth(OauthMeta):
 
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
-            raise OauthAuthFailed('No users found for Yandex account', 'Не найдено пользователей для аккаунт Яндекс',id_token)
+            raise OauthAuthFailed(
+                'No users found for Yandex account', 'Не найдено пользователей для аккаунт Яндекс', id_token
+            )
         userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
