@@ -47,7 +47,7 @@ def client_auth():
     patcher1.stop()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def dbsession():
     settings = get_settings()
     engine = create_engine(str(settings.DB_DSN))
@@ -133,7 +133,9 @@ def group(dbsession, parent_id):
 
     yield _group
     for row in _ids:
-        Group.delete(row, session=dbsession)
+        group: Group = Group.get(row, session=dbsession)
+        group.users.clear()
+        group.delete(session=dbsession)
     dbsession.commit()
 
 
@@ -233,6 +235,8 @@ def yandex_user(dbsession) -> User:
     dbsession.add(user_id)
     dbsession.commit()
     yield user
+    user.sessions.clear()
+    user.groups.clear()
     dbsession.query(AuthMethod).filter(AuthMethod.user_id == user.id).delete()
     dbsession.query(User).filter(User.id == user.id).delete()
     dbsession.commit()
