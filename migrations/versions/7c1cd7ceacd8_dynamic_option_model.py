@@ -6,9 +6,10 @@ Create Date: 2024-04-05 22:36:58.224670
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.orm import Session
+
 from auth_backend.models.db import Group
 
 
