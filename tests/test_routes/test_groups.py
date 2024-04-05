@@ -175,9 +175,6 @@ def test_delete(client, dbsession):
     assert db2 in db1.child
     assert db3 in db2.child
     assert db3.child == []
-    del db1
-    del db2
-    del db3
     response = client.get(f"/group/{_group3}")
     assert response.status_code == 200
     assert response.json()["parent_id"] == _group2
@@ -185,6 +182,9 @@ def test_delete(client, dbsession):
     assert response.status_code == 200
     assert response.json()["parent_id"] == _group1
     client.delete(f"/group/{_group2}")
+    dbsession.refresh(db1)
+    dbsession.refresh(db2)
+    dbsession.refresh(db3)
     response = client.get(f"/group/{_group3}")
     assert response.status_code == 200
     assert response.json()["parent_id"] == _group1
@@ -200,5 +200,6 @@ def test_delete(client, dbsession):
         dbsession.query(Group).get(_group2),
         dbsession.query(Group).get(_group3),
     ):
+        row: Group
         dbsession.delete(row)
     dbsession.commit()
