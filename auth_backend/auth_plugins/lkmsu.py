@@ -83,7 +83,7 @@ class LkmsuAuth(OauthMeta):
                     token_result = await response.json()
                     logger.debug(token_result)
                 if 'access_token' not in token_result:
-                    raise OauthAuthFailed('Invalid credentials for lk msu account')
+                    raise OauthAuthFailed('Invalid credentials for lk msu account', 'Неправильные учетные данные')
                 token = token_result['access_token']
 
                 async with session.get(
@@ -142,7 +142,7 @@ class LkmsuAuth(OauthMeta):
                 token_result = await response.json()
                 logger.debug(token_result)
             if 'access_token' not in token_result:
-                raise OauthAuthFailed('Invalid credentials for lk msu account')
+                raise OauthAuthFailed('Invalid credentials for lk msu account', 'Неправильные учетные данные')
             token = token_result['access_token']
 
             async with session.get(
@@ -155,7 +155,9 @@ class LkmsuAuth(OauthMeta):
         user = await cls._get_user('user_id', lk_user_id, db_session=db.session)
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
-            raise OauthAuthFailed('No users found for lk msu account', id_token)
+            raise OauthAuthFailed(
+                'No users found for lk msu account', 'Не найдено пользователей с таким аккаунтом LK MSU', id_token
+            )
         userdata = await LkmsuAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,

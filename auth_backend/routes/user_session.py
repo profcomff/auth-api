@@ -40,7 +40,7 @@ async def logout(
     db.session.commit()
     return JSONResponse(
         status_code=200,
-        content=StatusResponseModel(status="Success", message="StatusResponseModel successful").model_dump(),
+        content=StatusResponseModel(status="Success", message="Logout successful", ru="Вы успешно вышли").model_dump(),
     )
 
 
