@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import datetime
 from typing import Iterator
 
@@ -9,13 +10,13 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, Session, backref, mapped_column, relationship
 
 from auth_backend.exceptions import ObjectNotFound
+from auth_backend.models.dynamic_settings import DynamicOption
 from auth_backend.settings import get_settings
+from auth_backend.models.base import BaseDbModel
 
 
 settings = get_settings()
-
-
-from auth_backend.models.base import BaseDbModel
+logger = logging.getLogger(__name__)
 
 
 class User(BaseDbModel):
@@ -40,6 +41,20 @@ class User(BaseDbModel):
         primaryjoin="and_(User.id==UserGroup.user_id, not_(UserGroup.is_deleted))",
         secondaryjoin="and_(Group.id==UserGroup.group_id, not_(Group.is_deleted))",
     )
+
+    @classmethod
+    def create(cls, *, session: Session, **kwargs) -> User:
+        user = super().create(session=session, **kwargs)
+        try:
+            users_group_id = DynamicOption.get("users_group_id", session=session)
+            group = session.get(Group, users_group_id.value)
+            if group:
+                group.users.append(user)
+            else:
+                logger.info(f"Can't to add user {user.id=} to group users {users_group_id.value=}")
+        except Exception:
+            logger.error("Failed to add user to users group", exc_info=True)
+        return user
 
     @hybrid_property
     def scopes(self) -> set[Scope]:
@@ -209,6 +224,20 @@ class Scope(BaseDbModel):
         primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
         secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",
     )
+
+    @classmethod
+    def create(cls, *, session: Session, **kwargs) -> User:
+        scope = super().create(session=session, **kwargs)
+        try:
+            root_group_id = DynamicOption.get("root_group_id", session=session)
+            group = session.get(Group, root_group_id.value)
+            if group:
+                group.scopes.add(scope)
+            else:
+                logger.info(f"Can't to add scope {scope.id=} to group users {root_group_id.id=}")
+        except Exception:
+            logger.error("Failed to add scope to root group", exc_info=True)
+        return scope
 
     @classmethod
     def get_by_name(cls, name: str, *, with_deleted: bool = False, session: Session) -> Scope:
