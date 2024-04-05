@@ -42,6 +42,11 @@ class User(BaseDbModel):
         secondaryjoin="and_(Group.id==UserGroup.group_id, not_(Group.is_deleted))",
     )
 
+    @classmethod
+    def create(cls, *, session: Session, **kwargs) -> User:
+        user = super().create(session=session, **kwargs)
+        return user
+
     @hybrid_property
     def scopes(self) -> set[Scope]:
         _scopes = set()
@@ -210,6 +215,11 @@ class Scope(BaseDbModel):
         primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
         secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",
     )
+
+    @classmethod
+    def create(cls, *, session: Session, **kwargs) -> Scope:
+        scope = super().create(session=session, **kwargs)
+        return scope
 
     @classmethod
     def get_by_name(cls, name: str, *, with_deleted: bool = False, session: Session) -> Scope:
