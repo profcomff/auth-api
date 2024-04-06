@@ -10,7 +10,16 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
-from auth_backend.models.db import Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope, DynamicOption
+from auth_backend.models.db import (
+    DynamicOption,
+    Group,
+    GroupScope,
+    Scope,
+    User,
+    UserGroup,
+    UserSession,
+    UserSessionScope,
+)
 
 
 # revision identifiers, used by Alembic.
@@ -24,10 +33,10 @@ def upgrade():
     conn = op.get_bind()
     session = Session(conn)
 
-    root_group_id: DynamicOption =  session.query(DynamicOption).filter(DynamicOption.name == "root_group_id").one()
+    root_group_id: DynamicOption = session.query(DynamicOption).filter(DynamicOption.name == "root_group_id").one()
     users_group_id: DynamicOption = session.query(DynamicOption).filter(DynamicOption.name == "users_group_id").one()
 
-    root_group: Group = Group.get(root_group_id.value_integer,session=session)
+    root_group: Group = Group.get(root_group_id.value_integer, session=session)
     user_group: Group = Group.get(users_group_id.value_integer, session=session)
     try:
         user = root_group.users[0]
