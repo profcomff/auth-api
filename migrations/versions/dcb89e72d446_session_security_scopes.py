@@ -6,20 +6,10 @@ Create Date: 2024-04-06 02:06:15.967235
 
 """
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
-from auth_backend.models.db import (
-    DynamicOption,
-    Group,
-    GroupScope,
-    Scope,
-    User,
-    UserGroup,
-    UserSession,
-    UserSessionScope,
-)
+from auth_backend.models.db import DynamicOption, Group, Scope, User, UserSession
 
 
 # revision identifiers, used by Alembic.
