@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.orm import Session
 
-from auth_backend.models.db import Group, GroupScope, Scope, User, UserSession, UserSessionScope
+from auth_backend.models.db import Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
 
 
 # revision identifiers, used by Alembic.
@@ -26,7 +26,12 @@ def upgrade():
 
     root_group: Group = Group.query(session=session).filter(Group.name == "root").one()
     user_group: Group = Group.query(session=session).filter(Group.name == "users").one()
-    user = root_group.users[0]
+    try:
+        user = root_group.users[0]
+    except KeyError:
+        user = User.create(session=session)
+        UserGroup.create(session=session, user_id=user.id, group_id=root_group.id)
+
     scope1 = Scope(creator_id=user.id, name="auth.session.create", comment="Create user session")
     scope2 = Scope(creator_id=user.id, name="auth.session.update", comment="Update user session")
     session.add_all((scope1, scope2))
