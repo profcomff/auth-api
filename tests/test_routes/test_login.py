@@ -4,8 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from starlette import status
 
-from auth_backend.auth_plugins.auth_method import random_string
-from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
+from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
 
 
 url = "/email/login"

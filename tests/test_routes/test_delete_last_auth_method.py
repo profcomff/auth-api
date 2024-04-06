@@ -1,18 +1,8 @@
-import asyncio
-import errno
-import random
-import string
-
 import pytest
-import pytest_asyncio
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
 
-from auth_backend.auth_plugins import Email, YandexAuth
-from auth_backend.auth_plugins.auth_method import random_string
+from auth_backend.auth_plugins import YandexAuth
 from auth_backend.exceptions import LastAuthMethodDelete
-from auth_backend.models import AuthMethod, User
-from auth_backend.settings import Settings, get_settings
+from auth_backend.settings import get_settings
 
 
 pytest_plugins = ('pytest_asyncio',)
