@@ -1,14 +1,9 @@
-import datetime
-
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from starlette import status
 
 from auth_backend.auth_plugins.auth_method import random_string
-from auth_backend.exceptions import ObjectNotFound
-from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, UserGroup, UserSession, UserSessionScope
+from auth_backend.models.db import Scope, UserSession
 
 
 def test_create_scope(client_auth: TestClient, dbsession: Session, user_scopes):

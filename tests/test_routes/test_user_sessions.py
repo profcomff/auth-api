@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-from time import sleep
 
 from sqlalchemy.orm import Session
 from starlette import status
