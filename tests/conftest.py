@@ -157,6 +157,12 @@ def user_factory(dbsession):
         dbsession.delete(row)
     dbsession.flush()
 
+    dbsession.query(GroupScope).delete()
+    dbsession.flush()
+
+    dbsession.query(Scope).delete()
+    dbsession.flush()
+
     dbsession.query(Group).delete()
     dbsession.flush()
 
@@ -185,6 +191,8 @@ def user_scopes(dbsession, user):
         "auth.group.read",
         "auth.group.delete",
         "auth.group.update",
+        "auth.session.create",
+        "auth.session.update",
     ]
     scopes = []
     for i in scopes_names:
@@ -192,11 +200,12 @@ def user_scopes(dbsession, user):
         scopes.append(scope1)
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
-    dbsession.flush()
+    dbsession.commit()
     user_scopes = []
     for i in scopes:
         dbsession.add(user_scope1 := UserSessionScope(scope_id=i.id, user_session_id=user_session.id))
         user_scopes.append(user_scope1)
+    dbsession.flush()
     dbsession.commit()
     yield token_, user
     for i in user_scopes:

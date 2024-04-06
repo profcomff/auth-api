@@ -18,8 +18,9 @@ def test_create_session(client_auth: TestClient, dbsession: Session, user_scopes
     params = {"info": ["session_scopes", "token", "expires"]}
     all_sessions = client_auth.get("/session", headers=header, params=params)
 
-    current_session_id_get = client_auth.get("/me", headers=header)
-    assert current_session_id_get.status_code == status.HTTP_200_OK
+    current_session_get = client_auth.get("/me", headers=header)
+    assert current_session_get.status_code == status.HTTP_200_OK
+    current_session_id_get = dbsession.query(UserSession).filter(UserSession.token == token).one().id
     payload = {'info': 'session_scopes'}
     current_session_scopes_get = client_auth.get("/me", headers=header, params=payload)
     assert current_session_scopes_get.status_code == status.HTTP_200_OK
@@ -50,7 +51,7 @@ def test_create_session(client_auth: TestClient, dbsession: Session, user_scopes
     new_session2 = client_auth.post("/session", headers=header, json={"scopes": [scope1.name, scope2.name]})
     assert new_session2.status_code == status.HTTP_200_OK
     new_session_: UserSession = dbsession.query(UserSession).get(new_session2.json()["id"])
-    assert new_session_.id != current_session_id_get.json()["id"]
+    assert new_session_.id != current_session_id_get
     assert new_session_.scopes != current_session_scopes_get.json()["session_scopes"]
     time = datetime.utcnow() + timedelta(days=999999)
     new_session3 = client_auth.post("/session", headers=header, json={"expires": str(time)})
