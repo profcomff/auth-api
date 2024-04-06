@@ -28,7 +28,7 @@ def upgrade():
     user_group: Group = Group.query(session=session).filter(Group.name == "users").one()
     try:
         user = root_group.users[0]
-    except KeyError:
+    except IndexError:
         user = User.create(session=session)
         UserGroup.create(session=session, user_id=user.id, group_id=root_group.id)
 
