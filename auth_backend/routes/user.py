@@ -160,7 +160,7 @@ async def delete_user(
 
     Args:
         user_id: int: ID пользователя, информацию которого нужно удалить.
-        current_user: UserSession: Сессия пользователя, которая НЕ может быть None. 
+        current_user: UserSession: Сессия пользователя, которая НЕ может быть None.
     Returns:
         None
     """
