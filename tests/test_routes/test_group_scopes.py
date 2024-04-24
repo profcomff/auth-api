@@ -1,9 +1,6 @@
 import datetime
 
-import pytest
-
-from auth_backend.auth_plugins.auth_method import random_string
-from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
+from auth_backend.models.db import Group, GroupScope, Scope, UserGroup
 
 
 def test_scopes_groups(client_auth, dbsession, user_scopes):

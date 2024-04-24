@@ -1,6 +1,6 @@
 import datetime
 import errno
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,12 +8,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from starlette import status
 
-from auth_backend.auth_plugins import Email, YandexAuth
+from auth_backend.auth_plugins import YandexAuth
 from auth_backend.auth_plugins.auth_method import random_string
 from auth_backend.models import AuthMethod, User
 from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
 from auth_backend.routes.base import app
-from auth_backend.settings import Settings, get_settings
+from auth_backend.settings import get_settings
 
 
 @pytest.fixture
@@ -47,7 +47,7 @@ def client_auth():
     patcher1.stop()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def dbsession():
     settings = get_settings()
     engine = create_engine(str(settings.DB_DSN))
@@ -133,7 +133,9 @@ def group(dbsession, parent_id):
 
     yield _group
     for row in _ids:
-        Group.delete(row, session=dbsession)
+        group: Group = Group.get(row, session=dbsession)
+        group.users.clear()
+        group.delete(session=dbsession)
     dbsession.commit()
 
 
@@ -153,6 +155,12 @@ def user_factory(dbsession):
 
     for row in dbsession.query(UserGroup).all():
         dbsession.delete(row)
+    dbsession.flush()
+
+    dbsession.query(GroupScope).delete()
+    dbsession.flush()
+
+    dbsession.query(Scope).delete()
     dbsession.flush()
 
     dbsession.query(Group).delete()
@@ -183,6 +191,8 @@ def user_scopes(dbsession, user):
         "auth.group.read",
         "auth.group.delete",
         "auth.group.update",
+        "auth.session.create",
+        "auth.session.update",
     ]
     scopes = []
     for i in scopes_names:
@@ -190,11 +200,12 @@ def user_scopes(dbsession, user):
         scopes.append(scope1)
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
-    dbsession.flush()
+    dbsession.commit()
     user_scopes = []
     for i in scopes:
         dbsession.add(user_scope1 := UserSessionScope(scope_id=i.id, user_session_id=user_session.id))
         user_scopes.append(user_scope1)
+    dbsession.flush()
     dbsession.commit()
     yield token_, user
     for i in user_scopes:
@@ -233,6 +244,8 @@ def yandex_user(dbsession) -> User:
     dbsession.add(user_id)
     dbsession.commit()
     yield user
+    user.sessions.clear()
+    user.groups.clear()
     dbsession.query(AuthMethod).filter(AuthMethod.user_id == user.id).delete()
     dbsession.query(User).filter(User.id == user.id).delete()
     dbsession.commit()

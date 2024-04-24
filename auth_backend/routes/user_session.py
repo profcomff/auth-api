@@ -9,7 +9,7 @@ from starlette.responses import JSONResponse
 
 from auth_backend.base import StatusResponseModel
 from auth_backend.exceptions import ObjectNotFound, SessionExpired
-from auth_backend.models.db import AuthMethod, UserSession
+from auth_backend.models.db import AuthMethod, UserSession, session_expires_date
 from auth_backend.schemas.models import (
     Session,
     SessionPatch,
@@ -40,7 +40,7 @@ async def logout(
     db.session.commit()
     return JSONResponse(
         status_code=200,
-        content=StatusResponseModel(status="Success", message="StatusResponseModel successful").model_dump(),
+        content=StatusResponseModel(status="Success", message="Logout successful", ru="Вы успешно вышли").model_dump(),
     )
 
 
@@ -51,6 +51,7 @@ async def me(
         default=[]
     ),
 ) -> dict[str, str | int]:
+    session.expires = session_expires_date()  # Автопродление сессии при активности пользователя
     result: dict[str, str | int] = {}
     result = (
         result
@@ -87,7 +88,8 @@ async def me(
 
 @user_session.post("/session", response_model=Session)
 async def create_session(
-    new_session: SessionPost, session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True))
+    new_session: SessionPost,
+    session: UserSession = Depends(UnionAuth(scopes=["auth.session.create"], allow_none=False, auto_error=True)),
 ):
     return await user_session_control.create_session(
         session.user,
@@ -158,7 +160,9 @@ async def get_sessions(
 async def update_session(
     id: int,
     session_update_info: SessionPatch,
-    current_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
+    current_session: UserSession = Depends(
+        UnionAuth(scopes=["auth.session.update"], allow_none=False, auto_error=True)
+    ),
 ) -> Session:
     update_session: UserSession = (
         UserSession.query(session=db.session)

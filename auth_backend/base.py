@@ -14,3 +14,4 @@ class Base(BaseModel):
 class StatusResponseModel(Base):
     status: str
     message: str
+    ru: str
