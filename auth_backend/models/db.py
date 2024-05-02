@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import logging
 from typing import Iterator
 
 import sqlalchemy.orm
@@ -9,13 +10,13 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, Session, backref, mapped_column, relationship
 
 from auth_backend.exceptions import ObjectNotFound
+from auth_backend.models.base import BaseDbModel
+from auth_backend.models.dynamic_settings import DynamicOption
 from auth_backend.settings import get_settings
 
 
 settings = get_settings()
-
-
-from auth_backend.models.base import BaseDbModel
+logger = logging.getLogger(__name__)
 
 
 class User(BaseDbModel):
@@ -40,6 +41,21 @@ class User(BaseDbModel):
         primaryjoin="and_(User.id==UserGroup.user_id, not_(UserGroup.is_deleted))",
         secondaryjoin="and_(Group.id==UserGroup.group_id, not_(Group.is_deleted))",
     )
+
+    @classmethod
+    def create(cls, *, session: Session, **kwargs) -> User:
+        user: User = super().create(session=session, **kwargs)
+        users_group_id = DynamicOption.get("users_group_id", session=session).value
+        if users_group_id:
+            users_group = Group.query(with_deleted=True, session=session).get(users_group_id)
+        else:
+            logger.error("Fail to obtain root group id")
+        if users_group:
+            user.groups.append(users_group)
+        else:
+            logger.error("Root group not found")
+        session.flush()
+        return user
 
     @hybrid_property
     def scopes(self) -> set[Scope]:
@@ -209,6 +225,21 @@ class Scope(BaseDbModel):
         primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
         secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",
     )
+
+    @classmethod
+    def create(cls, *, session: Session, **kwargs) -> Scope:
+        scope: Scope = super().create(session=session, **kwargs)
+        root_group_id = DynamicOption.get("root_group_id", session=session).value
+        if root_group_id:
+            root_group = Group.query(with_deleted=True, session=session).get(root_group_id)
+        else:
+            logger.error("Fail to obtain root group id")
+        if root_group:
+            scope.groups.append(root_group)
+        else:
+            logger.error("Root group not found")
+        session.flush()
+        return scope
 
     @classmethod
     def get_by_name(cls, name: str, *, with_deleted: bool = False, session: Session) -> Scope:

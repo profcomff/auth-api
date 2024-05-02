@@ -1,10 +1,8 @@
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from starlette import status
 
-from auth_backend.models.db import UserMessageDelay
-from auth_backend.settings import Settings, get_settings
+from auth_backend.settings import get_settings
 
 
 settings = get_settings()

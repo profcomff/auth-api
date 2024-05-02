@@ -1,11 +1,9 @@
 import datetime
-from time import sleep
 
-import httpx
 import pytest
 
 from auth_backend.exceptions import ObjectNotFound
-from auth_backend.models.db import Group, GroupScope, Scope, User, UserGroup
+from auth_backend.models.db import Group, UserGroup
 
 
 def test_create(client, dbsession):
@@ -83,8 +81,10 @@ def test_get_all(client, dbsession):
     assert group in [row["id"] for row in response]
     assert child in [row["id"] for row in response]
     response = client.get("/group", params={"info": ["child"]}).json()["items"]
-    child_ = [row["child"] for row in response]
-    assert child in [row["id"] for row in child_[0]]
+    child_ = []
+    for row in response:
+        child_.extend(row["child"])
+    assert child in [row["id"] for row in child_]
 
     for row in (dbsession.query(Group).get(child), dbsession.query(Group).get(group)):
         dbsession.delete(row)
@@ -173,9 +173,6 @@ def test_delete(client, dbsession):
     assert db2 in db1.child
     assert db3 in db2.child
     assert db3.child == []
-    del db1
-    del db2
-    del db3
     response = client.get(f"/group/{_group3}")
     assert response.status_code == 200
     assert response.json()["parent_id"] == _group2
@@ -183,6 +180,9 @@ def test_delete(client, dbsession):
     assert response.status_code == 200
     assert response.json()["parent_id"] == _group1
     client.delete(f"/group/{_group2}")
+    dbsession.refresh(db1)
+    dbsession.refresh(db2)
+    dbsession.refresh(db3)
     response = client.get(f"/group/{_group3}")
     assert response.status_code == 200
     assert response.json()["parent_id"] == _group1
@@ -198,5 +198,6 @@ def test_delete(client, dbsession):
         dbsession.query(Group).get(_group2),
         dbsession.query(Group).get(_group3),
     ):
+        row: Group
         dbsession.delete(row)
     dbsession.commit()

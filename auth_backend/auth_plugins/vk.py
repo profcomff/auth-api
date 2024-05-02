@@ -92,7 +92,7 @@ class VkAuth(OauthMeta):
                     token_result = await response.json()
                     logger.debug(token_result)
                 if 'access_token' not in token_result:
-                    raise OauthAuthFailed('Invalid credentials for vk account')
+                    raise OauthAuthFailed('Invalid credentials for VK account', 'Неправильные учетные данные')
                 token = token_result['access_token']
 
                 async with session.get(
@@ -148,7 +148,7 @@ class VkAuth(OauthMeta):
                 token_result = await response.json()
                 logger.debug(token_result)
             if 'access_token' not in token_result:
-                raise OauthAuthFailed('Invalid credentials for VK account')
+                raise OauthAuthFailed('Invalid credentials for VK account', 'Неправильные учетные данные')
             token = token_result['access_token']
 
             async with session.get(
@@ -163,7 +163,9 @@ class VkAuth(OauthMeta):
         user = await cls._get_user('user_id', vk_user_id, db_session=db.session)
         if not user:
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
-            raise OauthAuthFailed('No users found for vk account', id_token)
+            raise OauthAuthFailed(
+                'No users found for VK account', 'Не найдено пользователей с таким аккаунтом ВК', id_token
+            )
         userdata = await VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,

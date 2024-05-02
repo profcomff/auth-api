@@ -1,51 +1,70 @@
 import datetime
 
 
-class ObjectNotFound(Exception):
+class AuthAPIError(Exception):
+    eng: str
+    ru: str
+
+    def __init__(self, eng: str, ru: str) -> None:
+        self.eng = eng
+        self.ru = ru
+        super().__init__(eng)
+
+
+class ObjectNotFound(AuthAPIError):
     def __init__(self, obj: type, obj_id_or_name: int | str):
-        super().__init__(f"Object {obj.__name__} {obj_id_or_name=} not found")
+        super().__init__(
+            f"Object {obj.__name__} {obj_id_or_name=} not found",
+            f"Объект {obj.__name__}  с идентификатором {obj_id_or_name} не найден",
+        )
 
 
-class AlreadyExists(Exception):
+class AlreadyExists(AuthAPIError):
     def __init__(self, obj: type, obj_id_or_name: int | str):
-        super().__init__(f"Object {obj.__name__}, {obj_id_or_name=} already exists")
+        super().__init__(
+            f"Object {obj.__name__}, {obj_id_or_name=} already exists",
+            f"Объект {obj.__name__} с идентификатором {obj_id_or_name=} уже существует",
+        )
 
 
-class IncorrectUserAuthType(Exception):
+class IncorrectUserAuthType(AuthAPIError):
     def __init__(self):
-        super().__init__("Incorrect Authentication Type for this user")
+        super().__init__("Incorrect Authentication Type for this user", "Некорректный тип аутентификации")
 
 
-class SessionExpired(Exception):
+class SessionExpired(AuthAPIError):
     def __init__(self, token: str):
-        super().__init__(f"Session that matches {token} expired")
+        super().__init__(f"Session that matches {token} expired", f"Срок действия токена {token} истёк")
 
 
-class AuthFailed(Exception):
-    def __init__(self, error: str):
-        super().__init__(error)
+class AuthFailed(AuthAPIError):
+    def __init__(self, error_eng: str, error_ru: str):
+        super().__init__(error_eng, error_ru)
 
 
-class OauthAuthFailed(Exception):
-    def __init__(self, error: str, id_token: str | None = None, status_code=401):
+class OauthAuthFailed(AuthAPIError):
+    def __init__(self, error_eng: str, error_ru: str, id_token: str | None = None, status_code=401):
         self.id_token = id_token
         self.status_code = status_code
-        super().__init__(error)
+        super().__init__(error_eng, error_ru)
 
 
-class OauthCredentialsIncorrect(Exception):
-    def __init__(self, error: str):
-        super().__init__(error)
+class OauthCredentialsIncorrect(AuthAPIError):
+    def __init__(self, error_eng: str, error_ru: str):
+        super().__init__(error_eng, error_ru)
 
 
-class TooManyEmailRequests(Exception):
+class TooManyEmailRequests(AuthAPIError):
     delay_time: datetime.timedelta
 
     def __init__(self, dtime: datetime.timedelta):
         self.delay_time = dtime
-        super().__init__(f'Delay: {dtime}')
+        super().__init__(
+            f'Too many email requests. Delay: {dtime}',
+            f'Слишком много запрос к email. Задержка: {dtime}',
+        )
 
 
-class LastAuthMethodDelete(Exception):
+class LastAuthMethodDelete(AuthAPIError):
     def __init__(self):
-        super().__init__(f'Unable to remove last authentication method')
+        super().__init__('Unable to remove last authentication method', 'Нельзя удалить последний метод входа')
