@@ -34,7 +34,7 @@ async def get_user(
     Этот эндпоинт предназначен для получения информации о пользователе по ID.
     Args:
         user_id: int: ID пользователя,
-        info: list[Literal["groups", "indirect_groups", "scopes", "auth_methods"]] | None: 
+        info: list[Literal["groups", "indirect_groups", "scopes", "auth_methods"]] | None:
             Опциональный список запрашиваемой информации.
         _: UserSession: Сессия пользователя, которая НЕ может быть None.
     Returns:
@@ -82,9 +82,9 @@ async def get_users(
 
     Args:
         _: UserSession: Сессия пользователя, которая НЕ может быть None.
-        info: list[Literal["groups", "indirect_groups", "scopes"]] | None: 
+        info: list[Literal["groups", "indirect_groups", "scopes"]] | None:
             Опциональный список запрашиваемой информации.
-        
+
     Returns:
         dict[str, Any]: Информация о пользователях возвращается в виде словаря,
         исключая незаданные поля
@@ -120,7 +120,7 @@ async def patch_user(
     Args:
         user_id: int: ID пользователя, информацию о котором нужно обновить.
         user_inp: UserPatch: Данные с информацией для обновления пользователя, включая обновленные группы.
-        _: UserSession: Сессия пользователя, которая НЕ может быть None. 
+        _: UserSession: Сессия пользователя, которая НЕ может быть None.
     Returns:
         Возвращает обновленную информацию о пользователе в виде объекта модели пользователя (UserModel).
     """
@@ -156,7 +156,7 @@ async def delete_user(
 
     Args:
         user_id: int: ID пользователя, информацию о котором нужно удалить.
-        current_user: UserSession: Сессия пользователя, которая НЕ может быть None. 
+        current_user: UserSession: Сессия пользователя, которая НЕ может быть None.
     Returns:
         None
     """
