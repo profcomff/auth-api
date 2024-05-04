@@ -84,7 +84,7 @@ async def get_users(
 
     Args:
         _: UserSession: Сессия пользователя, которая НЕ может быть None.
-        info: list[Literal["groups", "indirect_groups", "scopes"]] | None: 
+        info: list[Literal["groups", "indirect_groups", "scopes"]] | None:
             Опциональный список запрашиваемой информации.
 
     Returns:
@@ -123,7 +123,7 @@ async def patch_user(
     Args:
         user_id: int: ID пользователя, информацию о котором нужно обновить.
         user_inp: UserPatch: Данные с информацией для обновления пользователя, включая обновленные группы.
-        _: UserSession: Сессия пользователя, которая НЕ может быть None. 
+        _: UserSession: Сессия пользователя, которая НЕ может быть None.
     Returns:
         Возвращает обновленную информацию о пользователе.
     """
@@ -160,7 +160,7 @@ async def delete_user(
 
     Args:
         user_id: int: ID пользователя, информацию о котором нужно удалить.
-        current_user: UserSession: Сессия пользователя, которая НЕ может быть None. 
+        current_user: UserSession: Сессия пользователя, которая НЕ может быть None.
     Returns:
         None
     """
