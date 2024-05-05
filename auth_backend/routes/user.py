@@ -35,7 +35,7 @@ async def get_user(
     Этот эндпоинт предназначен для получения информации о пользователе по ID.
     Args:
         user_id: int: ID пользователя,
-        info: list[Literal["groups", "indirect_groups", "scopes", "auth_methods"]] | None: 
+        info: list[Literal["groups", "indirect_groups", "scopes", "auth_methods"]] | None:
             Опциональный список запрашиваемой информации.
         _: UserSession: Сессия пользователя, которая не может быть None.
     Returns:
@@ -84,9 +84,9 @@ async def get_users(
 
     Args:
         _: UserSession: Сессия пользователя, которая не может быть None.
-        info: list[Literal["groups", "indirect_groups", "scopes"]] | None: 
+        info: list[Literal["groups", "indirect_groups", "scopes"]] | None:
             Опциональный список запрашиваемой информации.
-        
+
     Returns:
         dict[str, Any]: Информация о пользователях,
         исключая не запрошенные поля
@@ -123,7 +123,7 @@ async def patch_user(
     Args:
         user_id: int: ID пользователя, информацию которого нужно обновить.
         user_inp: UserPatch: Данные с информацией для обновления пользователя.
-        _: UserSession: Сессия пользователя, которая не может быть None. 
+        _: UserSession: Сессия пользователя, которая не может быть None.
     Returns:
         Возвращает обновленную информацию о пользователе.
     """
