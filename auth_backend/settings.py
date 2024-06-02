@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     ENABLED_AUTH_METHODS: list[str] | None = None
     TOKEN_LENGTH: conint(gt=8) = 64
     SESSION_TIME_IN_DAYS: int = 30
+    SESSION_REFRESH_TIME_IN_DAYS: int = 30
 
     MAX_RETRIES: int = 10
     STOP_MAX_DELAY: int = 10000
