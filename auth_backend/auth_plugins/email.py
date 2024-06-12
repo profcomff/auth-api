@@ -315,8 +315,16 @@ class Email(AuthMethodMeta):
             auth_params["tmp_email"].is_deleted = True
             auth_params["tmp_email_confirmation_token"].is_deleted = True
             db.session.flush()
-        AuthMethod.create(user_id=user_session.user_id, auth_method="email", param="tmp_email_confirmation_token", value=token, session=db.session)
-        AuthMethod.create(user_id=user_session.user_id, auth_method="email", param="tmp_email", value=scheme.email, session=db.session)
+        AuthMethod.create(
+            user_id=user_session.user_id,
+            auth_method="email",
+            param="tmp_email_confirmation_token",
+            value=token,
+            session=db.session,
+        )
+        AuthMethod.create(
+            user_id=user_session.user_id, auth_method="email", param="tmp_email", value=scheme.email, session=db.session
+        )
 
         SendEmailMessage.send(
             to_email=scheme.email,
