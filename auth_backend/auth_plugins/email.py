@@ -149,19 +149,19 @@ class Email(AuthMethodMeta):
         )
         if not query:
             raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
-        auth_method = cls._get_email_params(query.user_id)
-        if auth_method["confirmed"].value.lower() == "false":
+        auth_params = cls._get_email_params(query.user_id)
+        if auth_params["confirmed"].value.lower() == "false":
             raise AuthFailed(
                 "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
                 "Регистрация не была завершена. Попробуйте зарегистрироваться снова и не забудьте подтвердить почту",
             )
-        if auth_method["email"].value.lower() != user_inp.email.lower() or not Email._validate_password(
+        if auth_params["email"].value.lower() != user_inp.email.lower() or not Email._validate_password(
             user_inp.password,
-            auth_method["hashed_password"].value,
-            auth_method["salt"].value,
+            auth_params["hashed_password"].value,
+            auth_params["salt"].value,
         ):
             raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
-        userdata = await Email._convert_data_to_userdata_format({"email": auth_method["email"].value})
+        userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
         await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             Email.generate_kafka_key(query.user.id),
@@ -315,9 +315,8 @@ class Email(AuthMethodMeta):
             auth_params["tmp_email"].is_deleted = True
             auth_params["tmp_email_confirmation_token"].is_deleted = True
             db.session.flush()
-
-        for k, v in {"tmp_email_confirmation_token": token, "tmp_email": scheme.email}.items():
-            AuthMethod.create(user_id=user_session.user_id, auth_method="email", param=k, value=v, session=db.session)
+        AuthMethod.create(user_id=user_session.user_id, auth_method="email", param="tmp_email_confirmation_token", value=token, session=db.session)
+        AuthMethod.create(user_id=user_session.user_id, auth_method="email", param="tmp_email", value=scheme.email, session=db.session)
 
         SendEmailMessage.send(
             to_email=scheme.email,
