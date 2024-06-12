@@ -191,7 +191,7 @@ def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user
 
     response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
-    
+
     auth_params = get_auth_params(user_id, "email", dbsession)
 
     response = client_auth.post(f"{url}/restore", json={"email": auth_params["email"].value})
