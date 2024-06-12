@@ -18,7 +18,7 @@ from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.string import concantenate_strings
 
-from .auth_method import MethodMeta, OauthMeta, Session
+from .auth_method import OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -31,21 +31,11 @@ class LkmsuSettings(Settings):
     LKMSU_FACULTY_NAME: str = 'Физический факультет'
 
 
-class LkmsuAuthParams(MethodMeta):
-    __auth_method__ = "LkmsuAuth"
-    __fields__ = frozenset(("user_id",))
-    __required_fields__ = frozenset(("user_id",))
-
-    user_id: AuthMethod = None
-
-
 class LkmsuAuth(OauthMeta):
     """Вход в приложение по аккаунту гугл"""
 
     prefix = '/lk-msu'
     tags = ['lk_msu']
-
-    fields = LkmsuAuthParams
     settings = LkmsuSettings()
 
     class OauthResponseSchema(BaseModel):

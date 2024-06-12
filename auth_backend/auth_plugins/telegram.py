@@ -11,7 +11,7 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
+from auth_backend.auth_plugins.auth_method import OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
@@ -29,18 +29,9 @@ class TelegramSettings(Settings):
     TELEGRAM_BOT_TOKEN: str | None = None
 
 
-class TelegramAuthParams(MethodMeta):
-    __auth_method__ = "TelegramAuth"
-    __fields__ = frozenset(("user_id",))
-    __required_fields__ = frozenset(("user_id",))
-
-    user_id: AuthMethod = None
-
-
 class TelegramAuth(OauthMeta):
     prefix = '/telegram'
     tags = ['Telegram']
-    fields = TelegramAuthParams
     settings = TelegramSettings()
 
     class OauthResponseSchema(BaseModel):

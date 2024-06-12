@@ -18,7 +18,7 @@ from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.string import concantenate_strings
 
 from ..schemas.types.scopes import Scope
-from .auth_method import MethodMeta, OauthMeta, Session
+from .auth_method import OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -44,19 +44,9 @@ class VkSettings(Settings):
     ]  # Другие данные https://dev.vk.com/ru/reference/objects/user
 
 
-class VkAuthParams(MethodMeta):
-    __auth_method__ = "VkAuth"
-    __fields__ = frozenset(("user_id",))
-    __required_fields__ = frozenset(("user_id",))
-
-    user_id: AuthMethod = None
-
-
 class VkAuth(OauthMeta):
     prefix = '/vk'
     tags = ['vk']
-
-    fields = VkAuthParams
     settings = VkSettings()
 
     class OauthResponseSchema(BaseModel):

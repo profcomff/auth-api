@@ -19,7 +19,7 @@ from auth_backend.utils.auth_params import get_auth_params
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import SendEmailMessage
 
-from .auth_method import AuthMethodMeta, MethodMeta, Session, random_string
+from .auth_method import AuthMethodMeta, Session, random_string
 
 
 settings = get_settings()
@@ -102,37 +102,8 @@ class ResetForgottenPassword(Base):
     new_password: constr(min_length=1)
 
 
-class EmailParams(MethodMeta):
-    __auth_method__ = "Email"
-    __fields__ = frozenset(
-        (
-            "email",
-            "hashed_password",
-            "salt",
-            "confirmed",
-            "confirmation_token",
-            "tmp_email",
-            "reset_token",
-            "tmp_email_confirmation_token",
-        )
-    )
-
-    __required_fields__ = frozenset(("email", "hashed_password", "salt", "confirmed", "confirmation_token"))
-
-    email: AuthMethod = None
-    hashed_password: AuthMethod = None
-    salt: AuthMethod = None
-    confirmed: AuthMethod = None
-    confirmation_token: AuthMethod = None
-    tmp_email: AuthMethod = None
-    reset_token: AuthMethod = None
-    tmp_email_confirmation_token: AuthMethod = None
-
-
 class Email(AuthMethodMeta):
     prefix = "/email"
-
-    fields = EmailParams
 
     @staticmethod
     def _get_email_params(user_id: int) -> dict[str, AuthMethod]:
