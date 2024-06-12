@@ -188,11 +188,11 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
-        auth_method = Email._get_email_params(user.id)
-        if auth_method["confirmed"].value == "true":
+        auth_params = Email._get_email_params(user.id)
+        if auth_params["confirmed"].value == "true":
             raise AlreadyExists(User, user.id)
         else:
-            auth_method["confirmation_token"].value = confirmation_token
+            auth_params["confirmation_token"].value = confirmation_token
 
     @classmethod
     async def _register(
