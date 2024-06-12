@@ -23,6 +23,7 @@ from auth_backend.schemas.models import (
     UserScopes,
 )
 from auth_backend.utils import user_session_control
+from auth_backend.utils.auth_params import get_auth_params
 from auth_backend.utils.security import UnionAuth
 
 
@@ -51,13 +52,14 @@ async def me(
         default=[]
     ),
 ) -> dict[str, str | int]:
+    auth_params = get_auth_params(session.user_id, "email", db.session)
     session.expires = session_expires_date()  # Автопродление сессии при активности пользователя
     result: dict[str, str | int] = {}
     result = (
         result
         | UserInfo(
             id=session.user_id,
-            email=session.user.auth_methods.email.email.value if session.user.auth_methods.email.email else None,
+            email=auth_params["email"].value if "email" in auth_params else None,
         ).model_dump()
     )
     if "groups" in info:

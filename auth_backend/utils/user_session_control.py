@@ -18,8 +18,8 @@ settings = get_settings()
 async def create_session(
     user: User,
     scopes_list_names: list[TypeScope] | None,
-    expires: datetime = None,
-    session_name: str = None,
+    expires: datetime | None = None,
+    session_name: str | None = None,
     *,
     db_session: DbSession,
 ) -> Session:

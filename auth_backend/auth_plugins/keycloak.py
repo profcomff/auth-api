@@ -17,7 +17,7 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from .auth_method import MethodMeta, OauthMeta, Session
+from .auth_method import OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -30,21 +30,11 @@ class KeycloakSettings(Settings):
     KEYCLOAK_CLIENT_SECRET: str | None = None
 
 
-class KeycloakAuthParams(MethodMeta):
-    __auth_method__ = "KeycloakAuth"
-    __fields__ = frozenset(("user_id",))
-    __required_fields__ = frozenset(("user_id",))
-
-    user_id: AuthMethod = None
-
-
 class KeycloakAuth(OauthMeta):
     """Вход в приложение по аккаунту Keycloak"""
 
     prefix = '/keycloak'
     tags = ['keycloak']
-
-    fields = KeycloakAuthParams
     settings = KeycloakSettings()
 
     class OauthResponseSchema(BaseModel):
