@@ -203,7 +203,7 @@ class Email(AuthMethodMeta):
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
     ) -> StatusResponseModel:
         confirmation_token: str = random_string()
-        auth_method: AuthMethod = (
+        auth_method: AuthMethod | None = (
             AuthMethod.query(session=db.session)
             .filter(
                 AuthMethod.param == "email",
@@ -211,7 +211,7 @@ class Email(AuthMethodMeta):
                 AuthMethod.auth_method == Email.get_name(),
             )
             .one_or_none()
-        )  # type: ignore
+        )
         if auth_method:
             await Email._change_confirmation_link(auth_method.user, confirmation_token)
             SendEmailMessage.send(
@@ -349,7 +349,7 @@ class Email(AuthMethodMeta):
                 AuthMethod.value == token,
             )
             .one_or_none()
-        )  # type: ignore
+        )
         if not auth:
             raise HTTPException(
                 status_code=403,
@@ -425,7 +425,7 @@ class Email(AuthMethodMeta):
                 AuthMethod.value == schema.email,
             )
             .one_or_none()
-        )  # type: ignore
+        )
         if not auth_method_email:
             raise HTTPException(
                 status_code=404,
