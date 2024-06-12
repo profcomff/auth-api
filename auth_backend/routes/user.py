@@ -4,6 +4,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
 
+from auth_backend.models.base import BaseDbModel
 from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
 from auth_backend.schemas.models import User as UserModel
 from auth_backend.schemas.models import (
@@ -16,6 +17,7 @@ from auth_backend.schemas.models import (
     UserScopes,
     UsersGet,
 )
+from auth_backend.utils.auth_params import get_auth_params, get_users_auth_params
 from auth_backend.utils.security import UnionAuth
 
 
@@ -33,12 +35,13 @@ async def get_user(
     Scopes: `["auth.user.read"]`
     """
     result: dict[str, str | int] = {}
-    user = User.get(user_id, session=db.session)
+    user: User = User.get(user_id, session=db.session)  # type: ignore
+    auth_params = get_auth_params(user.id, "email", db.session)
     result = (
         result
         | UserInfo(
             id=user_id,
-            email=user.auth_methods.email.email.value if user.auth_methods.email.email else None,
+            email=auth_params["email"].value if "email" in auth_params else None,
         ).model_dump()
     )
     if "groups" in info:
@@ -72,10 +75,11 @@ async def get_users(
     users = User.query(session=db.session).all()
     result = {}
     result["items"] = []
+    auth_params = get_users_auth_params("email", db.session)
     for user in users:
         add = {
             "id": user.id,
-            "email": user.auth_methods.email.email.value if user.auth_methods.email.email else None,
+            "email": auth_params[user.id]["email"].value if "email" in (auth_params.get(user.id) or []) else None,
         }
         if "groups" in info:
             add["groups"] = [group.id for group in user.groups]

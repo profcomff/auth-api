@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from auth_backend.models.db import AuthMethod
+from auth_backend.utils.auth_params import get_auth_params
 
 
 url = "/email/reset/password"
@@ -18,11 +19,11 @@ def test_unprocessable_jsons_no_token(client_auth: TestClient, dbsession: Sessio
     )
     response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
-
+    auth_params = get_auth_params(user_id, "email", dbsession)
     response = client_auth.post(
         f"{url}/restore",
         json={
-            "email": token.user.auth_methods.email.email.value,
+            "email": auth_params["email"].value,
         },
     )
     assert response.status_code == status.HTTP_200_OK
@@ -88,7 +89,7 @@ def test_unprocessable_jsons_with_token(client_auth: TestClient, dbsession: Sess
     assert response.status_code == status.HTTP_200_OK
 
 
-def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
+def test_no_token(client_auth: TestClient, dbsession: Session, user_id: int):
     token = (
         dbsession.query(AuthMethod)
         .filter(
@@ -96,13 +97,14 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
         )
         .one()
     )
-    response = client_auth.post(f"{url}/restore", json={"email": token.user.auth_methods.email.email.value})
+    auth_params = get_auth_params(user_id, "email", dbsession)
+    response = client_auth.post(f"{url}/restore", json={"email": auth_params["email"].value})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
 
-    response = client_auth.post(f"{url}/restore", json={"email": token.user.auth_methods.email.email.value})
+    response = client_auth.post(f"{url}/restore", json={"email": auth_params["email"].value})
     assert response.status_code == status.HTTP_200_OK
     reset_token: AuthMethod = (
         dbsession.query(AuthMethod)
@@ -110,6 +112,7 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
         .one()
     )
     assert reset_token
+    auth_params = get_auth_params(user_id, "email", dbsession)
 
     response = client_auth.post(
         f"{url}",
@@ -127,13 +130,13 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: str):
 
     response = client_auth.post(
         "/email/login",
-        json={"email": reset_token.user.auth_methods.email.email.value, "password": "string", "scopes": []},
+        json={"email": auth_params["email"].value, "password": "string", "scopes": []},
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     response = client_auth.post(
         "/email/login",
-        json={"email": reset_token.user.auth_methods.email.email.value, "password": "changedstring2", "scopes": []},
+        json={"email": auth_params["email"].value, "password": "changedstring2", "scopes": []},
     )
     assert response.status_code == status.HTTP_200_OK
 
@@ -177,7 +180,7 @@ def test_with_token(client_auth: TestClient, dbsession: Session, user):
     assert response.status_code == status.HTTP_200_OK
 
 
-def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user_id: str):
+def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user_id: int):
     token = (
         dbsession.query(AuthMethod)
         .filter(
@@ -188,8 +191,10 @@ def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user
 
     response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
+    
+    auth_params = get_auth_params(user_id, "email", dbsession)
 
-    response = client_auth.post(f"{url}/restore", json={"email": token.user.auth_methods.email.email.value})
+    response = client_auth.post(f"{url}/restore", json={"email": auth_params["email"].value})
     assert response.status_code == status.HTTP_200_OK
     reset_token_1: AuthMethod = (
         dbsession.query(AuthMethod)
@@ -203,7 +208,7 @@ def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user
     )
     assert reset_token_1
 
-    response = client_auth.post(f"{url}/restore", json={"email": token.user.auth_methods.email.email.value})
+    response = client_auth.post(f"{url}/restore", json={"email": auth_params["email"].value})
     assert response.status_code == status.HTTP_200_OK
     reset_token_2: AuthMethod = (
         dbsession.query(AuthMethod)
