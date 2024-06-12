@@ -3,8 +3,8 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
+from sqlalchemy.orm import Session
 
-from auth_backend.models.base import BaseDbModel
 from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
 from auth_backend.schemas.models import User as UserModel
 from auth_backend.schemas.models import (
@@ -17,7 +17,7 @@ from auth_backend.schemas.models import (
     UserScopes,
     UsersGet,
 )
-from auth_backend.utils.auth_params import get_auth_params, get_users_auth_params
+from auth_backend.utils.auth_params import get_auth_params
 from auth_backend.utils.security import UnionAuth
 
 
@@ -64,6 +64,17 @@ async def get_user(
     return UserGet(**result).model_dump(exclude_unset=True, exclude={"session_scopes"})
 
 
+def get_users_auth_params(auth_method: str, session: Session) -> dict[int, dict[str, AuthMethod]]:
+    """Don't use it in public API routes"""
+    retval = {}
+    methods: list[AuthMethod] = AuthMethod.query(session=session).filter(AuthMethod.auth_method == auth_method).all()
+    for method in methods:
+        if method.user_id not in retval:
+            retval[method.user_id] = {}
+        retval[method.user_id][method.param] = method
+    return retval
+
+
 @user.get("", response_model=UsersGet, response_model_exclude_unset=True)
 async def get_users(
     _: UserSession = Depends(UnionAuth(scopes=["auth.user.read"], allow_none=False, auto_error=True)),
@@ -72,14 +83,19 @@ async def get_users(
     """
     Scopes: `["auth.user.read"]`
     """
+    ##  TODO: Add pagination
     users = User.query(session=db.session).all()
     result = {}
     result["items"] = []
-    auth_params = get_users_auth_params("email", db.session)
+    all_user_auth_params = get_users_auth_params("email", db.session)
     for user in users:
         add = {
             "id": user.id,
-            "email": auth_params[user.id]["email"].value if "email" in (auth_params.get(user.id) or []) else None,
+            "email": (
+                all_user_auth_params[user.id]["email"].value
+                if "email" in (all_user_auth_params.get(user.id) or [])
+                else None
+            ),
         }
         if "groups" in info:
             add["groups"] = [group.id for group in user.groups]
