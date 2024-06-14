@@ -33,7 +33,18 @@ async def get_user(
 ) -> dict[str, Any]:
     """
     Scopes: `["auth.user.read"]`
+
+    Этот эндпоинт предназначен для получения информации о пользователе по ID.
+    Args:
+        user_id: int: ID пользователя,
+        info: list[Literal["groups", "indirect_groups", "scopes", "auth_methods"]] | None:
+            Опциональный список запрашиваемой информации.
+        _: UserSession: Сессия пользователя, которая не может быть None.
+    Returns:
+        dict[str, Any]: Информация о пользователе,
+        исключая не запрошенные поля и session_scopes.
     """
+
     result: dict[str, str | int] = {}
     user: User = User.get(user_id, session=db.session)  # type: ignore
     auth_params = get_auth_params(user.id, "email", db.session)
@@ -82,6 +93,17 @@ async def get_users(
 ) -> dict[str, Any]:
     """
     Scopes: `["auth.user.read"]`
+
+    Эндпоинт предназначен для получения информации о пользователях на основе указанных параметров.
+
+    Args:
+        _: UserSession: Сессия пользователя, которая не может быть None.
+        info: list[Literal["groups", "indirect_groups", "scopes"]] | None:
+            Опциональный список запрашиваемой информации.
+
+    Returns:
+        dict[str, Any]: Информация о пользователях,
+        исключая не запрошенные поля
     """
     ##  TODO: Add pagination
     users = User.query(session=db.session).all()
@@ -115,6 +137,15 @@ async def patch_user(
 ) -> UserInfo:
     """
     Scopes: `["auth.user.update"]`
+
+    Предназначен для обновления информации о пользователе, включая связанные с ним группы.
+
+    Args:
+        user_id: int: ID пользователя, информацию которого нужно обновить.
+        user_inp: UserPatch: Данные с информацией для обновления пользователя.
+        _: UserSession: Сессия пользователя, которая не может быть None.
+    Returns:
+        Возвращает обновленную информацию о пользователе.
     """
     user = User.get(user_id, session=db.session)
     groups = set()
@@ -144,6 +175,14 @@ async def delete_user(
 ) -> None:
     """
     Scopes: `["auth.user.delete"]`
+
+    Предназначен для удаления информации о пользователе.
+
+    Args:
+        user_id: int: ID пользователя, информацию о котором нужно удалить.
+        current_user: UserSession: Сессия пользователя, которая НЕ может быть None.
+    Returns:
+        None
     """
     logger.debug(f'User id={current_user.id} triggered delete_user')
     user: User = User.get(user_id, session=db.session)
