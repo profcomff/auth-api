@@ -9,12 +9,13 @@ if TYPE_CHECKING:
 settings = get_settings()
 
 
-def is_method_active(method: type[AuthMethodMeta]) -> bool:
+def is_method_active(method: type['AuthMethodMeta']) -> bool:
     return settings.ENABLED_AUTH_METHODS is None or method.get_name() in settings.ENABLED_AUTH_METHODS
 
 
-def active_auth_methods() -> Iterable[type[AuthMethodMeta]]:
+def active_auth_methods() -> Iterable[type['AuthMethodMeta']]:
     from auth_backend.auth_plugins.auth_method import AUTH_METHODS
+
     for method in AUTH_METHODS.values():
-        if settings.ENABLED_AUTH_METHODS is None or method.get_name() in settings.ENABLED_AUTH_METHODS:
+        if is_method_active(method):
             yield method
