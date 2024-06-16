@@ -1,16 +1,24 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi_sqlalchemy import DBSessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
 from auth_backend import __version__
-from auth_backend.auth_plugins.auth_method import AUTH_METHODS
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.settings import get_settings
+from auth_backend.utils.auth_methods import active_auth_methods
 
 from .groups import groups
 from .scopes import scopes
 from .user import user
 from .user_session import user_session
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await get_kafka_producer().close()
 
 
 settings = get_settings()
@@ -33,7 +41,6 @@ app.add_middleware(
     engine_args={"pool_pre_ping": True, "isolation_level": "AUTOCOMMIT"},
 )
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOW_ORIGINS,
@@ -42,17 +49,10 @@ app.add_middleware(
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
-
-@app.on_event("shutdown")
-async def on_shutdown():
-    await get_kafka_producer().close()
-
-
 app.include_router(user_session)
 app.include_router(groups)
 app.include_router(scopes)
 app.include_router(user)
 
-for method in AUTH_METHODS.values():
-    if settings.ENABLED_AUTH_METHODS is None or method.get_name() in settings.ENABLED_AUTH_METHODS:
-        app.include_router(router=method().router, prefix=method.prefix, tags=[method.get_name()])
+for method in active_auth_methods():
+    app.include_router(router=method().router, prefix=method.prefix, tags=[method.get_name()])

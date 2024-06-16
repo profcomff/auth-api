@@ -5,8 +5,9 @@ import random
 import re
 import string
 from abc import ABCMeta, abstractmethod
+from asyncio import gather
 from datetime import datetime
-from typing import Any, final
+from typing import Annotated, Any, final
 
 from event_schema.auth import UserLogin, UserLoginKey
 from fastapi import APIRouter, Depends
@@ -15,10 +16,11 @@ from pydantic import constr
 from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.base import Base
-from auth_backend.exceptions import AlreadyExists, LastAuthMethodDelete
+from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from auth_backend.settings import get_settings
+from auth_backend.utils.auth_methods import active_auth_methods
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.user_session_control import create_session
 
@@ -32,7 +34,7 @@ def random_string(length: int = 32) -> str:
 
 
 class Session(Base):
-    token: constr(min_length=1)
+    token: Annotated[str, constr(min_length=1)]
     expires: datetime
     id: int
     user_id: int
@@ -127,6 +129,30 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @abstractmethod
     async def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
         raise NotImplementedError()
+
+    @classmethod
+    async def user_updated(
+        new_user: dict[str, Any],
+        old_user: dict[str, Any] | None = None,
+    ):
+        """Сообщить всем активированным провайдерам авторизации об обновлении пользователя
+
+        Каждый AuthMethod должен вызывать эту функцию при создании или изменении пользователя, но
+        не более одного раза на один запрос пользователя на изменение. При вызове во всех
+        активированных (включенных в настройках) AuthMethod выполняется функция on_user_update.
+        """
+        excs = await gather(
+            *[m.on_user_update(new_user, old_user) for m in active_auth_methods()],
+            return_exceptions=True,
+        )
+        if len(excs) > 0:
+            logger.error("Following errors occurred during on_user_update: ")
+            for i in excs:
+                logger.error(i)
+
+    @classmethod
+    async def on_user_update(new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
+        """Произвести действия на обновление пользователя, в т.ч. обновление в другх провайдерах"""
 
 
 class OauthMeta(AuthMethodMeta):

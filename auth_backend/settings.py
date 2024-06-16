@@ -2,6 +2,7 @@ import os
 import random
 import string
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import PostgresDsn, conint
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -26,7 +27,7 @@ class Settings(BaseSettings):
     SMTP_HOST: str = 'smtp.gmail.com'
     SMTP_PORT: int = 587
     ENABLED_AUTH_METHODS: list[str] | None = None
-    TOKEN_LENGTH: conint(gt=8) = 64
+    TOKEN_LENGTH: Annotated[int, conint(gt=8)] = 64
     SESSION_TIME_IN_DAYS: int = 30
 
     MAX_RETRIES: int = 10
