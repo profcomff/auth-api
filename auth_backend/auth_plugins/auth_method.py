@@ -130,7 +130,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
     async def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
         raise NotImplementedError()
 
-    @classmethod
+    @staticmethod
     async def user_updated(
         new_user: dict[str, Any],
         old_user: dict[str, Any] | None = None,
@@ -150,7 +150,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
             for i in excs:
                 logger.error(i)
 
-    @classmethod
+    @staticmethod
     async def on_user_update(new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
         """Произвести действия на обновление пользователя, в т.ч. обновление в другх провайдерах"""
 
