@@ -132,7 +132,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     @staticmethod
     async def user_updated(
-        new_user: dict[str, Any],
+        new_user: dict[str, Any] | None,
         old_user: dict[str, Any] | None = None,
     ):
         """Сообщить всем активированным провайдерам авторизации об обновлении пользователя
