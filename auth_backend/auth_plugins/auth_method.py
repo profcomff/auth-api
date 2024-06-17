@@ -151,7 +151,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     @staticmethod
     async def on_user_update(new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
-        """Произвести действия на обновление пользователя, в т.ч. обновление в другх провайдерах"""
+        """Произвести действия на обновление пользователя, в т.ч. обновление в других провайдерах"""
 
     @classmethod
     def is_active(cls):
