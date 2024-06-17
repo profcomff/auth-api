@@ -1,14 +1,11 @@
 import logging
-
-from auth_backend.auth_method.base import AuthPluginMeta
-from auth_backend.utils.auth_params import get_auth_params
-
+from abc import ABCMeta, abstractmethod
+from typing import Any
 
 from fastapi_sqlalchemy import db
 
-
-from abc import ABCMeta, abstractmethod
-from typing import Any
+from auth_backend.auth_method.base import AuthPluginMeta
+from auth_backend.utils.auth_params import get_auth_params
 
 
 logger = logging.getLogger(__name__)
@@ -16,12 +13,10 @@ logger = logging.getLogger(__name__)
 
 class OuterAuthException(Exception):
     """Базовый класс для исключений внешнего сервиса"""
-    pass
 
 
 class OuterAuthCommunicationException(OuterAuthException):
     """Ошибка коммуникации с внешним сервисом"""
-    pass
 
 
 class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):

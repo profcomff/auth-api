@@ -1,12 +1,8 @@
-from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
 import pytest
 
 from auth_backend.auth_method import OuterAuthMeta
-
-if TYPE_CHECKING:
-    from unittest.mock import _patch_default_new as patch_type
 
 
 class Test(OuterAuthMeta):
