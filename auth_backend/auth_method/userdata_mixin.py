@@ -3,10 +3,10 @@ from typing import Any, final
 
 from event_schema.auth import UserLogin, UserLoginKey
 
-from .base import AuthMethodMeta
+from .base import AuthPluginMeta
 
 
-class UserdataMixin(AuthMethodMeta, metaclass=ABCMeta):
+class UserdataMixin(AuthPluginMeta, metaclass=ABCMeta):
     """Включает поддержку отправки данных о пользователе в сервис Userdata API
 
     Подробнее о Userdata API: https://github.com/profcomff/userdata-api

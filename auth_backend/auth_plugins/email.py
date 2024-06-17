@@ -10,7 +10,7 @@ from fastapi_sqlalchemy import db
 from pydantic import field_validator, model_validator
 from sqlalchemy import func
 
-from auth_backend.auth_method import AuthMethodMeta, LoginableMixin, RegistrableMixin, Session, UserdataMixin
+from auth_backend.auth_method import AuthPluginMeta, LoginableMixin, RegistrableMixin, Session, UserdataMixin
 from auth_backend.base import Base, StatusResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
 from auth_backend.kafka.kafka import get_kafka_producer
@@ -103,7 +103,7 @@ class ResetForgottenPassword(Base):
     new_password: Annotated[str, MinLen(1)]
 
 
-class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
+class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
     prefix = "/email"
 
     @staticmethod
@@ -250,7 +250,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
         old_user = None
         if user_session:
             old_user = {"user_id": user_session.user.id}
-        await AuthMethodMeta.user_updated({"user_id": user.id, Email.get_name(): method_params}, old_user)
+        await AuthPluginMeta.user_updated({"user_id": user.id, Email.get_name(): method_params}, old_user)
 
         db.session.commit()
         return StatusResponseModel(
@@ -294,7 +294,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
             userdata,
             bg_tasks=background_tasks,
         )
-        await AuthMethodMeta.user_updated(
+        await AuthPluginMeta.user_updated(
             {"user_id": auth_method.user.id, Email.get_name(): {"confirmed": True}},
             {"user_id": auth_method.user.id, Email.get_name(): {"confirmed": False}},
         )
@@ -355,7 +355,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
             background_tasks=background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
         )
-        await AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
@@ -404,7 +404,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
         await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata, bg_tasks=background_tasks
         )
-        await AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email successfully changed", ru="Почта изменена")
 
@@ -448,7 +448,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
             dbsession=db.session,
             background_tasks=background_tasks,
         )
-        await AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Password has been successfully changed", ru="Пароль изменен"
@@ -514,7 +514,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
             background_tasks=background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_params['reset_token'].value}",
         )
-        await AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Reset link has been successfully mailed", ru="Ссылка отправлена на почту"
@@ -550,7 +550,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
         auth_params["salt"].value = salt
         new_user[Email.get_name()]["salt"] = auth_params["salt"].value
         auth_params["reset_token"].is_deleted = True
-        await AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Password has been successfully changed", ru="Пароль изменен"

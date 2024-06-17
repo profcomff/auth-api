@@ -1,10 +1,10 @@
 from abc import ABCMeta, abstractmethod
 
-from .base import AuthMethodMeta
+from .base import AuthPluginMeta
 from .session import Session
 
 
-class RegistrableMixin(AuthMethodMeta, metaclass=ABCMeta):
+class RegistrableMixin(AuthPluginMeta, metaclass=ABCMeta):
     """Сообщает что AuthMethod поддерживает регистрацию
 
     Обязывает AuthMethod иметь метод `_register`, который используется как апи-запрос `/registration`
@@ -20,7 +20,7 @@ class RegistrableMixin(AuthMethodMeta, metaclass=ABCMeta):
         raise NotImplementedError()
 
 
-class LoginableMixin(AuthMethodMeta, metaclass=ABCMeta):
+class LoginableMixin(AuthPluginMeta, metaclass=ABCMeta):
     """Сообщает что AuthMethod поддерживает вход
 
     Обязывает AuthMethod иметь метод `_login`, который используется как апи-запрос `/login`

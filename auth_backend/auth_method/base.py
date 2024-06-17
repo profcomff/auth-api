@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-AUTH_METHODS: dict[str, type[AuthMethodMeta]] = {}
+AUTH_METHODS: dict[str, type[AuthPluginMeta]] = {}
 
 
-class AuthMethodMeta(metaclass=ABCMeta):
+class AuthPluginMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
@@ -124,7 +124,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
         ```
         """
         exceptions = await gather(
-            *[m.on_user_update(new_user, old_user) for m in AuthMethodMeta.active_auth_methods()],
+            *[m.on_user_update(new_user, old_user) for m in AuthPluginMeta.active_auth_methods()],
             return_exceptions=True,
         )
         if len(exceptions) > 0:
@@ -144,7 +144,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
         return settings.ENABLED_AUTH_METHODS is None or cls.get_name() in settings.ENABLED_AUTH_METHODS
 
     @staticmethod
-    def active_auth_methods() -> Iterable[type['AuthMethodMeta']]:
+    def active_auth_methods() -> Iterable[type['AuthPluginMeta']]:
         for method in AUTH_METHODS.values():
             if method.is_active():
                 yield method

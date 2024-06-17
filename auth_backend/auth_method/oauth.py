@@ -10,7 +10,7 @@ from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.utils.security import UnionAuth
 
-from .base import AuthMethodMeta
+from .base import AuthPluginMeta
 from .method_mixins import LoginableMixin, RegistrableMixin
 from .userdata_mixin import UserdataMixin
 
@@ -18,7 +18,7 @@ from .userdata_mixin import UserdataMixin
 logger = logging.getLogger(__name__)
 
 
-class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
+class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
     """Абстрактная авторизация и аутентификация через OAuth"""
 
     class UrlSchema(Base):
@@ -49,7 +49,7 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta)
         new_user = {"user_id": user_session.user.id}
         old_user_params = await cls._delete_auth_methods(user_session.user, db_session=db.session)
         old_user[cls.get_name()] = old_user_params
-        await AuthMethodMeta.user_updated(new_user, old_user)
+        await AuthPluginMeta.user_updated(new_user, old_user)
         return None
 
     @classmethod
