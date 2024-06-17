@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session
 
+from auth_backend.auth_plugins.auth_method import AuthMethodMeta
 from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
 from auth_backend.schemas.models import User as UserModel
 from auth_backend.schemas.models import (
@@ -36,7 +37,7 @@ async def get_user(
     """
     result: dict[str, str | int] = {}
     user: User = User.get(user_id, session=db.session)  # type: ignore
-    auth_params = get_auth_params(user.id, "email", db.session)
+    auth_params = get_auth_params(user.id, "email", session=db.session)
     result = (
         result
         | UserInfo(
@@ -146,12 +147,20 @@ async def delete_user(
     Scopes: `["auth.user.delete"]`
     """
     logger.debug(f'User id={current_user.id} triggered delete_user')
+    old_user = {"user_id": current_user.id}
     user: User = User.get(user_id, session=db.session)
+
     for method in user._auth_methods:
+        if method.is_deleted:
+            continue
+        # Сохраняем старое состояние пользователя
+        if method.auth_method not in old_user:
+            old_user[method.auth_method] = {}
+        old_user[method.auth_method][method.param] = method.value
+        # Удаляем AuthMethod
         AuthMethod.delete(method.id, session=db.session)
         logger.info(f'{method=} for {user.id=} deleted')
 
     User.delete(user_id, session=db.session)
+    await AuthMethodMeta.user_updated(None, old_user)
     logger.info(f'{user=} deleted')
-
-    return None

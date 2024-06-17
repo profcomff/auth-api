@@ -5,17 +5,18 @@ import random
 import re
 import string
 from abc import ABCMeta, abstractmethod
+from asyncio import gather
 from datetime import datetime
-from typing import Any, final
+from typing import Annotated, Any, Iterable, final
 
+from annotated_types import MinLen
 from event_schema.auth import UserLogin, UserLoginKey
 from fastapi import APIRouter, Depends
 from fastapi_sqlalchemy import db
-from pydantic import constr
 from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.base import Base
-from auth_backend.exceptions import AlreadyExists, LastAuthMethodDelete
+from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from auth_backend.settings import get_settings
@@ -32,7 +33,7 @@ def random_string(length: int = 32) -> str:
 
 
 class Session(Base):
-    token: constr(min_length=1)
+    token: Annotated[str, MinLen(1)]
     expires: datetime
     id: int
     user_id: int
@@ -128,6 +129,75 @@ class AuthMethodMeta(metaclass=ABCMeta):
     async def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
         raise NotImplementedError()
 
+    @staticmethod
+    async def user_updated(
+        new_user: dict[str, Any] | None,
+        old_user: dict[str, Any] | None = None,
+    ):
+        """Сообщить всем активированным провайдерам авторизации об обновлении пользователя
+
+        Каждый AuthMethod должен вызывать эту функцию при создании или изменении пользователя, но
+        не более одного раза на один запрос пользователя на изменение. При вызове во всех
+        активированных (включенных в настройках) AuthMethod выполняется функция on_user_update.
+
+        ## Diff-пользователя
+        `new_user` и `old_user` – словари, представляющие изменения в данных пользователя.
+
+        Если `new_user` равен `None`, то пользователь был удален. Если `old_user` равен `None`, то
+        пользователь был создан. В остальных случаях словарь, в котором обязательно есть ключ
+        `user_id`.
+
+        Словарь может содержать ключи с названиями AuthMethod, в которых данные изменились. В
+        значениях будут находиться словари с ключами `param` и значениями `value` параметров
+        AuthMethod.
+
+        ### Примеры:
+
+        Пользователь id=1 был удален, вместе с ним были удалены параметры email метода Email и
+        user_id метода GitHub.
+        ```python
+        new_user = None
+        old_user = {'user_id': 1, "email": {"email": "user@example.com"}, "github": {"user_id": "123"}}
+        ```
+
+        Пользователь id=2 сменил пароль.
+        ```python
+        new_user = {
+            "user_id": 2,
+            "email": {"hashed_password": "somerandomshit", "salt": "blahblah"}
+        }
+        old_user = {
+            "user_id": 2,
+            "email": {"hashed_password": "tihsmodnaremos", "salt": "abracadabra", "password": "plain_password"}
+        }
+        ```
+        """
+        exceptions = await gather(
+            *[m.on_user_update(new_user, old_user) for m in AuthMethodMeta.active_auth_methods()],
+            return_exceptions=True,
+        )
+        if len(exceptions) > 0:
+            logger.error("Following errors occurred during on_user_update: ")
+            for exc in exceptions:
+                logger.error(exc)
+
+    @staticmethod
+    async def on_user_update(new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
+        """Произвести действия на обновление пользователя, в т.ч. обновление в других провайдерах
+
+        Описания входных параметров соответствует параметрам `AuthMethodMeta.user_updated`.
+        """
+
+    @classmethod
+    def is_active(cls):
+        return settings.ENABLED_AUTH_METHODS is None or cls.get_name() in settings.ENABLED_AUTH_METHODS
+
+    @staticmethod
+    def active_auth_methods() -> Iterable[type['AuthMethodMeta']]:
+        for method in AUTH_METHODS.values():
+            if method.is_active():
+                yield method
+
 
 class OauthMeta(AuthMethodMeta):
     """Абстрактная авторизация и аутентификация через OAuth"""
@@ -156,7 +226,11 @@ class OauthMeta(AuthMethodMeta):
     @classmethod
     async def _unregister(cls, user_session: UserSession = Depends(UnionAuth(scopes=[], auto_error=True))):
         """Отключает для пользователя метод входа"""
-        await cls._delete_auth_methods(user_session.user, db_session=db.session)
+        old_user = {"user_id": user_session.user.id}
+        new_user = {"user_id": user_session.user.id}
+        old_user_params = await cls._delete_auth_methods(user_session.user, db_session=db.session)
+        old_user[cls.get_name()] = old_user_params
+        await AuthMethodMeta.user_updated(new_user, old_user)
         return None
 
     @classmethod
@@ -175,9 +249,9 @@ class OauthMeta(AuthMethodMeta):
             return auth_method.user
 
     @classmethod
-    async def _register_auth_method(cls, key: str, value: str | int, user: User, *, db_session):
+    async def _register_auth_method(cls, key: str, value: str | int, user: User, *, db_session) -> AuthMethod:
         """Добавление пользователю новый AuthMethod"""
-        AuthMethod.create(
+        return AuthMethod.create(
             user_id=user.id,
             auth_method=cls.get_name(),
             param=key,
@@ -186,9 +260,9 @@ class OauthMeta(AuthMethodMeta):
         )
 
     @classmethod
-    async def _delete_auth_methods(cls, user: User, *, db_session):
+    async def _delete_auth_methods(cls, user: User, *, db_session) -> list[AuthMethod]:
         """Удаляет пользователю все AuthMethod конкретной авторизации"""
-        auth_methods = (
+        auth_methods: list[AuthMethod] = (
             AuthMethod.query(session=db_session)
             .filter(
                 AuthMethod.user_id == user.id,
@@ -203,6 +277,7 @@ class OauthMeta(AuthMethodMeta):
         for method in auth_methods:
             method.is_deleted = True
         db_session.flush()
+        return {m.param: m.value for m in auth_methods}
 
     @classmethod
     def userdata_process_empty_strings(cls, userdata: UserLogin) -> UserLogin:

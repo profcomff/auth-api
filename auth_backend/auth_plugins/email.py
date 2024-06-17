@@ -1,12 +1,13 @@
 import hashlib
 import logging
-from typing import Self
+from typing import Annotated, Self
 
+from annotated_types import MinLen
 from event_schema.auth import UserLogin
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
-from pydantic import constr, field_validator, model_validator
+from pydantic import field_validator, model_validator
 from sqlalchemy import func
 
 from auth_backend.base import Base, StatusResponseModel
@@ -61,28 +62,28 @@ def check_email(v):
 
 
 class EmailLogin(Base):
-    email: constr(min_length=1)
-    password: constr(min_length=1)
+    email: Annotated[str, MinLen(1)]
+    password: Annotated[str, MinLen(1)]
     scopes: list[Scope] | None = None
     session_name: str | None = None
     email_validator = field_validator("email")(check_email)
 
 
 class EmailRegister(Base):
-    email: constr(min_length=1)
-    password: constr(min_length=1)
+    email: Annotated[str, MinLen(1)]
+    password: Annotated[str, MinLen(1)]
     email_validator = field_validator("email")(check_email)
 
 
 class EmailChange(Base):
-    email: constr(min_length=1)
+    email: Annotated[str, MinLen(1)]
 
     email_validator = field_validator("email")(check_email)
 
 
 class ResetPassword(Base):
-    password: constr(min_length=1)
-    new_password: constr(min_length=1)
+    password: Annotated[str, MinLen(1)]
+    new_password: Annotated[str, MinLen(1)]
 
     @model_validator(mode="after")
     def check_passwords_dont_match(self) -> Self:
@@ -93,13 +94,13 @@ class ResetPassword(Base):
 
 
 class RequestResetForgottenPassword(Base):
-    email: constr(min_length=1)
+    email: Annotated[str, MinLen(1)]
 
     email_validator = field_validator("email")(check_email)
 
 
 class ResetForgottenPassword(Base):
-    new_password: constr(min_length=1)
+    new_password: Annotated[str, MinLen(1)]
 
 
 class Email(AuthMethodMeta):
@@ -107,7 +108,7 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     def _get_email_params(user_id: int) -> dict[str, AuthMethod]:
-        return get_auth_params(user_id, "email", db.session)
+        return get_auth_params(user_id, Email.get_name(), db.session)
 
     def __init__(self):
         super().__init__()
@@ -173,18 +174,19 @@ class Email(AuthMethodMeta):
         )
 
     @staticmethod
-    async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> None:
+    async def _add_to_db(user_inp: EmailRegister, confirmation_token: str, user: User) -> dict:
         salt = random_string()
         hashed_password = Email._hash_password(user_inp.password, salt)
-        map = {
+        method_params = {
             "email": user_inp.email,
             "hashed_password": hashed_password,
             "salt": salt,
             "confirmed": str(False),
             "confirmation_token": confirmation_token,
         }
-        for k, v in map.items():
+        for k, v in method_params.items():
             AuthMethod.create(user_id=user.id, auth_method="email", param=k, value=v, session=db.session)
+        return method_params
 
     @staticmethod
     async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
@@ -233,7 +235,8 @@ class Email(AuthMethodMeta):
                 raise SessionExpired(user_session.token)
         else:
             user = await cls._create_user(db_session=db.session)
-        await Email._add_to_db(user_inp, confirmation_token, user)
+        method_params = await Email._add_to_db(user_inp, confirmation_token, user)
+        method_params["password"] = user_inp.password  # В user_updated передаем пароль в открытую
         SendEmailMessage.send(
             user_inp.email,
             request.client.host,
@@ -243,6 +246,12 @@ class Email(AuthMethodMeta):
             background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
         )
+
+        old_user = None
+        if user_session:
+            old_user = {"user_id": user_session.user.id}
+        await AuthMethodMeta.user_updated({"user_id": user.id, Email.get_name(): method_params}, old_user)
+
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
@@ -260,7 +269,7 @@ class Email(AuthMethodMeta):
 
     @staticmethod
     async def _approve_email(token: str, background_tasks: BackgroundTasks) -> StatusResponseModel:
-        auth_method = (
+        auth_method: AuthMethod | None = (
             AuthMethod.query(session=db.session)
             .filter(
                 AuthMethod.value == token,
@@ -285,11 +294,16 @@ class Email(AuthMethodMeta):
             userdata,
             bg_tasks=background_tasks,
         )
+        await AuthMethodMeta.user_updated(
+            {"user_id": auth_method.user.id, Email.get_name(): {"confirmed": True}},
+            {"user_id": auth_method.user.id, Email.get_name(): {"confirmed": False}},
+        )
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email approved", ru="Почта подтверждена")
 
-    @staticmethod
+    @classmethod
     async def _request_reset_email(
+        cls,
         request: Request,
         scheme: EmailChange,
         background_tasks: BackgroundTasks,
@@ -310,9 +324,14 @@ class Email(AuthMethodMeta):
                     status="Error", message="Email incorrect", ru="Некорректная почта"
                 ).model_dump(),
             )
+
+        old_user = {"user_id": user_session.user_id, cls.get_name(): {}}
+        new_user = {"user_id": user_session.user_id, cls.get_name(): {}}
         token = random_string(length=settings.TOKEN_LENGTH)
         if "tmp_email" in auth_params:
+            old_user[cls.get_name()]["tmp_email"] = auth_params["tmp_email"].value
             auth_params["tmp_email"].is_deleted = True
+            old_user[cls.get_name()]["tmp_email_confirmation_token"] = auth_params["tmp_email_confirmation_token"].value
             auth_params["tmp_email_confirmation_token"].is_deleted = True
             db.session.flush()
         AuthMethod.create(
@@ -322,10 +341,11 @@ class Email(AuthMethodMeta):
             value=token,
             session=db.session,
         )
+        new_user[cls.get_name()]["tmp_email_confirmation_token"] = token
         AuthMethod.create(
             user_id=user_session.user_id, auth_method="email", param="tmp_email", value=scheme.email, session=db.session
         )
-
+        new_user[cls.get_name()]["tmp_email"] = scheme.email
         SendEmailMessage.send(
             to_email=scheme.email,
             ip=request.client.host,
@@ -335,6 +355,7 @@ class Email(AuthMethodMeta):
             background_tasks=background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
         )
+        await AuthMethodMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
@@ -364,13 +385,26 @@ class Email(AuthMethodMeta):
                 "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
                 "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту",
             )
+        old_user = {
+            "user_id": user.id,
+            Email.get_name(): {
+                "email": auth_params["email"].value,
+                "tmp_email": auth_params["tmp_email"].value,
+                "tmp_email_confirmation_token": auth_params["tmp_email_confirmation_token"].value,
+            },
+        }
         auth_params["email"].value = auth_params["tmp_email"].value
         auth_params["tmp_email_confirmation_token"].is_deleted = True
         auth_params["tmp_email"].is_deleted = True
+        new_user = {
+            "user_id": user.id,
+            Email.get_name(): {"email": auth_params["email"].value},
+        }
         userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
         await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata, bg_tasks=background_tasks
         )
+        await AuthMethodMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email successfully changed", ru="Почта изменена")
 
@@ -381,6 +415,8 @@ class Email(AuthMethodMeta):
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
     ) -> StatusResponseModel:
+        old_user = {"user_id": user_session.user_id, Email.get_name(): {}}
+        new_user = {"user_id": user_session.user_id, Email.get_name(): {}}
         auth_params = Email._get_email_params(user_session.user.id)
         if "email" not in auth_params:
             raise HTTPException(
@@ -398,8 +434,12 @@ class Email(AuthMethodMeta):
             auth_params["salt"].value,
         ):
             raise AuthFailed("Incorrect password", "Неправильный пароль")
+        old_user[Email.get_name()]["hashed_password"] = auth_params["hashed_password"].value
+        old_user[Email.get_name()]["salt"] = auth_params["salt"].value
         auth_params["hashed_password"].value = Email._hash_password(schema.new_password, salt)
         auth_params["salt"].value = salt
+        new_user[Email.get_name()]["hashed_password"] = auth_params["hashed_password"].value
+        new_user[Email.get_name()]["salt"] = auth_params["salt"].value
         SendEmailMessage.send(
             to_email=auth_params["email"].value,
             ip=request.client.host,
@@ -408,6 +448,7 @@ class Email(AuthMethodMeta):
             dbsession=db.session,
             background_tasks=background_tasks,
         )
+        await AuthMethodMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Password has been successfully changed", ru="Пароль изменен"
@@ -434,6 +475,8 @@ class Email(AuthMethodMeta):
                 ).model_dump(),
             )
         auth_params = Email._get_email_params(auth_method_email.user.id)
+        old_user = {"user_id": auth_method_email.user.id, Email.get_name(): {}}
+        new_user = {"user_id": auth_method_email.user.id, Email.get_name(): {}}
         if "email" not in auth_params:
             raise HTTPException(
                 status_code=401,
@@ -449,15 +492,18 @@ class Email(AuthMethodMeta):
                 "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту",
             )
         if "reset_token" in auth_params:
+            old_user[Email.get_name()]["reset_token"] = auth_params["reset_token"].value
             auth_params["reset_token"].is_deleted = True
             db.session.flush()
+        reset_token_value = random_string(length=settings.TOKEN_LENGTH)
         AuthMethod.create(
             user_id=auth_method_email.user.id,
             auth_method="email",
             param="reset_token",
-            value=random_string(length=settings.TOKEN_LENGTH),
+            value=reset_token_value,
             session=db.session,
         )
+        new_user[Email.get_name()]["reset_token"] = reset_token_value
         auth_params = Email._get_email_params(auth_method_email.user.id)
         SendEmailMessage.send(
             to_email=auth_params["email"].value,
@@ -468,6 +514,8 @@ class Email(AuthMethodMeta):
             background_tasks=background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_params['reset_token'].value}",
         )
+        await AuthMethodMeta.user_updated(old_user, new_user)
+        db.session.commit()
         return StatusResponseModel(
             status="Success", message="Reset link has been successfully mailed", ru="Ссылка отправлена на почту"
         )
@@ -493,10 +541,16 @@ class Email(AuthMethodMeta):
                 ).model_dump(),
             )
         auth_params = Email._get_email_params(auth_method.user.id)
+        old_user = {"user_id": auth_method.user.id, Email.get_name(): {"reset_token": auth_params["reset_token"].value}}
+        new_user = {"user_id": auth_method.user.id, Email.get_name(): {}}
         salt = random_string()
         auth_params["hashed_password"].value = Email._hash_password(schema.new_password, salt)
+        new_user[Email.get_name()]["password"] = schema.new_password  # В user_updated передаем пароль в открытую
+        new_user[Email.get_name()]["hashed_password"] = auth_params["hashed_password"].value
         auth_params["salt"].value = salt
+        new_user[Email.get_name()]["salt"] = auth_params["salt"].value
         auth_params["reset_token"].is_deleted = True
+        await AuthMethodMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Password has been successfully changed", ru="Пароль изменен"

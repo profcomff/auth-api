@@ -12,13 +12,13 @@ from starlette.background import BackgroundTasks
 
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.string import concantenate_strings
 
-from .auth_method import OauthMeta, Session
+from .auth_method import AuthMethodMeta, OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -57,6 +57,8 @@ class LkmsuAuth(OauthMeta):
         аккаунту в активной сессии. Иначе, создает новый пользователь и делает https://lk.msu.ru
         первым методом входа.
         """
+        old_user = None
+        new_user = {}
         payload = {
             "grant_type": "authorization_code",
             "code": user_inp.code,
@@ -95,7 +97,10 @@ class LkmsuAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', lk_user_id, user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        lk_id = await cls._register_auth_method('user_id', lk_user_id, user, db_session=db.session)
+        new_user = {cls.get_name(): {"user_id": lk_id.value}}
         userdata = await LkmsuAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
@@ -103,6 +108,7 @@ class LkmsuAuth(OauthMeta):
             userdata,
             bg_tasks=background_tasks,
         )
+        await AuthMethodMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
