@@ -132,8 +132,8 @@ class AuthPluginMeta(metaclass=ABCMeta):
             for exc in exceptions:
                 logger.error(exc)
 
-    @staticmethod
-    async def on_user_update(new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
+    @classmethod
+    async def on_user_update(cls, new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
         """Произвести действия на обновление пользователя, в т.ч. обновление в других провайдерах
 
         Описания входных параметров соответствует параметрам `AuthMethodMeta.user_updated`.
