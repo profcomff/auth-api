@@ -1,7 +1,6 @@
-from abc import abstractmethod
 import logging
+from abc import abstractmethod
 
-from event_schema.auth import UserLogin
 from fastapi import Depends
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session as DbSession
@@ -13,12 +12,13 @@ from auth_backend.utils.security import UnionAuth
 
 from .base import AuthMethodMeta
 from .method_mixins import LoginableMixin, RegistrableMixin
+from .userdata_mixin import UserdataMixin
 
 
 logger = logging.getLogger(__name__)
 
 
-class OauthMeta(LoginableMixin, RegistrableMixin, AuthMethodMeta):
+class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthMethodMeta):
     """Абстрактная авторизация и аутентификация через OAuth"""
 
     class UrlSchema(Base):
@@ -97,11 +97,3 @@ class OauthMeta(LoginableMixin, RegistrableMixin, AuthMethodMeta):
             method.is_deleted = True
         db_session.flush()
         return {m.param: m.value for m in auth_methods}
-
-    @classmethod
-    def userdata_process_empty_strings(cls, userdata: UserLogin) -> UserLogin:
-        '''Изменяет значения с пустыми строками в параметре категории юзердаты на None'''
-        for item in userdata.items:
-            if item.value == '':
-                item.value = None
-        return userdata

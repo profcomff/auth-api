@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import logging
 import re
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 from asyncio import gather
-from typing import Any, Iterable, final
+from typing import Any, Iterable
 
-from event_schema.auth import UserLogin, UserLoginKey
 from fastapi import APIRouter
 from sqlalchemy.orm import Session as DbSession
 
@@ -45,20 +44,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
         AUTH_METHODS[cls.__name__] = cls
 
     @staticmethod
-    @final
-    def generate_kafka_key(user_id: int) -> UserLoginKey:
-        """
-        Мы генерируем ключи так как для сообщений с одинаковыми ключами
-        Kafka гарантирует последовательность чтений
-        Args:
-            user_id: Айди пользователя
-
-        Returns:
-            Ничего
-        """
-        return UserLoginKey.model_validate({"user_id": user_id})
-
-    @staticmethod
     async def _create_session(
         user: User, scopes_list_names: list[TypeScope] | None, session_name: str | None = None, *, db_session: DbSession
     ) -> Session:
@@ -94,11 +79,6 @@ class AuthMethodMeta(metaclass=ABCMeta):
         if user_session and (not user_session.expired or with_expired):
             return user_session.user
         return
-
-    @classmethod
-    @abstractmethod
-    async def _convert_data_to_userdata_format(cls, data: Any) -> UserLogin:
-        raise NotImplementedError()
 
     @staticmethod
     async def user_updated(

@@ -1,9 +1,15 @@
 from abc import ABCMeta, abstractmethod
+
 from .base import AuthMethodMeta
 from .session import Session
 
 
 class RegistrableMixin(AuthMethodMeta, metaclass=ABCMeta):
+    """Сообщает что AuthMethod поддерживает регистрацию
+
+    Обязывает AuthMethod иметь метод `_register`, который используется как апи-запрос `/registration`
+    """
+
     def __init__(self):
         super().__init__()
         self.router.add_api_route("/registration", self._register, methods=["POST"])
@@ -15,6 +21,11 @@ class RegistrableMixin(AuthMethodMeta, metaclass=ABCMeta):
 
 
 class LoginableMixin(AuthMethodMeta, metaclass=ABCMeta):
+    """Сообщает что AuthMethod поддерживает вход
+
+    Обязывает AuthMethod иметь метод `_login`, который используется как апи-запрос `/login`
+    """
+
     def __init__(self):
         super().__init__()
         self.router.add_api_route("/login", self._login, methods=["POST"], response_model=Session)
