@@ -172,14 +172,14 @@ class AuthMethodMeta(metaclass=ABCMeta):
         }
         ```
         """
-        excs = await gather(
+        exceptions = await gather(
             *[m.on_user_update(new_user, old_user) for m in AuthMethodMeta.active_auth_methods()],
             return_exceptions=True,
         )
-        if len(excs) > 0:
+        if len(exceptions) > 0:
             logger.error("Following errors occurred during on_user_update: ")
-            for i in excs:
-                logger.error(i)
+            for exc in exceptions:
+                logger.error(exc)
 
     @staticmethod
     async def on_user_update(new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
