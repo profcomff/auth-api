@@ -1,4 +1,4 @@
-from .auth_method import AUTH_METHODS, AuthMethodMeta
+from .base import AUTH_METHODS, AuthMethodMeta
 from .oauth import OauthMeta
 from .session import Session
 

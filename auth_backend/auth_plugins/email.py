@@ -10,8 +10,9 @@ from fastapi_sqlalchemy import db
 from pydantic import field_validator, model_validator
 from sqlalchemy import func
 
-from auth_backend.auth_method.auth_method import AuthMethodMeta
-from auth_backend.auth_method.session import Session
+from auth_backend.auth_method import AuthMethodMeta
+from auth_backend.auth_method import Session
+from auth_backend.auth_method.method_mixins import LoginableMixin, RegistrableMixin
 from auth_backend.base import Base, StatusResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
 from auth_backend.kafka.kafka import get_kafka_producer
@@ -104,7 +105,7 @@ class ResetForgottenPassword(Base):
     new_password: Annotated[str, MinLen(1)]
 
 
-class Email(AuthMethodMeta):
+class Email(LoginableMixin, RegistrableMixin, AuthMethodMeta):
     prefix = "/email"
 
     @staticmethod

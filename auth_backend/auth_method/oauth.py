@@ -1,18 +1,24 @@
 from abc import abstractmethod
+import logging
 
 from event_schema.auth import UserLogin
 from fastapi import Depends
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session as DbSession
 
-from auth_backend.auth_method.auth_method import AuthMethodMeta, logger
 from auth_backend.base import Base
 from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.utils.security import UnionAuth
 
+from .base import AuthMethodMeta
+from .method_mixins import LoginableMixin, RegistrableMixin
 
-class OauthMeta(AuthMethodMeta):
+
+logger = logging.getLogger(__name__)
+
+
+class OauthMeta(LoginableMixin, RegistrableMixin, AuthMethodMeta):
     """Абстрактная авторизация и аутентификация через OAuth"""
 
     class UrlSchema(Base):

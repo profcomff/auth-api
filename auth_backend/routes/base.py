@@ -5,7 +5,7 @@ from fastapi_sqlalchemy import DBSessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
 from auth_backend import __version__
-from auth_backend.auth_method.auth_method import AuthMethodMeta
+from auth_backend.auth_method import AuthMethodMeta
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.settings import get_settings
 

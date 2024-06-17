@@ -10,9 +10,9 @@ from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTasks
 
-from auth_backend.auth_method.auth_method import AuthMethodMeta
-from auth_backend.auth_method.oauth import OauthMeta
-from auth_backend.auth_method.session import Session
+from auth_backend.auth_method import AuthMethodMeta
+from auth_backend.auth_method import OauthMeta
+from auth_backend.auth_method import Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import User, UserSession

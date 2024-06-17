@@ -39,20 +39,10 @@ class AuthMethodMeta(metaclass=ABCMeta):
         self.router.add_api_route("/login", self._login, methods=["POST"], response_model=Session)
 
     def __init_subclass__(cls, **kwargs):
-        if cls.__name__.endswith('Meta'):
+        if cls.__name__.endswith('Meta') or cls.__name__.endswith('Mixin'):
             return
         logger.info(f'Init authmethod {cls.__name__}')
         AUTH_METHODS[cls.__name__] = cls
-
-    @staticmethod
-    @abstractmethod
-    async def _register(*args, **kwargs) -> object:
-        raise NotImplementedError()
-
-    @staticmethod
-    @abstractmethod
-    async def _login(*args, **kwargs) -> Session:
-        raise NotImplementedError()
 
     @staticmethod
     @final

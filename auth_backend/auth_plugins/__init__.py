@@ -1,4 +1,4 @@
-from auth_backend.auth_method.auth_method import AUTH_METHODS, AuthMethodMeta
+from auth_backend.auth_method import AUTH_METHODS, AuthMethodMeta
 
 from .email import Email
 from .github import GithubAuth
