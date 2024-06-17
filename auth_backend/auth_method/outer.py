@@ -15,10 +15,6 @@ class OuterAuthException(Exception):
     """Базовый класс для исключений внешнего сервиса"""
 
 
-class OuterAuthCommunicationException(OuterAuthException):
-    """Ошибка коммуникации с внешним сервисом"""
-
-
 class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
     """Позволяет подключить внешний сервис для синхронизации пароля"""
 
@@ -65,7 +61,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
                 await cls._delete_user(username)
         except Exception as exc:
             logger.error("Error occured while deleting outer user", exc_info=1)
-            raise OuterAuthCommunicationException() from exc
+            raise  exc
 
     @classmethod
     async def __try_create_user(cls, username, password):
@@ -73,7 +69,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             await cls._create_user(username, password)
         except Exception as exc:
             logger.error("Error occured while creating outer user", exc_info=1)
-            raise OuterAuthCommunicationException() from exc
+            raise exc
 
     @classmethod
     async def __try_update_user(cls, username, password):
@@ -81,7 +77,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             await cls._update_user_password(username, password)
         except Exception as exc:
             logger.error("Error occured while updating outer user", exc_info=1)
-            raise OuterAuthCommunicationException() from exc
+            raise exc
 
     @classmethod
     async def on_user_update(cls, new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
