@@ -3,8 +3,8 @@ import errno
 from sqlalchemy.orm import Session
 
 from auth_backend.auth_plugins import Email
-from auth_backend.auth_plugins.auth_method import random_string
 from auth_backend.models import AuthMethod, User
+from auth_backend.utils.string import random_string
 
 
 def create_user(email: str, password: str, session: Session) -> None:

@@ -5,7 +5,7 @@ from fastapi_sqlalchemy import DBSessionMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
 from auth_backend import __version__
-from auth_backend.auth_plugins.auth_method import AuthMethodMeta
+from auth_backend.auth_method import AuthPluginMeta
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.settings import get_settings
 
@@ -55,5 +55,5 @@ app.include_router(groups)
 app.include_router(scopes)
 app.include_router(user)
 
-for method in AuthMethodMeta.active_auth_methods():
+for method in AuthPluginMeta.active_auth_methods():
     app.include_router(router=method().router, prefix=method.prefix, tags=[method.get_name()])

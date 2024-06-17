@@ -2,8 +2,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from auth_backend.auth_plugins.auth_method import random_string
 from auth_backend.models.db import Scope, UserSession
+from auth_backend.utils.string import random_string
 
 
 def test_create_scope(client_auth: TestClient, dbsession: Session, user_scopes):

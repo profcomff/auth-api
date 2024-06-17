@@ -1,4 +1,5 @@
-from .auth_method import AUTH_METHODS, AuthMethodMeta
+from auth_backend.auth_method import AUTH_METHODS, AuthPluginMeta
+
 from .email import Email
 from .github import GithubAuth
 from .google import GoogleAuth
@@ -13,7 +14,7 @@ from .yandex import YandexAuth
 
 __all__ = [
     "AUTH_METHODS",
-    "AuthMethodMeta",
+    "AuthPluginMeta",
     "Email",
     "GoogleAuth",
     "PhysicsAuth",

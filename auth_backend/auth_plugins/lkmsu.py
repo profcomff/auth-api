@@ -10,6 +10,7 @@ from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 from starlette.background import BackgroundTasks
 
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import User, UserSession
@@ -17,8 +18,6 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.string import concantenate_strings
-
-from .auth_method import AuthMethodMeta, OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -108,7 +107,7 @@ class LkmsuAuth(OauthMeta):
             userdata,
             bg_tasks=background_tasks,
         )
-        await AuthMethodMeta.user_updated(new_user, old_user)
+        await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
