@@ -10,7 +10,7 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_plugins.auth_method import OauthMeta, Session
+from auth_backend.auth_plugins.auth_method import AuthMethodMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import User, UserSession
@@ -55,6 +55,8 @@ class YandexAuth(OauthMeta):
         аккаунту в активной сессии. Иначе, создает новый пользователь и делает Yandex
         первым методом входа.
         """
+        old_user = None
+        new_user = {}
         header = {"content-type": "application/x-www-form-urlencoded"}
         payload = {
             "grant_type": "authorization_code",
@@ -111,7 +113,10 @@ class YandexAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', yandex_user_id, user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        ya_id = await cls._register_auth_method('user_id', yandex_user_id, user, db_session=db.session)
+        new_user[cls.get_name()]["user_id"] = ya_id.value
         userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
@@ -119,6 +124,7 @@ class YandexAuth(OauthMeta):
             userdata,
             bg_tasks=background_tasks,
         )
+        AuthMethodMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )

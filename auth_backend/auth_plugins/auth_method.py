@@ -182,7 +182,11 @@ class OauthMeta(AuthMethodMeta):
     @classmethod
     async def _unregister(cls, user_session: UserSession = Depends(UnionAuth(scopes=[], auto_error=True))):
         """Отключает для пользователя метод входа"""
-        await cls._delete_auth_methods(user_session.user, db_session=db.session)
+        old_user = {"user_id": user_session.user.id}
+        new_user = {"user_id": user_session.user.id}
+        old_user_params = await cls._delete_auth_methods(user_session.user, db_session=db.session)
+        old_user[cls.get_name()] = old_user_params
+        AuthMethodMeta.user_updated(new_user, old_user)
         return None
 
     @classmethod
@@ -201,9 +205,9 @@ class OauthMeta(AuthMethodMeta):
             return auth_method.user
 
     @classmethod
-    async def _register_auth_method(cls, key: str, value: str | int, user: User, *, db_session):
+    async def _register_auth_method(cls, key: str, value: str | int, user: User, *, db_session) -> AuthMethod:
         """Добавление пользователю новый AuthMethod"""
-        AuthMethod.create(
+        return AuthMethod.create(
             user_id=user.id,
             auth_method=cls.get_name(),
             param=key,
@@ -212,9 +216,9 @@ class OauthMeta(AuthMethodMeta):
         )
 
     @classmethod
-    async def _delete_auth_methods(cls, user: User, *, db_session):
+    async def _delete_auth_methods(cls, user: User, *, db_session) -> list[AuthMethod]:
         """Удаляет пользователю все AuthMethod конкретной авторизации"""
-        auth_methods = (
+        auth_methods: list[AuthMethod] = (
             AuthMethod.query(session=db_session)
             .filter(
                 AuthMethod.user_id == user.id,
@@ -229,6 +233,7 @@ class OauthMeta(AuthMethodMeta):
         for method in auth_methods:
             method.is_deleted = True
         db_session.flush()
+        return {m.param: m.value for m in auth_methods}
 
     @classmethod
     def userdata_process_empty_strings(cls, userdata: UserLogin) -> UserLogin:

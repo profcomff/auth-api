@@ -18,7 +18,7 @@ from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.string import concantenate_strings
 
 from ..schemas.types.scopes import Scope
-from .auth_method import OauthMeta, Session
+from .auth_method import AuthMethodMeta, OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -68,6 +68,8 @@ class VkAuth(OauthMeta):
         аккаунту в активной сессии. Иначе, создает новый пользователь и делает https://vk.com
         первым методом входа.
         """
+        old_user = None
+        new_user = {}
         payload = {
             "code": user_inp.code,
             "client_id": cls.settings.VK_CLIENT_ID,
@@ -106,7 +108,10 @@ class VkAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        vk_id = await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
+        new_user[cls.get_name()]["user_id"] = vk_id.value
         userdata = await VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
@@ -114,6 +119,7 @@ class VkAuth(OauthMeta):
             userdata,
             bg_tasks=background_tasks,
         )
+        AuthMethodMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )

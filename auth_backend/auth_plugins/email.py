@@ -331,9 +331,7 @@ class Email(AuthMethodMeta):
         if "tmp_email" in auth_params:
             old_user[cls.get_name()]["tmp_email"] = auth_params["tmp_email"].value
             auth_params["tmp_email"].is_deleted = True
-            old_user[cls.get_name()]["tmp_email_confirmation_token"] = auth_params[
-                "tmp_email_confirmation_token"
-            ].value
+            old_user[cls.get_name()]["tmp_email_confirmation_token"] = auth_params["tmp_email_confirmation_token"].value
             auth_params["tmp_email_confirmation_token"].is_deleted = True
             db.session.flush()
         AuthMethod.create(

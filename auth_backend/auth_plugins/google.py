@@ -19,7 +19,7 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-from .auth_method import OauthMeta, Session
+from .auth_method import AuthMethodMeta, OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,8 @@ class GoogleAuth(OauthMeta):
         Если передана активная сессия пользователя, то привязывает аккаунт Google к аккаунту в
         активной сессии. иначе, создает новый пользователь и делает Google первым методом входа.
         """
+        old_user = None
+        new_user = {}
         credentials = None
         if not user_inp.id_token:
             flow = await cls._default_flow()
@@ -108,7 +110,10 @@ class GoogleAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('unique_google_id', userinfo['sub'], user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        google_id = await cls._register_auth_method('unique_google_id', userinfo['sub'], user, db_session=db.session)
+        new_user = {cls.get_name(): {"unique_google_id": google_id.value}}
         userdata = await GoogleAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
@@ -116,6 +121,7 @@ class GoogleAuth(OauthMeta):
             userdata,
             bg_tasks=background_tasks,
         )
+        AuthMethodMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
