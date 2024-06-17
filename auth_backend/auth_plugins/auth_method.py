@@ -7,7 +7,7 @@ import string
 from abc import ABCMeta, abstractmethod
 from asyncio import gather
 from datetime import datetime
-from typing import Annotated, Any, final
+from typing import Annotated, Any, Iterable, final
 
 from annotated_types import MinLen
 from event_schema.auth import UserLogin, UserLoginKey
@@ -20,7 +20,6 @@ from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from auth_backend.settings import get_settings
-from auth_backend.utils.auth_methods import active_auth_methods
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.user_session_control import create_session
 
@@ -142,7 +141,7 @@ class AuthMethodMeta(metaclass=ABCMeta):
         активированных (включенных в настройках) AuthMethod выполняется функция on_user_update.
         """
         excs = await gather(
-            *[m.on_user_update(new_user, old_user) for m in active_auth_methods()],
+            *[m.on_user_update(new_user, old_user) for m in AuthMethodMeta.active_auth_methods()],
             return_exceptions=True,
         )
         if len(excs) > 0:
@@ -153,6 +152,16 @@ class AuthMethodMeta(metaclass=ABCMeta):
     @staticmethod
     async def on_user_update(new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
         """Произвести действия на обновление пользователя, в т.ч. обновление в другх провайдерах"""
+
+    @classmethod
+    def is_active(cls):
+        return settings.ENABLED_AUTH_METHODS is None or cls.get_name() in settings.ENABLED_AUTH_METHODS
+
+    @staticmethod
+    def active_auth_methods() -> Iterable[type['AuthMethodMeta']]:
+        for method in AUTH_METHODS.values():
+            if method.is_active():
+                yield method
 
 
 class OauthMeta(AuthMethodMeta):

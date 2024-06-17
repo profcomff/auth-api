@@ -4,7 +4,6 @@ from unittest.mock import Mock, patch
 import pytest
 
 from auth_backend.auth_plugins.auth_method import AUTH_METHODS, AuthMethodMeta
-from auth_backend.utils.auth_methods import is_method_active
 
 
 if TYPE_CHECKING:
@@ -22,7 +21,7 @@ async def test_user_updated():
     await AuthMethodMeta.user_updated({"user_id": 123})
 
     for auth_method in patches:
-        if is_method_active(AUTH_METHODS[auth_method]):
+        if AUTH_METHODS[auth_method].is_active():
             mocks[auth_method].assert_called_once()
         else:
             mocks[auth_method].assert_not_called()
