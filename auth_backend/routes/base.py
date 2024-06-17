@@ -33,6 +33,7 @@ app = FastAPI(
     root_path=settings.ROOT_PATH if __version__ != 'dev' else '',
     docs_url=None if __version__ != 'dev' else '/docs',
     redoc_url=None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
