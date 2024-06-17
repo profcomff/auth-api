@@ -61,7 +61,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
                 await cls._delete_user(username)
         except Exception as exc:
             logger.error("Error occured while deleting outer user", exc_info=1)
-            raise  exc
+            raise exc
 
     @classmethod
     async def __try_create_user(cls, username, password):
