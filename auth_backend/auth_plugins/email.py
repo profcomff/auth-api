@@ -10,6 +10,8 @@ from fastapi_sqlalchemy import db
 from pydantic import field_validator, model_validator
 from sqlalchemy import func
 
+from auth_backend.auth_method.auth_method import AuthMethodMeta
+from auth_backend.auth_method.session import Session
 from auth_backend.base import Base, StatusResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
 from auth_backend.kafka.kafka import get_kafka_producer
@@ -19,8 +21,7 @@ from auth_backend.settings import get_settings
 from auth_backend.utils.auth_params import get_auth_params
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import SendEmailMessage
-
-from .auth_method import AuthMethodMeta, Session, random_string
+from auth_backend.utils.string import random_string
 
 
 settings = get_settings()

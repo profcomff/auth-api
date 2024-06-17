@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from auth_backend.auth_plugins.auth_method import AUTH_METHODS, AuthMethodMeta
+from auth_backend.auth_method.auth_method import AUTH_METHODS, AuthMethodMeta
 
 
 if TYPE_CHECKING:

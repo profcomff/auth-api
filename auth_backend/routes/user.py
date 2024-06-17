@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session
 
-from auth_backend.auth_plugins.auth_method import AuthMethodMeta
+from auth_backend.auth_method.auth_method import AuthMethodMeta
 from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
 from auth_backend.schemas.models import User as UserModel
 from auth_backend.schemas.models import (

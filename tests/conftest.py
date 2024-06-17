@@ -9,11 +9,11 @@ from sqlalchemy.orm import sessionmaker
 from starlette import status
 
 from auth_backend.auth_plugins import YandexAuth
-from auth_backend.auth_plugins.auth_method import random_string
 from auth_backend.models import AuthMethod, User
 from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
+from auth_backend.utils.string import random_string
 
 
 @pytest.fixture
