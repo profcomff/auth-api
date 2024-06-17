@@ -22,9 +22,15 @@ class Test(OuterAuthMeta):
     async def _update_user_password(cls, username, password):
         print(username, password)
 
+    @classmethod
+    async def is_active(cls):
+        return False
+
 
 @pytest.fixture
 def mock_test():
+    is_active_patch = patch.object(Test, "is_active", return_value=True)
+    is_active_patch.start()
     is_user_exists_patch = patch.object(Test, "_is_user_exists")
     is_user_exists_mock = is_user_exists_patch.start()
     create_user_patch = patch.object(Test, "_create_user")
@@ -43,6 +49,7 @@ def mock_test():
     create_user_patch.stop()
     delete_user_patch.stop()
     update_user_password_patch.stop()
+    is_active_patch.stop()
 
 
 @pytest.mark.asyncio
