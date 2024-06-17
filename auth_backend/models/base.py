@@ -4,8 +4,7 @@ import re
 
 from sqlalchemy import Integer, not_
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
-from sqlalchemy.orm import Mapped, Query, Session, mapped_column
+from sqlalchemy.orm import Mapped, Query, Session, as_declarative, declared_attr, mapped_column
 
 from auth_backend.exceptions import ObjectNotFound
 

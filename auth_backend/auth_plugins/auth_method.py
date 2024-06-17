@@ -186,7 +186,7 @@ class OauthMeta(AuthMethodMeta):
         new_user = {"user_id": user_session.user.id}
         old_user_params = await cls._delete_auth_methods(user_session.user, db_session=db.session)
         old_user[cls.get_name()] = old_user_params
-        AuthMethodMeta.user_updated(new_user, old_user)
+        await AuthMethodMeta.user_updated(new_user, old_user)
         return None
 
     @classmethod

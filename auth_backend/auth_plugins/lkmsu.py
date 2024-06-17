@@ -108,7 +108,7 @@ class LkmsuAuth(OauthMeta):
             userdata,
             bg_tasks=background_tasks,
         )
-        AuthMethodMeta.user_updated(new_user, old_user)
+        await AuthMethodMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )

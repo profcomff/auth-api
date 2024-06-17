@@ -250,7 +250,7 @@ class Email(AuthMethodMeta):
         old_user = None
         if user_session:
             old_user = {"user_id": user_session.user.id}
-        AuthMethodMeta.user_updated({"user_id": user.id, Email.get_name(): method_params}, old_user)
+        await AuthMethodMeta.user_updated({"user_id": user.id, Email.get_name(): method_params}, old_user)
 
         db.session.commit()
         return StatusResponseModel(
@@ -294,7 +294,7 @@ class Email(AuthMethodMeta):
             userdata,
             bg_tasks=background_tasks,
         )
-        AuthMethodMeta.user_updated(
+        await AuthMethodMeta.user_updated(
             {"user_id": auth_method.user.id, Email.get_name(): {"confirmed": True}},
             {"user_id": auth_method.user.id, Email.get_name(): {"confirmed": False}},
         )
@@ -355,7 +355,7 @@ class Email(AuthMethodMeta):
             background_tasks=background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
         )
-        AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthMethodMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
@@ -404,7 +404,7 @@ class Email(AuthMethodMeta):
         await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata, bg_tasks=background_tasks
         )
-        AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthMethodMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email successfully changed", ru="Почта изменена")
 
@@ -448,7 +448,7 @@ class Email(AuthMethodMeta):
             dbsession=db.session,
             background_tasks=background_tasks,
         )
-        AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthMethodMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Password has been successfully changed", ru="Пароль изменен"
@@ -514,7 +514,7 @@ class Email(AuthMethodMeta):
             background_tasks=background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_params['reset_token'].value}",
         )
-        AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthMethodMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Reset link has been successfully mailed", ru="Ссылка отправлена на почту"
@@ -550,7 +550,7 @@ class Email(AuthMethodMeta):
         auth_params["salt"].value = salt
         new_user[Email.get_name()]["salt"] = auth_params["salt"].value
         auth_params["reset_token"].is_deleted = True
-        AuthMethodMeta.user_updated(old_user, new_user)
+        await AuthMethodMeta.user_updated(old_user, new_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Password has been successfully changed", ru="Пароль изменен"
