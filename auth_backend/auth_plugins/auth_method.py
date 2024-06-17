@@ -139,6 +139,38 @@ class AuthMethodMeta(metaclass=ABCMeta):
         Каждый AuthMethod должен вызывать эту функцию при создании или изменении пользователя, но
         не более одного раза на один запрос пользователя на изменение. При вызове во всех
         активированных (включенных в настройках) AuthMethod выполняется функция on_user_update.
+
+        ## Diff-пользователя
+        `new_user` и `old_user` – словари, представляющие изменения в данных пользователя.
+
+        Если `new_user` равен `None`, то пользователь был удален. Если `old_user` равен `None`, то
+        пользователь был создан. В остальных случаях словарь, в котором обязательно есть ключ
+        `user_id`.
+
+        Словарь может содержать ключи с названиями AuthMethod, в которых данные изменились. В
+        значениях будут находиться словари с ключами `param` и значениями `value` параметров
+        AuthMethod.
+
+        ### Примеры:
+
+        Пользователь id=1 был удален, вместе с ним были удалены параметры email метода Email и
+        user_id метода GitHub.
+        ```python
+        new_user = None
+        old_user = {'user_id': 1, "email": {"email": "user@example.com"}, "github": {"user_id": "123"}}
+        ```
+
+        Пользователь id=2 сменил пароль.
+        ```python
+        new_user = {
+            "user_id": 2,
+            "email": {"hashed_password": "somerandomshit", "salt": "blahblah"}
+        }
+        old_user = {
+            "user_id": 2,
+            "email": {"hashed_password": "tihsmodnaremos", "salt": "abracadabra", "password": "plain_password"}
+        }
+        ```
         """
         excs = await gather(
             *[m.on_user_update(new_user, old_user) for m in AuthMethodMeta.active_auth_methods()],
@@ -151,7 +183,10 @@ class AuthMethodMeta(metaclass=ABCMeta):
 
     @staticmethod
     async def on_user_update(new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
-        """Произвести действия на обновление пользователя, в т.ч. обновление в других провайдерах"""
+        """Произвести действия на обновление пользователя, в т.ч. обновление в других провайдерах
+
+        Описания входных параметров соответствует параметрам `AuthMethodMeta.user_updated`.
+        """
 
     @classmethod
     def is_active(cls):
