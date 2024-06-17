@@ -162,5 +162,5 @@ async def delete_user(
         logger.info(f'{method=} for {user.id=} deleted')
 
     User.delete(user_id, session=db.session)
-    AuthMethodMeta.user_updated(None, old_user)
+    await AuthMethodMeta.user_updated(None, old_user)
     logger.info(f'{user=} deleted')
