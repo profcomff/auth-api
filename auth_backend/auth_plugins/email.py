@@ -2,11 +2,12 @@ import hashlib
 import logging
 from typing import Annotated, Self
 
+from annotated_types import MinLen
 from event_schema.auth import UserLogin
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
-from pydantic import constr, field_validator, model_validator
+from pydantic import field_validator, model_validator
 from sqlalchemy import func
 
 from auth_backend.base import Base, StatusResponseModel
@@ -61,28 +62,28 @@ def check_email(v):
 
 
 class EmailLogin(Base):
-    email: Annotated[str, constr(min_length=1)]
-    password: Annotated[str, constr(min_length=1)]
+    email: Annotated[str, MinLen(1)]
+    password: Annotated[str, MinLen(1)]
     scopes: list[Scope] | None = None
     session_name: str | None = None
     email_validator = field_validator("email")(check_email)
 
 
 class EmailRegister(Base):
-    email: Annotated[str, constr(min_length=1)]
-    password: Annotated[str, constr(min_length=1)]
+    email: Annotated[str, MinLen(1)]
+    password: Annotated[str, MinLen(1)]
     email_validator = field_validator("email")(check_email)
 
 
 class EmailChange(Base):
-    email: Annotated[str, constr(min_length=1)]
+    email: Annotated[str, MinLen(1)]
 
     email_validator = field_validator("email")(check_email)
 
 
 class ResetPassword(Base):
-    password: Annotated[str, constr(min_length=1)]
-    new_password: Annotated[str, constr(min_length=1)]
+    password: Annotated[str, MinLen(1)]
+    new_password: Annotated[str, MinLen(1)]
 
     @model_validator(mode="after")
     def check_passwords_dont_match(self) -> Self:
@@ -93,13 +94,13 @@ class ResetPassword(Base):
 
 
 class RequestResetForgottenPassword(Base):
-    email: Annotated[str, constr(min_length=1)]
+    email: Annotated[str, MinLen(1)]
 
     email_validator = field_validator("email")(check_email)
 
 
 class ResetForgottenPassword(Base):
-    new_password: Annotated[str, constr(min_length=1)]
+    new_password: Annotated[str, MinLen(1)]
 
 
 class Email(AuthMethodMeta):
@@ -536,8 +537,8 @@ class Email(AuthMethodMeta):
                 ).model_dump(),
             )
         auth_params = Email._get_email_params(auth_method.user.id)
-        old_user = {"user_id": auth_method.user.id.user.id, "email": {"reset_token": auth_params["reset_token"].value}}
-        new_user = {"user_id": auth_method.user.id.user.id, "email": {}}
+        old_user = {"user_id": auth_method.user.id, "email": {"reset_token": auth_params["reset_token"].value}}
+        new_user = {"user_id": auth_method.user.id, "email": {}}
         salt = random_string()
         auth_params["hashed_password"].value = Email._hash_password(schema.new_password, salt)
         new_user["email"]["hashed_password"] = auth_params["hashed_password"].value

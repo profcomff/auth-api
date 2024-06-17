@@ -9,10 +9,10 @@ from asyncio import gather
 from datetime import datetime
 from typing import Annotated, Any, final
 
+from annotated_types import MinLen
 from event_schema.auth import UserLogin, UserLoginKey
 from fastapi import APIRouter, Depends
 from fastapi_sqlalchemy import db
-from pydantic import constr
 from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.base import Base
@@ -34,7 +34,7 @@ def random_string(length: int = 32) -> str:
 
 
 class Session(Base):
-    token: Annotated[str, constr(min_length=1)]
+    token: Annotated[str, MinLen(1)]
     expires: datetime
     id: int
     user_id: int

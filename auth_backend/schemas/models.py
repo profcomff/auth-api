@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import Field, constr, field_validator
+from annotated_types import Gt, MinLen
+from pydantic import field_validator
 
 from auth_backend.base import Base
 from auth_backend.schemas.types.scopes import Scope
@@ -14,9 +16,9 @@ class PinchedScope(Base):
 
 
 class Group(Base):
-    id: int = Field(..., gt=0)
+    id: Annotated[int, Gt(0)]
     name: str
-    parent_id: int | None = Field(None, gt=0)
+    parent_id: Annotated[int, Gt(0)] | None = None
 
 
 class GroupScopes(Base):
@@ -81,7 +83,7 @@ class UserPatch(Base):
 
 class GroupPost(Base):
     name: str
-    parent_id: int | None = Field(None, gt=0)
+    parent_id: Annotated[int, Gt(0)] | None = None
     scopes: list[int]
 
 
@@ -91,17 +93,17 @@ class GroupsGet(Base):
 
 class GroupPatch(Base):
     name: str | None = None
-    parent_id: int | None = Field(None, gt=0)
+    parent_id: Annotated[int, Gt(0)] | None = None
     scopes: list[int] | None = None
 
 
 class UserGroupGet(Base):
-    group_id: int = Field(..., gt=0)
-    user_id: int = Field(..., gt=0)
+    group_id: Annotated[int, Gt(0)]
+    user_id: Annotated[int, Gt(0)]
 
 
 class UserGroupPost(Base):
-    user_id: int = Field(..., gt=0)
+    user_id: Annotated[int, Gt(0)]
 
 
 class GroupUserListGet(Base):
@@ -126,7 +128,7 @@ class ScopePatch(Base):
 
 class Session(Base):
     session_name: str | None = None
-    token: constr(min_length=1) | None = None
+    token: Annotated[str, MinLen(1)] | None = None
     expires: datetime | None = None
     id: int
     user_id: int
