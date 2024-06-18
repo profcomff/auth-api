@@ -3,7 +3,6 @@ from unittest.mock import Mock, patch
 import pytest
 
 from auth_backend.auth_method import OuterAuthMeta
-from auth_backend.auth_method.outer import OuterAuthException
 from auth_backend.models.db import AuthMethod
 
 
@@ -53,6 +52,7 @@ async def test_outer_deleted_notprovided(mock_test: dict[str, Mock]):
     mock_test["update_user_password"].assert_not_called()
 
     uname_patch.stop()
+
 
 @pytest.mark.asyncio
 async def test_outer_update_password_exists(mock_test: dict[str, Mock]):
