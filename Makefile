@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 run:
 	source ./venv/bin/activate && uvicorn --reload --log-config logging_dev.conf auth_backend.routes.base:app
 

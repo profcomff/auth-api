@@ -164,15 +164,3 @@ async def test_outer_update_password_not_linked(mock_test: dict[str, Mock]):
     mock_test["update_user_password_mock"].assert_not_called()
 
     uname_patch.stop()
-
-
-@pytest.mark.asyncio
-@pytest.mark.xfail
-async def test_outer_link(mock_test: dict[str, Mock]):
-    """Пользователь линкует метод"""
-
-
-@pytest.mark.asyncio
-@pytest.mark.xfail
-async def test_outer_unlink(mock_test: dict[str, Mock]):
-    """Пользователь удаляет метод"""
