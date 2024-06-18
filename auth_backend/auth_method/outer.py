@@ -212,7 +212,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             if not await cls._is_user_exists(outer.username):
                 await cls.__try_create_user(user_id)
         db.session.commit()
-        return GetOuterAccount(username=param.valie)
+        return GetOuterAccount(username=param.value)
 
     @classmethod
     async def _unlink(
