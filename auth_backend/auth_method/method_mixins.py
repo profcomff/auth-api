@@ -29,8 +29,7 @@ class RegistrableMixin(AuthPluginMeta, metaclass=ABCMeta):
     @staticmethod
     async def _create_user(*, db_session: DbSession) -> User:
         """Создает пользователя"""
-        user = User()
-        db_session.add(user)
+        user = User.create(session=db_session)
         db_session.flush()
         return user
 
