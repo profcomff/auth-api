@@ -51,7 +51,6 @@ class LinkOuterAccount(Base):
 
 
 class UnlinkOuterAccount(Base):
-    username: str
     force_delete: bool = False
 
 
@@ -187,13 +186,13 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         """
         if cls.get_scope() not in set(s.name for s in request_user.scopes) and request_user.id != user_id:
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
-        username = cls.get_auth_method_params(user_id, session=db.session).get("username")
+        username = cls.__get_username(user_id)
         if not username:
             raise UserNotLinked(user_id)
         return GetOuterAccount(username=username.value)
 
     @classmethod
-    def _link(
+    async def _link(
         cls,
         user_id,
         outer: LinkOuterAccount,
@@ -205,15 +204,18 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         """
         if cls.post_scope() not in set(s.name for s in request_user.scopes):
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
-        username = cls.get_auth_method_params(user_id, session=db.session).get("username")
+        username = cls.__get_username(user_id)
         if username:
             raise UserLinkingConflict(user_id)
         param = cls.create_auth_method_param("username", outer.username, user_id, db_session=db.session)
+        if outer.force_create:
+            if not await cls._is_user_exists(outer.username):
+                await cls.__try_create_user(user_id)
         db.session.commit()
         return GetOuterAccount(username=param.valie)
 
     @classmethod
-    def _unlink(
+    async def _unlink(
         cls,
         user_id,
         outer: UnlinkOuterAccount,
@@ -225,8 +227,11 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         """
         if cls.delete_scope() not in set(s.name for s in request_user.scopes):
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
-        username = cls.get_auth_method_params(user_id, session=db.session).get("username")
+        username = cls.__get_username(user_id)
         if not username:
             raise UserNotLinked(user_id)
         username.is_deleted = True
+        if outer.force_delete:
+            if await cls._is_user_exists(username):
+                await cls.__try_delete_user(user_id)
         db.session.commit()
