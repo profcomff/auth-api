@@ -160,7 +160,7 @@ class AuthPluginMeta(metaclass=ABCMeta):
             AuthMethod.query(session=session)
             .filter(
                 AuthMethod.user_id == user if isinstance(user, int) else user.id,
-                AuthMethod.auth_method == cls.get_name()
+                AuthMethod.auth_method == cls.get_name(),
             )
             .all()
         )

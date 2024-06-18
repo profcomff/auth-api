@@ -111,9 +111,7 @@ class GoogleAuth(OauthMeta):
             user = user_session.user
             old_user = {'user_id': user.id}
         new_user["user_id"] = user.id
-        google_id = cls.create_auth_method_param(
-            'unique_google_id', userinfo['sub'], user, db_session=db.session
-        )
+        google_id = cls.create_auth_method_param('unique_google_id', userinfo['sub'], user, db_session=db.session)
         new_user = {cls.get_name(): {"unique_google_id": google_id.value}}
         userdata = await GoogleAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(
