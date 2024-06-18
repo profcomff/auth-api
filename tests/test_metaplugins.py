@@ -11,15 +11,15 @@ class Test(OuterAuthMeta):
         print(username)
 
     @classmethod
-    async def _create_user(cls, username, password):
+    async def _create_outer_user(cls, username, password):
         print(username, password)
 
     @classmethod
-    async def _delete_user(cls, username):
+    async def _delete_outer_user(cls, username):
         print(username)
 
     @classmethod
-    async def _update_user_password(cls, username, password):
+    async def _update_outer_user_password(cls, username, password):
         print(username, password)
 
     @classmethod

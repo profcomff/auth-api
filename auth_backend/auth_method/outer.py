@@ -89,19 +89,19 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    async def _create_user(cls, username, password):
+    async def _create_outer_user(cls, username, password):
         """Создает пользователя в внешнем сервисе"""
         raise NotImplementedError()
 
     @classmethod
     @abstractmethod
-    async def _delete_user(cls, username):
+    async def _delete_outer_user(cls, username):
         """Отключает (если возможно) или удаляет пользователя в внешнем сервисе"""
         raise NotImplementedError()
 
     @classmethod
     @abstractmethod
-    async def _update_user_password(cls, username, password):
+    async def _update_outer_user_password(cls, username, password):
         """Устанавливает пользователю новый пароль в внешнем сервисе"""
         raise NotImplementedError()
 
@@ -121,7 +121,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
                 logger.debug("User user_id=%d have no username in outer service %s", user_id, cls.get_name())
                 return
             if await cls._is_user_exists(username):
-                await cls._delete_user(username)
+                await cls._delete_outer_user(username)
         except Exception as exc:
             logger.error("Error occured while deleting outer user", exc_info=1)
             raise exc
@@ -129,7 +129,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
     @classmethod
     async def __try_create_user(cls, username, password):
         try:
-            await cls._create_user(username, password)
+            await cls._create_outer_user(username, password)
         except Exception as exc:
             logger.error("Error occured while creating outer user", exc_info=1)
             raise exc
@@ -137,7 +137,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
     @classmethod
     async def __try_update_user(cls, username, password):
         try:
-            await cls._update_user_password(username, password)
+            await cls._update_outer_user_password(username, password)
         except Exception as exc:
             logger.error("Error occured while updating outer user", exc_info=1)
             raise exc
