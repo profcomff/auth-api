@@ -3,20 +3,14 @@ from unittest.mock import Mock, patch
 import pytest
 
 from auth_backend.auth_method import OuterAuthMeta
+from auth_backend.auth_method.outer import OuterAuthException
+from auth_backend.models.db import AuthMethod
 
 
 class Test(OuterAuthMeta):
     @classmethod
     async def _is_outer_user_exists(cls, username):
-        print(username)
-
-    @classmethod
-    async def _create_outer_user(cls, username, password):
-        print(username, password)
-
-    @classmethod
-    async def _delete_outer_user(cls, username):
-        print(username)
+        return True
 
     @classmethod
     async def _update_outer_user_password(cls, username, password):
@@ -33,81 +27,32 @@ def mock_test():
     is_active_patch.start()
     is_user_exists_patch = patch.object(Test, "_is_outer_user_exists")
     is_user_exists_mock = is_user_exists_patch.start()
-    create_user_patch = patch.object(Test, "_create_outer_user")
-    create_user_mock = create_user_patch.start()
-    delete_user_patch = patch.object(Test, "_delete_outer_user")
-    delete_user_mock = delete_user_patch.start()
     update_user_password_patch = patch.object(Test, "_update_outer_user_password")
     update_user_password_mock = update_user_password_patch.start()
     yield {
-        "is_user_exists_mock": is_user_exists_mock,
-        "create_user_mock": create_user_mock,
-        "delete_user_mock": delete_user_mock,
-        "update_user_password_mock": update_user_password_mock,
+        "is_user_exists": is_user_exists_mock,
+        "update_user_password": update_user_password_mock,
     }
     is_user_exists_patch.stop()
-    create_user_patch.stop()
-    delete_user_patch.stop()
     update_user_password_patch.stop()
     is_active_patch.stop()
 
 
 @pytest.mark.asyncio
-async def test_outer_deleted_notexists(mock_test: dict[str, Mock]):
-    """Пользователь удаляет аккаунт твой фф, нет привязки"""
+async def test_outer_deleted_notprovided(mock_test: dict[str, Mock]):
+    """Пользователь удаляет аккаунт твой фф"""
     uname_patch = patch.object(OuterAuthMeta, "_OuterAuthMeta__get_username")
     uname_mock = uname_patch.start()
 
     uname_mock.return_value = None
-    mock_test["is_user_exists_mock"].return_value = False
+    mock_test["is_user_exists"].return_value = False
 
     await Test.on_user_update(None, {"user_id": 1})
 
-    mock_test["is_user_exists_mock"].assert_not_called()
-    mock_test["create_user_mock"].assert_not_called()
-    mock_test["delete_user_mock"].assert_not_called()
-    mock_test["update_user_password_mock"].assert_not_called()
+    mock_test["is_user_exists"].assert_not_called()
+    mock_test["update_user_password"].assert_not_called()
 
     uname_patch.stop()
-
-
-@pytest.mark.asyncio
-async def test_outer_deleted_notexists(mock_test: dict[str, Mock]):
-    """Пользователь удаляет аккаунт твой фф, привязанного аккаунта не существует"""
-    uname_patch = patch.object(OuterAuthMeta, "_OuterAuthMeta__get_username")
-    uname_mock = uname_patch.start()
-
-    uname_mock.return_value = "test_user"
-    mock_test["is_user_exists_mock"].return_value = False
-
-    await Test.on_user_update(None, {"user_id": 1})
-
-    mock_test["is_user_exists_mock"].assert_called_once_with("test_user")
-    mock_test["create_user_mock"].assert_not_called()
-    mock_test["delete_user_mock"].assert_not_called()
-    mock_test["update_user_password_mock"].assert_not_called()
-
-    uname_patch.stop()
-
-
-@pytest.mark.asyncio
-async def test_outer_deleted(mock_test: dict[str, Mock]):
-    """Пользователь удаляет аккаунт твой фф, привязанный аккаунт существует"""
-    uname_patch = patch.object(OuterAuthMeta, "_OuterAuthMeta__get_username")
-    uname_mock = uname_patch.start()
-
-    uname_mock.return_value = "test_user"
-    mock_test["is_user_exists_mock"].return_value = True
-
-    await Test.on_user_update(None, {"user_id": 1})
-
-    mock_test["is_user_exists_mock"].assert_called_once_with("test_user")
-    mock_test["create_user_mock"].assert_not_called()
-    mock_test["delete_user_mock"].assert_called_once_with("test_user")
-    mock_test["update_user_password_mock"].assert_not_called()
-
-    uname_patch.stop()
-
 
 @pytest.mark.asyncio
 async def test_outer_update_password_exists(mock_test: dict[str, Mock]):
@@ -115,34 +60,30 @@ async def test_outer_update_password_exists(mock_test: dict[str, Mock]):
     uname_patch = patch.object(OuterAuthMeta, "_OuterAuthMeta__get_username")
     uname_mock = uname_patch.start()
 
-    uname_mock.return_value = "test_user"
-    mock_test["is_user_exists_mock"].return_value = True
+    uname_mock.return_value = AuthMethod(param="username", value="test_user")
+    mock_test["is_user_exists"].return_value = True
 
-    await Test.on_user_update({"user_id": 1, "email": {"password": "new_password"}})
+    await Test.on_user_update({"user_id": 1, "email": {"password": "new_password"}}, {"user_id": 1})
 
-    mock_test["is_user_exists_mock"].assert_called_once_with("test_user")
-    mock_test["create_user_mock"].assert_not_called()
-    mock_test["delete_user_mock"].assert_not_called()
-    mock_test["update_user_password_mock"].assert_called_once_with("test_user", "new_password")
+    mock_test["is_user_exists"].assert_called_once_with("test_user")
+    mock_test["update_user_password"].assert_called_once_with("test_user", "new_password")
 
     uname_patch.stop()
 
 
 @pytest.mark.asyncio
-async def test_outer_update_password_exists(mock_test: dict[str, Mock]):
+async def test_outer_update_password_notexists(mock_test: dict[str, Mock]):
     """Пользователь меняет пароль, привязанный аккаунт не существует"""
     uname_patch = patch.object(OuterAuthMeta, "_OuterAuthMeta__get_username")
     uname_mock = uname_patch.start()
 
-    uname_mock.return_value = "test_user"
-    mock_test["is_user_exists_mock"].return_value = True
+    uname_mock.return_value = AuthMethod(param="username", value="test_user")
+    mock_test["is_user_exists"].return_value = False
 
-    await Test.on_user_update({"user_id": 1, "email": {"password": "new_password"}})
+    await Test.on_user_update({"user_id": 1, "email": {"password": "new_password"}}, {"user_id": 1})
 
-    mock_test["is_user_exists_mock"].assert_called_once_with("test_user")
-    mock_test["create_user_mock"].assert_not_called()
-    mock_test["delete_user_mock"].assert_not_called()
-    mock_test["update_user_password_mock"].assert_called_once_with("test_user", "new_password")
+    mock_test["is_user_exists"].assert_called_once_with("test_user")
+    mock_test["update_user_password"].assert_not_called()
 
     uname_patch.stop()
 
@@ -154,13 +95,11 @@ async def test_outer_update_password_not_linked(mock_test: dict[str, Mock]):
     uname_mock = uname_patch.start()
 
     uname_mock.return_value = None
-    mock_test["is_user_exists_mock"].return_value = False
+    mock_test["is_user_exists"].return_value = False
 
     await Test.on_user_update({"user_id": 1, "email": {"password": "new_password"}})
 
-    mock_test["is_user_exists_mock"].assert_not_called()
-    mock_test["create_user_mock"].assert_not_called()
-    mock_test["delete_user_mock"].assert_not_called()
-    mock_test["update_user_password_mock"].assert_not_called()
+    mock_test["is_user_exists"].assert_not_called()
+    mock_test["update_user_password"].assert_not_called()
 
     uname_patch.stop()
