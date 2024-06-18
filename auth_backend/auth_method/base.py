@@ -135,13 +135,13 @@ class AuthPluginMeta(metaclass=ABCMeta):
         cls,
         key: str,
         value: str | int,
-        user: User | int,
+        user_id: int,
         *,
         db_session: DbSession,
     ) -> AuthMethod:
         """Добавление пользователю новый AuthMethod"""
         return AuthMethod.create(
-            user_id=user if isinstance(user, int) else user.id,
+            user_id=user_id,
             auth_method=cls.get_name(),
             param=key,
             value=str(value),
@@ -151,7 +151,7 @@ class AuthPluginMeta(metaclass=ABCMeta):
     @classmethod
     def get_auth_method_params(
         cls,
-        user: User | int,
+        user_id: int,
         *,
         session: DbSession,
     ) -> dict[str, AuthMethod]:
@@ -159,7 +159,7 @@ class AuthPluginMeta(metaclass=ABCMeta):
         methods: list[AuthMethod] = (
             AuthMethod.query(session=session)
             .filter(
-                AuthMethod.user_id == user if isinstance(user, int) else user.id,
+                AuthMethod.user_id == user_id,
                 AuthMethod.auth_method == cls.get_name(),
             )
             .all()
