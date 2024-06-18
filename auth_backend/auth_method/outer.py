@@ -184,7 +184,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
 
         Получить данные может администратор или сам пользователь
         """
-        if cls.get_scope() not in set(s.name for s in request_user.scopes) and request_user.id != user_id:
+        if cls.get_scope() not in (s.name for s in request_user.scopes) and request_user.id != user_id:
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
         username = cls.__get_username(user_id)
         if not username:
@@ -202,7 +202,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
 
         Привязать аккаунт может только администратор
         """
-        if cls.post_scope() not in set(s.name for s in request_user.scopes):
+        if cls.post_scope() not in (s.name for s in request_user.scopes):
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
         username = cls.__get_username(user_id)
         if username:
@@ -225,7 +225,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
 
         Удалить данные может администратор
         """
-        if cls.delete_scope() not in set(s.name for s in request_user.scopes):
+        if cls.delete_scope() not in (s.name for s in request_user.scopes):
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
         username = cls.__get_username(user_id)
         if not username:
