@@ -105,10 +105,6 @@ class ResetForgottenPassword(Base):
 class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
     prefix = "/email"
 
-    @staticmethod
-    def _get_email_params(user_id: int) -> dict[str, AuthMethod]:
-        return Email.get_auth_method_params(user_id, session=db.session)
-
     def __init__(self):
         super().__init__()
 
@@ -149,7 +145,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         )
         if not query:
             raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
-        auth_params = cls._get_email_params(query.user_id)
+        auth_params = Email.get_auth_method_params(query.user_id, session=db.session)
         if auth_params["confirmed"].value.lower() == "false":
             raise AuthFailed(
                 "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
@@ -189,7 +185,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
 
     @staticmethod
     async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
-        auth_params = Email._get_email_params(user.id)
+        auth_params = Email.get_auth_method_params(user.id, session=db.session)
         if auth_params["confirmed"].value == "true":
             raise AlreadyExists(User, user.id)
         else:
@@ -284,7 +280,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                     status="Error", message="Incorrect link", ru="Некорректная ссылка"
                 ).model_dump(),
             )
-        auth_params = Email._get_email_params(auth_method.user.id)
+        auth_params = Email.get_auth_method_params(auth_method.user.id, session=db.session)
         auth_params["confirmed"].value = "true"
         userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
         await get_kafka_producer().produce(
@@ -308,7 +304,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
     ) -> StatusResponseModel:
-        auth_params = Email._get_email_params(user_session.user_id)
+        auth_params = Email.get_auth_method_params(user_session.user_id, session=db.session)
         if "email" not in auth_params:
             raise IncorrectUserAuthType()
         if auth_params["confirmed"].value == "false":
@@ -377,7 +373,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                     status="Error", message="Incorrect confirmation token", ru="Неправильный токен подтверждения"
                 ).model_dump(),
             )
-        auth_params = Email._get_email_params(auth.user_id)
+        auth_params = Email.get_auth_method_params(auth.user_id, session=db.session)
         user: User = auth.user
         if auth_params["confirmed"].value == "false":
             raise AuthFailed(
@@ -416,7 +412,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
     ) -> StatusResponseModel:
         old_user = {"user_id": user_session.user_id, Email.get_name(): {}}
         new_user = {"user_id": user_session.user_id, Email.get_name(): {}}
-        auth_params = Email._get_email_params(user_session.user.id)
+        auth_params = Email.get_auth_method_params(user_session.user.id, session=db.session)
         if "email" not in auth_params:
             raise HTTPException(
                 status_code=401,
@@ -473,7 +469,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                     status="Error", message="Email not found", ru="Почта не найдена"
                 ).model_dump(),
             )
-        auth_params = Email._get_email_params(auth_method_email.user.id)
+        auth_params = Email.get_auth_method_params(auth_method_email.user.id, session=db.session)
         old_user = {"user_id": auth_method_email.user.id, Email.get_name(): {}}
         new_user = {"user_id": auth_method_email.user.id, Email.get_name(): {}}
         if "email" not in auth_params:
@@ -503,7 +499,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             session=db.session,
         )
         new_user[Email.get_name()]["reset_token"] = reset_token_value
-        auth_params = Email._get_email_params(auth_method_email.user.id)
+        auth_params = Email.get_auth_method_params(auth_method_email.user.id, session=db.session)
         SendEmailMessage.send(
             to_email=auth_params["email"].value,
             ip=request.client.host,
@@ -539,7 +535,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                     status="Error", message="Invalid reset token", ru="Неправильный токен сброса"
                 ).model_dump(),
             )
-        auth_params = Email._get_email_params(auth_method.user.id)
+        auth_params = Email.get_auth_method_params(auth_method.user.id, session=db.session)
         old_user = {"user_id": auth_method.user.id, Email.get_name(): {"reset_token": auth_params["reset_token"].value}}
         new_user = {"user_id": auth_method.user.id, Email.get_name(): {}}
         salt = random_string()
