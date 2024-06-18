@@ -115,7 +115,7 @@ class YandexAuth(OauthMeta):
             user = user_session.user
             old_user = {'user_id': user.id}
         new_user["user_id"] = user.id
-        ya_id = await cls._create_auth_method_param('user_id', yandex_user_id, user, db_session=db.session)
+        ya_id = cls.create_auth_method_param('user_id', yandex_user_id, user, db_session=db.session)
         new_user[cls.get_name()]["user_id"] = ya_id.value
         userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
         await get_kafka_producer().produce(

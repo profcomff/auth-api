@@ -17,7 +17,6 @@ from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import get_settings
-from auth_backend.utils.auth_params import get_auth_params
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import SendEmailMessage
 from auth_backend.utils.string import random_string
@@ -108,7 +107,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
 
     @staticmethod
     def _get_email_params(user_id: int) -> dict[str, AuthMethod]:
-        return get_auth_params(user_id, Email.get_name(), db.session)
+        return Email.get_auth_method_params(user_id, session=db.session)
 
     def __init__(self):
         super().__init__()

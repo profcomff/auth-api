@@ -7,6 +7,7 @@ from fastapi_sqlalchemy import db
 from sqlalchemy import not_
 from starlette.responses import JSONResponse
 
+from auth_backend.auth_plugins.email import Email
 from auth_backend.base import StatusResponseModel
 from auth_backend.exceptions import ObjectNotFound, SessionExpired
 from auth_backend.models.db import AuthMethod, UserSession, session_expires_date
@@ -23,7 +24,6 @@ from auth_backend.schemas.models import (
     UserScopes,
 )
 from auth_backend.utils import user_session_control
-from auth_backend.utils.auth_params import get_auth_params
 from auth_backend.utils.security import UnionAuth
 
 
@@ -52,7 +52,7 @@ async def me(
         default=[]
     ),
 ) -> dict[str, str | int]:
-    auth_params = get_auth_params(session.user_id, "email", db.session)
+    auth_params = Email.get_auth_method_params(session.user_id, session=db.session)
     session.expires = session_expires_date()  # Автопродление сессии при активности пользователя
     result: dict[str, str | int] = {}
     result = (

@@ -6,6 +6,7 @@ from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session
 
 from auth_backend.auth_method import AuthPluginMeta
+from auth_backend.auth_plugins.email import Email
 from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
 from auth_backend.schemas.models import User as UserModel
 from auth_backend.schemas.models import (
@@ -18,7 +19,6 @@ from auth_backend.schemas.models import (
     UserScopes,
     UsersGet,
 )
-from auth_backend.utils.auth_params import get_auth_params
 from auth_backend.utils.security import UnionAuth
 
 
@@ -37,7 +37,7 @@ async def get_user(
     """
     result: dict[str, str | int] = {}
     user: User = User.get(user_id, session=db.session)  # type: ignore
-    auth_params = get_auth_params(user.id, "email", session=db.session)
+    auth_params = Email.get_auth_method_params(user.id, session=db.session)
     result = (
         result
         | UserInfo(

@@ -131,12 +131,39 @@ class AuthPluginMeta(metaclass=ABCMeta):
                 yield method
 
     @classmethod
-    async def _create_auth_method_param(cls, key: str, value: str | int, user: User, *, db_session) -> AuthMethod:
+    def create_auth_method_param(
+        cls,
+        key: str,
+        value: str | int,
+        user: User | int,
+        *,
+        db_session: DbSession,
+    ) -> AuthMethod:
         """Добавление пользователю новый AuthMethod"""
         return AuthMethod.create(
-            user_id=user.id,
+            user_id=user if isinstance(user, int) else user.id,
             auth_method=cls.get_name(),
             param=key,
             value=str(value),
             session=db_session,
         )
+
+    @classmethod
+    def get_auth_method_params(
+        cls,
+        user: User | int,
+        *,
+        session: DbSession,
+    ) -> dict[str, AuthMethod]:
+        retval: dict[str, AuthMethod] = {}
+        methods: list[AuthMethod] = (
+            AuthMethod.query(session=session)
+            .filter(
+                AuthMethod.user_id == user if isinstance(user, int) else user.id,
+                AuthMethod.auth_method == cls.get_name()
+            )
+            .all()
+        )
+        for method in methods:
+            retval[method.param] = method
+        return retval
