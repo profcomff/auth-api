@@ -1,3 +1,4 @@
+"""Init"""
 import sqlalchemy as sa
 from alembic import op
 
