@@ -7,7 +7,7 @@ from auth_backend.auth_method import OuterAuthMeta
 
 class Test(OuterAuthMeta):
     @classmethod
-    async def _is_user_exists(cls, username):
+    async def _is_outer_user_exists(cls, username):
         print(username)
 
     @classmethod
@@ -31,13 +31,13 @@ class Test(OuterAuthMeta):
 def mock_test():
     is_active_patch = patch.object(Test, "is_active", return_value=True)
     is_active_patch.start()
-    is_user_exists_patch = patch.object(Test, "_is_user_exists")
+    is_user_exists_patch = patch.object(Test, "_is_outer_user_exists")
     is_user_exists_mock = is_user_exists_patch.start()
-    create_user_patch = patch.object(Test, "_create_user")
+    create_user_patch = patch.object(Test, "_create_outer_user")
     create_user_mock = create_user_patch.start()
-    delete_user_patch = patch.object(Test, "_delete_user")
+    delete_user_patch = patch.object(Test, "_delete_outer_user")
     delete_user_mock = delete_user_patch.start()
-    update_user_password_patch = patch.object(Test, "_update_user_password")
+    update_user_password_patch = patch.object(Test, "_update_outer_user_password")
     update_user_password_mock = update_user_password_patch.start()
     yield {
         "is_user_exists_mock": is_user_exists_mock,

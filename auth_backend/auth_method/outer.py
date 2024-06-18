@@ -83,7 +83,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    async def _is_user_exists(cls, username):
+    async def _is_outer_user_exists(cls, username):
         """Проверяет наличие пользователя во внешнем сервисе"""
         raise NotImplementedError()
 
@@ -120,7 +120,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             if not username:
                 logger.debug("User user_id=%d have no username in outer service %s", user_id, cls.get_name())
                 return
-            if await cls._is_user_exists(username):
+            if await cls._is_outer_user_exists(username):
                 await cls._delete_outer_user(username)
         except Exception as exc:
             logger.error("Error occured while deleting outer user", exc_info=1)
@@ -168,7 +168,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             # У пользователя нет имени во внешнем сервисе
             return
 
-        if await cls._is_user_exists(username):
+        if await cls._is_outer_user_exists(username):
             await cls.__try_update_user(username, password)
         else:
             # Если пользователя нет во внешнем сервисе, создать его
@@ -209,7 +209,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             raise UserLinkingConflict(user_id)
         param = cls.create_auth_method_param("username", outer.username, user_id, db_session=db.session)
         if outer.force_create:
-            if not await cls._is_user_exists(outer.username):
+            if not await cls._is_outer_user_exists(outer.username):
                 await cls.__try_create_user(user_id)
         db.session.commit()
         return GetOuterAccount(username=param.value)
@@ -232,6 +232,6 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             raise UserNotLinked(user_id)
         username.is_deleted = True
         if outer.force_delete:
-            if await cls._is_user_exists(username):
+            if await cls._is_outer_user_exists(username):
                 await cls.__try_delete_user(user_id)
         db.session.commit()
