@@ -9,11 +9,8 @@ from typing import Any, Iterable
 from fastapi import APIRouter
 from sqlalchemy.orm import Session as DbSession
 
-from auth_backend.auth_method.session import Session
-from auth_backend.models.db import User, UserSession
-from auth_backend.schemas.types.scopes import Scope as TypeScope
+from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import get_settings
-from auth_backend.utils.user_session_control import create_session
 
 
 logger = logging.getLogger(__name__)
@@ -34,29 +31,12 @@ class AuthPluginMeta(metaclass=ABCMeta):
 
     def __init__(self):
         self.router = APIRouter()
-        self.router.add_api_route("/registration", self._register, methods=["POST"])
-        self.router.add_api_route("/login", self._login, methods=["POST"], response_model=Session)
 
     def __init_subclass__(cls, **kwargs):
         if cls.__name__.endswith('Meta') or cls.__name__.endswith('Mixin'):
             return
         logger.info(f'Init authmethod {cls.__name__}')
         AUTH_METHODS[cls.__name__] = cls
-
-    @staticmethod
-    async def _create_session(
-        user: User, scopes_list_names: list[TypeScope] | None, session_name: str | None = None, *, db_session: DbSession
-    ) -> Session:
-        """Создает сессию пользователя"""
-        return await create_session(user, scopes_list_names, db_session=db_session, session_name=session_name)
-
-    @staticmethod
-    async def _create_user(*, db_session: DbSession) -> User:
-        """Создает пользователя"""
-        user = User()
-        db_session.add(user)
-        db_session.flush()
-        return user
 
     async def _get_user(
         *,
@@ -130,10 +110,11 @@ class AuthPluginMeta(metaclass=ABCMeta):
         if len(exceptions) > 0:
             logger.error("Following errors occurred during on_user_update: ")
             for exc in exceptions:
-                logger.error(exc)
+                if exc:
+                    logger.error(exc)
 
-    @staticmethod
-    async def on_user_update(new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
+    @classmethod
+    async def on_user_update(cls, new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
         """Произвести действия на обновление пользователя, в т.ч. обновление в других провайдерах
 
         Описания входных параметров соответствует параметрам `AuthMethodMeta.user_updated`.
@@ -148,3 +129,41 @@ class AuthPluginMeta(metaclass=ABCMeta):
         for method in AUTH_METHODS.values():
             if method.is_active():
                 yield method
+
+    @classmethod
+    def create_auth_method_param(
+        cls,
+        key: str,
+        value: str | int,
+        user_id: int,
+        *,
+        db_session: DbSession,
+    ) -> AuthMethod:
+        """Добавление пользователю новый AuthMethod"""
+        return AuthMethod.create(
+            user_id=user_id,
+            auth_method=cls.get_name(),
+            param=key,
+            value=str(value),
+            session=db_session,
+        )
+
+    @classmethod
+    def get_auth_method_params(
+        cls,
+        user_id: int,
+        *,
+        session: DbSession,
+    ) -> dict[str, AuthMethod]:
+        retval: dict[str, AuthMethod] = {}
+        methods: list[AuthMethod] = (
+            AuthMethod.query(session=session)
+            .filter(
+                AuthMethod.user_id == user_id,
+                AuthMethod.auth_method == cls.get_name(),
+            )
+            .all()
+        )
+        for method in methods:
+            retval[method.param] = method
+        return retval

@@ -22,15 +22,15 @@ class UnionAuth(SecurityBase):
     allow_none: bool
     _scopes: list[str] = []
 
-    def __init__(self, scopes: list[str], allow_none=False, auto_error=False) -> None:
+    def __init__(self, scopes: list[str] = None, allow_none=False, auto_error=False) -> None:
         super().__init__()
         self.auto_error = auto_error
         self.allow_none = allow_none
-        self._scopes = scopes
+        self._scopes = scopes or []
 
     def _except(self):
         if self.auto_error:
-            raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authenticated")
+            raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
         else:
             return None
 

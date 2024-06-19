@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 async def test_user_updated():
     patches: dict[str, 'patch_type'] = {}
     mocks: dict[str, Mock] = {}
-    for auth_method in AUTH_METHODS:
-        patches[auth_method] = patch(f"auth_backend.auth_plugins.{auth_method}.on_user_update")
+    for auth_method, cls in AUTH_METHODS.items():
+        patches[auth_method] = patch.object(cls, "on_user_update")
         mocks[auth_method] = patches[auth_method].start()
 
     await AuthPluginMeta.user_updated({"user_id": 123})

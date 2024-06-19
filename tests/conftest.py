@@ -144,7 +144,7 @@ def user_factory(dbsession):
     _users = []
 
     def _user(client):
-        dbsession.add(res := User())
+        res = User.create(session=dbsession)
         dbsession.flush()
         nonlocal _users
         _users.append(res)

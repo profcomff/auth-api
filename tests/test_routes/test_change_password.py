@@ -2,8 +2,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from starlette import status
 
+from auth_backend.auth_plugins.email import Email
 from auth_backend.models.db import AuthMethod
-from auth_backend.utils.auth_params import get_auth_params
 
 
 url = "/email/reset/password"
@@ -19,7 +19,7 @@ def test_unprocessable_jsons_no_token(client_auth: TestClient, dbsession: Sessio
     )
     response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
-    auth_params = get_auth_params(user_id, "email", dbsession)
+    auth_params = Email.get_auth_method_params(user_id, session=dbsession)
     response = client_auth.post(
         f"{url}/restore",
         json={
@@ -97,7 +97,7 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: int):
         )
         .one()
     )
-    auth_params = get_auth_params(user_id, "email", dbsession)
+    auth_params = Email.get_auth_method_params(user_id, session=dbsession)
     response = client_auth.post(f"{url}/restore", json={"email": auth_params["email"].value})
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -112,7 +112,7 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: int):
         .one()
     )
     assert reset_token
-    auth_params = get_auth_params(user_id, "email", dbsession)
+    auth_params = Email.get_auth_method_params(user_id, session=dbsession)
 
     response = client_auth.post(
         f"{url}",
@@ -192,7 +192,7 @@ def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user
     response = client_auth.get(f"/email/approve?token={token.value}")
     assert response.status_code == status.HTTP_200_OK
 
-    auth_params = get_auth_params(user_id, "email", dbsession)
+    auth_params = Email.get_auth_method_params(user_id, session=dbsession)
 
     response = client_auth.post(f"{url}/restore", json={"email": auth_params["email"].value})
     assert response.status_code == status.HTTP_200_OK
