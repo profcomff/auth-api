@@ -58,7 +58,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         super().__init__()
         self.router.add_api_route("/{user_id}/link", self._get_link, methods=["GET"])
         self.router.add_api_route("/{user_id}/link", self._link, methods=["POST"])
-        self.router.add_api_route("/{user_id}/unlink", self._unlink, methods=["DELETE"])
+        self.router.add_api_route("/{user_id}/link", self._unlink, methods=["DELETE"])
         self.__BASE_SCOPE = f"auth.{self.get_name()}.link"
 
     @classmethod
