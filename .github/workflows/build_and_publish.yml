@@ -85,6 +85,7 @@ jobs:
             --detach \
             --restart always \
             --network=web \
+            --network=kafka \
             --env DB_DSN='${{ secrets.DB_DSN }}' \
             --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
@@ -159,6 +160,7 @@ jobs:
             --detach \
             --restart always \
             --network=web \
+            --network=kafka \
             --env DB_DSN='${{ secrets.DB_DSN }}' \
             --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
