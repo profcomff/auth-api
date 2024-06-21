@@ -90,7 +90,7 @@ class GithubAuth(OauthMeta):
                     github_user_id = userinfo['id']
         else:
             userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
-            github_user_id = userinfo['user_id']
+            github_user_id = userinfo['id']
             logger.debug(userinfo)
 
         user = await cls._get_user('user_id', github_user_id, db_session=db.session)
