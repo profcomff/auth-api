@@ -46,7 +46,6 @@ create-admin:
 	source ./venv/bin/activate && python -m auth_backend scope create --name auth.user.delete  --comment auth.user.delete  --creator 1
 	source ./venv/bin/activate && python -m auth_backend scope create --name auth.user.read    --comment auth.user.read    --creator 1
 	source ./venv/bin/activate && python -m auth_backend scope create --name auth.user.update  --comment auth.user.update  --creator 1
-	source ./venv/bin/activate && python -m auth_backend group create --name root --scopes 1 2 3 4 5 6 7 8 9 10 11
 	source ./venv/bin/activate && python -m auth_backend user_group create --user_id 1 --group_id 1
 
 login-user:
