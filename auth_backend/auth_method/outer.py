@@ -146,7 +146,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             # Мы не нашли этого пользователя во внешнем сервисе
             # Разорвем связку и кинем лог
             logger.debug("%s user not exists, unlinking", cls.get_name())
-            # username.is_deleted = True
+            username.is_deleted = True
             logger.error(
                 "User id=%d has username %s, which can't be found in %s",
                 user_id,
