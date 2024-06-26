@@ -12,6 +12,7 @@ from .vk import VkAuth
 from .yandex import YandexAuth
 from .postgres import PostgresOuterAuth
 from .coder import CoderOuterAuth
+from .airflow import AirflowOuterAuth
 
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "KeycloakAuth",
     "PostgresOuterAuth",
     "CoderOuterAuth",
+    "AirflowOuterAuth",
 ]
