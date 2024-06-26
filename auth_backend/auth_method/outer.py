@@ -193,3 +193,4 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         if not username:
             raise UserNotLinked(user_id)
         username.is_deleted = True
+        db.session.commit()
