@@ -26,10 +26,12 @@ class PostgresOuterAuth(OuterAuthMeta):
     @contextmanager
     def _session(cls) -> Generator[Session, None, None]:
         if not cls.__sessionmaker:
-            engine = create_engine(cls.settings.POSTGRES_AUTH_DB_DSN)
+            engine = create_engine(cls.settings.POSTGRES_AUTH_DB_DSN, pool_pre_ping=True)
             cls.__sessionmaker = sessionmaker(engine)
         with cls.__sessionmaker as conn:
-            yield conn
+            conn: Session
+            with conn.begin():
+                yield conn
 
     @classmethod
     async def _is_outer_user_exists(cls, username: str) -> bool:
