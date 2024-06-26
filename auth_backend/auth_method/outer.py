@@ -52,29 +52,38 @@ class LinkOuterAccount(Base):
 class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
     """Позволяет подключить внешний сервис для синхронизации пароля"""
 
-    __BASE_SCOPE: str
+    _BASE_SCOPE: str
+
+    def __new__(cls, *args, **kwargs):
+        cls._BASE_SCOPE = f"auth.{cls.get_name()}.link"
+        logger.info(
+            f"Init authmethod {cls.get_name()}, scopes: %s, %s, %s",
+            cls.get_scope(),
+            cls.post_scope(),
+            cls.delete_scope(),
+        )
+        return super().__new__(cls)
 
     def __init__(self):
         super().__init__()
         self.router.add_api_route("/{user_id}/link", self._get_link, methods=["GET"])
         self.router.add_api_route("/{user_id}/link", self._link, methods=["POST"])
         self.router.add_api_route("/{user_id}/link", self._unlink, methods=["DELETE"])
-        self.__BASE_SCOPE = f"auth.{self.get_name()}.link"
 
     @classmethod
     def get_scope(cls):
         """Права, необходимые пользователю для получения данных о внешнем аккаунте"""
-        return cls.__BASE_SCOPE + ".read"
+        return cls._BASE_SCOPE + ".read"
 
     @classmethod
     def post_scope(cls):
         """Права, необходимые пользователю для создания данных о внешнем аккаунте"""
-        return cls.__BASE_SCOPE + ".create"
+        return cls._BASE_SCOPE + ".create"
 
     @classmethod
     def delete_scope(cls):
         """Права, необходимые пользователю для удаления данных о внешнем аккаунте"""
-        return cls.__BASE_SCOPE + ".delete"
+        return cls._BASE_SCOPE + ".delete"
 
     @classmethod
     @abstractmethod
