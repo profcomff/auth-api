@@ -1,6 +1,6 @@
 import logging
-import aiohttp
 
+import aiohttp
 from pydantic import AnyUrl
 
 from auth_backend.auth_method import OuterAuthMeta
