@@ -3,7 +3,7 @@ import logging
 import aiohttp
 from pydantic import AnyUrl
 
-from auth_backend.auth_method.outer import OuterAuthMeta, ConnectionIssue
+from auth_backend.auth_method.outer import ConnectionIssue, OuterAuthMeta
 from auth_backend.settings import Settings
 
 
@@ -27,7 +27,9 @@ class AirflowOuterAuth(OuterAuthMeta):
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 str(cls.settings.AIRFLOW_AUTH_BASE_URL).removesuffix('/') + '/auth/fab/v1/users/' + username,
-                auth=aiohttp.BasicAuth(cls.settings.AIRFLOW_AUTH_ADMIN_USERNAME, cls.settings.AIRFLOW_AUTH_ADMIN_PASSWORD),
+                auth=aiohttp.BasicAuth(
+                    cls.settings.AIRFLOW_AUTH_ADMIN_USERNAME, cls.settings.AIRFLOW_AUTH_ADMIN_PASSWORD
+                ),
             ) as response:
                 if not response.ok:
                     raise ConnectionIssue(response.text)
