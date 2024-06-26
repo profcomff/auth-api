@@ -7,6 +7,7 @@ from .github import GithubAuth
 from .google import GoogleAuth
 from .keycloak import KeycloakAuth
 from .lkmsu import LkmsuAuth
+from .mailu import MailuOuterAuth
 from .mymsu import MyMsuAuth
 from .physics import PhysicsAuth
 from .postgres import PostgresOuterAuth
@@ -18,7 +19,9 @@ from .yandex import YandexAuth
 __all__ = [
     "AUTH_METHODS",
     "AuthPluginMeta",
+    # Основной провайдер
     "Email",
+    # Oauth провайдеры
     "GoogleAuth",
     "PhysicsAuth",
     "LkmsuAuth",
@@ -28,7 +31,9 @@ __all__ = [
     "VkAuth",
     "GithubAuth",
     "KeycloakAuth",
+    # Провайдеры синхронизации паролей
     "PostgresOuterAuth",
     "CoderOuterAuth",
     "AirflowOuterAuth",
+    "MailuOuterAuth",
 ]
