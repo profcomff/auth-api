@@ -16,7 +16,7 @@ class MailuOuterAuthSettings(Settings):
 
 
 class MailuOuterAuth(OuterAuthMeta):
-    prefix = '/airflow'
+    prefix = '/mailu'
     settings = MailuOuterAuthSettings()
 
     @classmethod
