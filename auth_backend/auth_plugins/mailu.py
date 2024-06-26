@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class MailuOuterAuthSettings(Settings):
-    MAILU_AUTH_BASE_URL: AnyUrl
-    MAILU_AUTH_API_KEY: str
+    MAILU_AUTH_BASE_URL: AnyUrl | None = None
+    MAILU_AUTH_API_KEY: str | None = None
 
 
 class MailuOuterAuth(OuterAuthMeta):

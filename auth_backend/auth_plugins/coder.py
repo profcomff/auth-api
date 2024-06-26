@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class CoderOuterAuthSettings(Settings):
-    CODER_AUTH_BASE_URL: AnyUrl
-    CODER_AUTH_ADMIN_TOKEN: str
+    CODER_AUTH_BASE_URL: AnyUrl | None = None
+    CODER_AUTH_ADMIN_TOKEN: str | None = None
 
 
 class CoderOuterAuth(OuterAuthMeta):

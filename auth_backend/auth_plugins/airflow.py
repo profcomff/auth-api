@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 class AirflowOuterAuthSettings(Settings):
-    AIRFLOW_AUTH_BASE_URL: AnyUrl
-    AIRFLOW_AUTH_ADMIN_USERNAME: str
-    AIRFLOW_AUTH_ADMIN_PASSWORD: str
+    AIRFLOW_AUTH_BASE_URL: AnyUrl | None = None
+    AIRFLOW_AUTH_ADMIN_USERNAME: str | None = None
+    AIRFLOW_AUTH_ADMIN_PASSWORD: str | None = None
 
 
 class AirflowOuterAuth(OuterAuthMeta):
