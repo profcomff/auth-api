@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import Depends
 from fastapi.exceptions import HTTPException
 from fastapi_sqlalchemy import db
-from starlette.status import HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
+from starlette.status import HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT, HTTP_424_FAILED_DEPENDENCY
 
 from auth_backend.auth_method.base import AuthPluginMeta
 from auth_backend.base import Base
@@ -32,6 +32,13 @@ class UserNotLinked(HTTPException, OuterAuthException):
 
     def __init__(self, user_id):
         super().__init__(status_code=HTTP_404_NOT_FOUND, detail=f"User id={user_id} not linked")
+
+
+class ConnectionIssue(HTTPException, OuterAuthException):
+    """Ошибка запроса к внешнему сервису"""
+
+    def __init__(self, user_id):
+        super().__init__(status_code=HTTP_424_FAILED_DEPENDENCY, detail=f"User id={user_id} not linked")
 
 
 class UserLinkingForbidden(HTTPException, OuterAuthException):
@@ -112,34 +119,41 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
 
         Описания входных параметров соответствует параметрам `AuthMethodMeta.user_updated`.
         """
+        # logger.debug("on_user_update class=%s started, new_user=%s, old_user=%s", cls.get_name(), new_user, old_user)
         if not new_user or not old_user:
             # Пользователь был только что создан или удален
             # Тут не будет дополнительных методов
+            logger.debug("%s not new_user or not old_user, closing", cls.get_name())
             return
 
         user_id = new_user.get("user_id")
         password = new_user.get("email", {}).get("password")
         if not password:
             # В этом событии пароль не обновлялся, ничего не делаем
+            logger.debug("%s not password, closing", cls.get_name())
             return
 
         username = await cls.__get_username(user_id)
         if not username:
             # У пользователя нет имени во внешнем сервисе
+            logger.debug("%s not username, closing", cls.get_name())
             return
 
         if await cls._is_outer_user_exists(username.value):
+            logger.debug("%s user exists, changing password", cls.get_name())
             await cls._update_outer_user_password(username.value, password)
         else:
             # Мы не нашли этого пользователя во внешнем сервисе
             # Разорвем связку и кинем лог
-            username.is_deleted = True
+            logger.debug("%s user not exists, unlinking", cls.get_name())
+            # username.is_deleted = True
             logger.error(
                 "User id=%d has username %s, which can't be found in %s",
                 user_id,
                 username.value,
                 cls.get_name(),
             )
+        logger.debug("on_user_update class=%s finished", cls.get_name())
 
     @classmethod
     async def _get_link(

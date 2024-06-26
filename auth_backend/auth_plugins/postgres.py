@@ -1,3 +1,4 @@
+import re
 import logging
 from contextlib import contextmanager
 from typing import Generator
@@ -26,9 +27,9 @@ class PostgresOuterAuth(OuterAuthMeta):
     @contextmanager
     def _session(cls) -> Generator[Session, None, None]:
         if not cls.__sessionmaker:
-            engine = create_engine(cls.settings.POSTGRES_AUTH_DB_DSN, pool_pre_ping=True)
+            engine = create_engine(str(cls.settings.POSTGRES_AUTH_DB_DSN), pool_pre_ping=True)
             cls.__sessionmaker = sessionmaker(engine)
-        with cls.__sessionmaker as conn:
+        with cls.__sessionmaker() as conn:
             conn: Session
             with conn.begin():
                 yield conn
@@ -36,6 +37,7 @@ class PostgresOuterAuth(OuterAuthMeta):
     @classmethod
     async def _is_outer_user_exists(cls, username: str) -> bool:
         """Проверяет наличие пользователя в Postgres"""
+        logger.debug("_is_outer_user_exists class=%s started", cls.get_name())
         with cls._session() as session:
             exists = session.execute(
                 text("SELECT 1 FROM pg_roles WHERE rolname=:username;"),
@@ -46,12 +48,16 @@ class PostgresOuterAuth(OuterAuthMeta):
     @classmethod
     async def _update_outer_user_password(cls, username: str, password: str):
         """Устанавливает пользователю новый пароль в Postgres"""
-        with cls._session() as session:
-            res: Result = session.execute(
-                text("ALTER USER :username WITH PASSWORD :password;"),
-                {"username": username, "password": password},
-            )
-        if res.is_success:
+        logger.debug("_update_outer_user_password class=%s started", cls.get_name())
+        try:
+            with cls._session() as session:
+                if len(re.findall(r"\W", username)) > 0:
+                    raise ValueError(f"Username {username} contains invalid characters")
+                res: Result = session.execute(
+                    text(f"ALTER USER {username} WITH PASSWORD :password;"),
+                    {"password": password},
+                )
+                logger.debug("_update_outer_user_password class=%s response %s", cls.get_name(), str(res))
             logger.info("User %s updated in Postgres", username)
-        else:
+        except:
             logger.error("User %s can't be updated in Postgres", username)

@@ -350,7 +350,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             background_tasks=background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
         )
-        await AuthPluginMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(new_user, old_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
@@ -399,7 +399,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         await get_kafka_producer().produce(
             settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata, bg_tasks=background_tasks
         )
-        await AuthPluginMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(new_user, old_user)
         db.session.commit()
         return StatusResponseModel(status="Success", message="Email successfully changed", ru="Почта изменена")
 
@@ -433,6 +433,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         old_user[Email.get_name()]["salt"] = auth_params["salt"].value
         auth_params["hashed_password"].value = Email._hash_password(schema.new_password, salt)
         auth_params["salt"].value = salt
+        new_user[Email.get_name()]["password"] = schema.new_password
         new_user[Email.get_name()]["hashed_password"] = auth_params["hashed_password"].value
         new_user[Email.get_name()]["salt"] = auth_params["salt"].value
         SendEmailMessage.send(
@@ -443,7 +444,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             dbsession=db.session,
             background_tasks=background_tasks,
         )
-        await AuthPluginMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(new_user, old_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Password has been successfully changed", ru="Пароль изменен"
@@ -509,7 +510,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             background_tasks=background_tasks,
             url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_params['reset_token'].value}",
         )
-        await AuthPluginMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(new_user, old_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Reset link has been successfully mailed", ru="Ссылка отправлена на почту"
@@ -545,7 +546,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         auth_params["salt"].value = salt
         new_user[Email.get_name()]["salt"] = auth_params["salt"].value
         auth_params["reset_token"].is_deleted = True
-        await AuthPluginMeta.user_updated(old_user, new_user)
+        await AuthPluginMeta.user_updated(new_user, old_user)
         db.session.commit()
         return StatusResponseModel(
             status="Success", message="Password has been successfully changed", ru="Пароль изменен"
