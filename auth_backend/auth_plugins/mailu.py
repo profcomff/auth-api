@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class MailuOuterAuthSettings(Settings):
-    MAILU_BASE_URL: AnyUrl
-    MAILU_API_KEY: str
+    MAILU_AUTH_BASE_URL: AnyUrl
+    MAILU_AUTH_API_KEY: str
 
 
 class MailuOuterAuth(OuterAuthMeta):
@@ -24,8 +24,8 @@ class MailuOuterAuth(OuterAuthMeta):
         """Проверяет наличие пользователя на сервере Mailu"""
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                str(cls.settings.MAILU_BASE_URL).removesuffix('/') + '/user/' + username,
-                headers={"Authorization": cls.settings.MAILU_API_KEY},
+                str(cls.settings.MAILU_AUTH_BASE_URL).removesuffix('/') + '/user/' + username,
+                headers={"Authorization": cls.settings.MAILU_AUTH_API_KEY},
             ) as response:
                 res: dict[str] = await response.json()
                 return res.get('username') == username
@@ -36,8 +36,8 @@ class MailuOuterAuth(OuterAuthMeta):
         res = False
         async with aiohttp.ClientSession() as session:
             async with session.patch(
-                str(cls.settings.MAILU_BASE_URL).removesuffix('/') + '/user/' + username,
-                headers={"Authorization": cls.settings.MAILU_API_KEY},
+                str(cls.settings.MAILU_AUTH_BASE_URL).removesuffix('/') + '/user/' + username,
+                headers={"Authorization": cls.settings.MAILU_AUTH_API_KEY},
                 json={'raw_password': password},
             ) as response:
                 res: dict[str] = response.ok

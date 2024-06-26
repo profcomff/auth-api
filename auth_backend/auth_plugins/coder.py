@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class CoderOuterAuthSettings(Settings):
-    CODER_BASE_URL: AnyUrl
-    CODER_ADMIN_TOKEN: str
+    CODER_AUTH_BASE_URL: AnyUrl
+    CODER_AUTH_ADMIN_TOKEN: str
 
 
 class CoderOuterAuth(OuterAuthMeta):
@@ -24,8 +24,8 @@ class CoderOuterAuth(OuterAuthMeta):
         """Проверяет наличие пользователя в Coder"""
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                str(cls.settings.CODER_BASE_URL).removesuffix('/') + '/api/v2/users/' + username,
-                headers={'Coder-Session-Token': cls.settings.CODER_ADMIN_TOKEN},
+                str(cls.settings.CODER_AUTH_BASE_URL).removesuffix('/') + '/api/v2/users/' + username,
+                headers={'Coder-Session-Token': cls.settings.CODER_AUTH_ADMIN_TOKEN},
             ) as response:
                 res: dict[str] = await response.json()
                 return res.get('username') == username
@@ -36,8 +36,8 @@ class CoderOuterAuth(OuterAuthMeta):
         res = False
         async with aiohttp.ClientSession() as session:
             async with session.put(
-                str(cls.settings.CODER_BASE_URL).removesuffix('/') + '/api/v2/users/' + username + '/password',
-                headers={'Coder-Session-Token': cls.settings.CODER_ADMIN_TOKEN},
+                str(cls.settings.CODER_AUTH_BASE_URL).removesuffix('/') + '/api/v2/users/' + username + '/password',
+                headers={'Coder-Session-Token': cls.settings.CODER_AUTH_ADMIN_TOKEN},
                 json={'password': password},
             ) as response:
                 res: dict[str] = response.ok
