@@ -11,6 +11,7 @@ from .telegram import TelegramAuth
 from .vk import VkAuth
 from .yandex import YandexAuth
 from .postgres import PostgresOuterAuth
+from .coder import CoderOuterAuth
 
 
 __all__ = [
@@ -27,4 +28,5 @@ __all__ = [
     "GithubAuth",
     "KeycloakAuth",
     "PostgresOuterAuth",
+    "CoderOuterAuth",
 ]
