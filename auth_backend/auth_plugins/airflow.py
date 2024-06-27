@@ -47,7 +47,7 @@ class AirflowOuterAuth(OuterAuthMeta):
                 auth=(cls.settings.AIRFLOW_AUTH_ADMIN_USERNAME, cls.settings.AIRFLOW_AUTH_ADMIN_PASSWORD),
                 json={'password': password},
             ) as response:
-                res: dict[str] = response.ok
+                res = response.ok
                 logger.debug("_update_outer_user_password class=%s response %s", cls.get_name(), str(response.status))
         if res:
             logger.info("User %s updated in Airflow", username)
