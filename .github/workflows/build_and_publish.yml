@@ -89,6 +89,7 @@ jobs:
             --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
+            --env ENABLED_AUTH_METHODS='${{ vars.ENABLED_AUTH_METHODS }}' \
             --env SMTP_HOST='mail.profcomff.com' \
             --env SMTP_PORT='465' \
             --env APPLICATION_HOST='${{ vars.HOST }}' \
