@@ -107,11 +107,11 @@ class AuthPluginMeta(metaclass=ABCMeta):
             *[m.on_user_update(new_user, old_user) for m in AuthPluginMeta.active_auth_methods()],
             return_exceptions=True,
         )
+        exceptions = [exc for exc in exceptions if exc]
         if len(exceptions) > 0:
             logger.error("Following errors occurred during on_user_update: ")
             for exc in exceptions:
-                if exc:
-                    logger.error(exc)
+                logger.error(exc, exc_info=exc)
 
     @classmethod
     async def on_user_update(cls, new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
