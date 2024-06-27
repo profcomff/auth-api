@@ -1,6 +1,10 @@
 # auth-api
  API сервиса аутентификации и авторизации в приложение Твой ФФ!
 
+[<img src="https://cdn.profcomff.com/easycode/easycode.svg" width="200"></img>](https://easycode.profcomff.com/templates/docker-fastapi/workspace?mode=manual&param.Repository+URL=https://github.com/profcomff/auth-api.git&param.Working+directory=auth-api)
+
+## Схема работы Auth APUI
+
 ![Auth Schema](https://github.com/profcomff/auth-api/assets/5656720/ab2730be-054a-454c-ab76-5475e615bb64)
 
 ## Функционал 
