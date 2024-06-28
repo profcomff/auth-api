@@ -49,7 +49,7 @@ class AirflowOuterAuth(OuterAuthMeta):
                 ),
                 params={"update_mask": ["password"]},
                 json={
-                    "password": password
+                    "password": password,
                     "email": "no_change",
                     "first_name": "no_change",
                     "last_name": "no_change",
