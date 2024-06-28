@@ -47,7 +47,15 @@ class AirflowOuterAuth(OuterAuthMeta):
                 auth=aiohttp.BasicAuth(
                     cls.settings.AIRFLOW_AUTH_ADMIN_USERNAME, cls.settings.AIRFLOW_AUTH_ADMIN_PASSWORD
                 ),
-                json={'password': password},
+                params={"update_mask": ["password"]},
+                json={
+                    "password": password
+                    "email": "no_change",
+                    "first_name": "no_change",
+                    "last_name": "no_change",
+                    "roles": [],
+                    "username": "no_change",
+                },
             ) as response:
                 res = response.ok
                 logger.debug("_update_outer_user_password class=%s response %s", cls.get_name(), str(response.status))
