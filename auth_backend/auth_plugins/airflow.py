@@ -44,7 +44,9 @@ class AirflowOuterAuth(OuterAuthMeta):
         async with aiohttp.ClientSession() as session:
             async with session.patch(
                 str(cls.settings.AIRFLOW_AUTH_BASE_URL).removesuffix('/') + '/auth/fab/v1/users' + username,
-                auth=(cls.settings.AIRFLOW_AUTH_ADMIN_USERNAME, cls.settings.AIRFLOW_AUTH_ADMIN_PASSWORD),
+                auth=aiohttp.BasicAuth(
+                    cls.settings.AIRFLOW_AUTH_ADMIN_USERNAME, cls.settings.AIRFLOW_AUTH_ADMIN_PASSWORD
+                ),
                 json={'password': password},
             ) as response:
                 res = response.ok
