@@ -310,7 +310,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         if auth_params["confirmed"].value == "false":
             raise AuthFailed(
                 "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
-                "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту",
+                "Регистрация не была завершена. Попробуйте зарегистрироваться снова и не забудьте подтвердить почту",
             )
         if auth_params["email"].value == scheme.email:
             raise HTTPException(
@@ -378,7 +378,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         if auth_params["confirmed"].value == "false":
             raise AuthFailed(
                 "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
-                "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту",
+                "Регистрация не была завершена. Попробуйте зарегистрироваться снова и не забудьте подтвердить почту",
             )
         old_user = {
             "user_id": user.id,
