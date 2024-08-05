@@ -9,6 +9,9 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import field_validator, model_validator
 from sqlalchemy import func
+import sqlalchemy
+from sqlalchemy.orm import Session as DBSession
+import sqlalchemy.exc
 
 from auth_backend.auth_method import AuthPluginMeta, LoginableMixin, RegistrableMixin, Session, UserdataMixin
 from auth_backend.base import Base, StatusResponseModel
@@ -184,8 +187,8 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         return method_params
 
     @staticmethod
-    async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
-        auth_params = Email.get_auth_method_params(user.id, session=db.session)
+    async def _change_confirmation_link(user: User, confirmation_token: str, *, session: DBSession) -> None:
+        auth_params = Email.get_auth_method_params(user.id, session=session)
         if auth_params["confirmed"].value == "true":
             raise AlreadyExists(User, user.id)
         else:
@@ -200,57 +203,55 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
     ) -> StatusResponseModel:
         confirmation_token: str = random_string()
-        auth_method: AuthMethod | None = (
-            AuthMethod.query(session=db.session)
-            .filter(
-                AuthMethod.param == "email",
-                func.lower(AuthMethod.value) == user_inp.email.lower(),
-                AuthMethod.auth_method == Email.get_name(),
+        with AuthMethod.txn(db.session) as txn:
+            auth_method: AuthMethod | None = (
+                AuthMethod.query(session=txn)
+                .filter(
+                    AuthMethod.param == "email",
+                    func.lower(AuthMethod.value) == user_inp.email.lower(),
+                    AuthMethod.auth_method == Email.get_name(),
+                )
+                .one_or_none()
             )
-            .one_or_none()
-        )
-        if auth_method:
-            await Email._change_confirmation_link(auth_method.user, confirmation_token)
+            if auth_method:
+                await Email._change_confirmation_link(auth_method.user, confirmation_token, session=txn)
+                SendEmailMessage.send(
+                    user_inp.email,
+                    request.client.host,
+                    "main_confirmation.html",
+                    "Подтверждение регистрации Твой ФФ!",
+                    txn,
+                    background_tasks,
+                    url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
+                )
+                return StatusResponseModel(
+                    status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
+                )
+            if user_session:
+                user = await cls._get_user(user_session=user_session, db_session=txn)
+                if not user:
+                    raise SessionExpired(user_session.token)
+            else:
+                user = await cls._create_user(db_session=txn)
+            method_params = await Email._add_to_db(user_inp, confirmation_token, user)
+            method_params["password"] = user_inp.password  # В user_updated передаем пароль в открытую
             SendEmailMessage.send(
                 user_inp.email,
                 request.client.host,
                 "main_confirmation.html",
                 "Подтверждение регистрации Твой ФФ!",
-                db.session,
+                txn,
                 background_tasks,
                 url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
             )
-            db.session.commit()
+
+            old_user = None
+            if user_session:
+                old_user = {"user_id": user_session.user.id}
+            await AuthPluginMeta.user_updated({"user_id": user.id, Email.get_name(): method_params}, old_user)
             return StatusResponseModel(
                 status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
             )
-        if user_session:
-            user = await cls._get_user(user_session=user_session, db_session=db.session)
-            if not user:
-                raise SessionExpired(user_session.token)
-        else:
-            user = await cls._create_user(db_session=db.session)
-        method_params = await Email._add_to_db(user_inp, confirmation_token, user)
-        method_params["password"] = user_inp.password  # В user_updated передаем пароль в открытую
-        SendEmailMessage.send(
-            user_inp.email,
-            request.client.host,
-            "main_confirmation.html",
-            "Подтверждение регистрации Твой ФФ!",
-            db.session,
-            background_tasks,
-            url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
-        )
-
-        old_user = None
-        if user_session:
-            old_user = {"user_id": user_session.user.id}
-        await AuthPluginMeta.user_updated({"user_id": user.id, Email.get_name(): method_params}, old_user)
-
-        db.session.commit()
-        return StatusResponseModel(
-            status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
-        )
 
     @staticmethod
     def _hash_password(password: str, salt: str) -> str:

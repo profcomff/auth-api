@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 import re
+import sys
+from typing import Iterator
 
 from sqlalchemy import Integer, not_
+import sqlalchemy
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Mapped, Query, Session, as_declarative, declared_attr, mapped_column
 
@@ -74,3 +78,29 @@ class BaseDbModel(Base):
         else:
             session.delete(obj)
         session.flush()
+    
+    @classmethod
+    @contextmanager
+    def txn(cls, session: Session) -> Iterator[Session]:
+        try:
+            nested = session.begin_nested()
+            session.execute(sqlalchemy.text(f'LOCK TABLE {cls.__tablename__} IN ACCESS EXCLUSIVE MODE;'))
+            try:
+                yield session
+            except Exception:
+                exception_name, _, __ = sys.exc_info()
+                nested.rollback()
+                session.rollback()
+                if session and session.is_active:
+                    session.close()
+                raise
+            finally:
+                if locals().get("exception_name") is not None:
+                    return
+                nested.commit()
+                session.commit()
+                if session and session.is_active:
+                    session.close()
+        except Exception:
+            raise
+        
