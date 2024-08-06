@@ -160,11 +160,10 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
         userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
         background_tasks.add_task(
-            get_kafka_producer().produce(
-                settings.KAFKA_USER_LOGIN_TOPIC_NAME,
-                Email.generate_kafka_key(query.user.id),
-                userdata,
-            )
+            get_kafka_producer().produce,
+            settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            Email.generate_kafka_key(query.user.id),
+            userdata,
         )
         return await cls._create_session(
             query.user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
@@ -284,9 +283,10 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         auth_params["confirmed"].value = "true"
         userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
         background_tasks.add_task(
-            get_kafka_producer().produce(
-                settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(auth_method.user.id), userdata
-            )
+            get_kafka_producer().produce,
+            settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            Email.generate_kafka_key(auth_method.user.id),
+            userdata,
         )
         await AuthPluginMeta.user_updated(
             {"user_id": auth_method.user.id, Email.get_name(): {"confirmed": True}},
@@ -398,9 +398,10 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         }
         userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
         background_tasks.add_task(
-            get_kafka_producer().produce(
-                settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata
-            )
+            get_kafka_producer().produce,
+            settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            Email.generate_kafka_key(user.id),
+            userdata,
         )
         await AuthPluginMeta.user_updated(new_user, old_user)
         db.session.commit()

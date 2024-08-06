@@ -119,9 +119,10 @@ class YandexAuth(OauthMeta):
         new_user[cls.get_name()]["user_id"] = ya_id.value
         userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
         background_tasks.add_task(
-            get_kafka_producer().produce(
-                cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME, YandexAuth.generate_kafka_key(user.id), userdata
-            )
+            get_kafka_producer().produce,
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            YandexAuth.generate_kafka_key(user.id),
+            userdata,
         )
         await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
@@ -167,9 +168,10 @@ class YandexAuth(OauthMeta):
             )
         userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
         background_tasks.add_task(
-            get_kafka_producer().produce(
-                cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME, YandexAuth.generate_kafka_key(user.id), userdata
-            )
+            get_kafka_producer().produce,
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            YandexAuth.generate_kafka_key(user.id),
+            userdata,
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
