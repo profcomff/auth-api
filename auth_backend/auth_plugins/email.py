@@ -9,6 +9,7 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import field_validator, model_validator
 from sqlalchemy import func
+from sqlalchemy.orm import Session as DBSession
 
 from auth_backend.auth_method import AuthPluginMeta, LoginableMixin, RegistrableMixin, Session, UserdataMixin
 from auth_backend.base import Base, StatusResponseModel
@@ -158,11 +159,11 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         ):
             raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
         userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             Email.generate_kafka_key(query.user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         return await cls._create_session(
             query.user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
@@ -184,8 +185,8 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         return method_params
 
     @staticmethod
-    async def _change_confirmation_link(user: User, confirmation_token: str) -> None:
-        auth_params = Email.get_auth_method_params(user.id, session=db.session)
+    async def _change_confirmation_link(user: User, confirmation_token: str, *, session: DBSession) -> None:
+        auth_params = Email.get_auth_method_params(user.id, session=session)
         if auth_params["confirmed"].value == "true":
             raise AlreadyExists(User, user.id)
         else:
@@ -200,57 +201,55 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=True, auto_error=True)),
     ) -> StatusResponseModel:
         confirmation_token: str = random_string()
-        auth_method: AuthMethod | None = (
-            AuthMethod.query(session=db.session)
-            .filter(
-                AuthMethod.param == "email",
-                func.lower(AuthMethod.value) == user_inp.email.lower(),
-                AuthMethod.auth_method == Email.get_name(),
+        async with AuthMethod.lock(db.session) as txn:
+            auth_method: AuthMethod | None = (
+                AuthMethod.query(session=txn)
+                .filter(
+                    AuthMethod.param == "email",
+                    func.lower(AuthMethod.value) == user_inp.email.lower(),
+                    AuthMethod.auth_method == Email.get_name(),
+                )
+                .one_or_none()
             )
-            .one_or_none()
-        )
-        if auth_method:
-            await Email._change_confirmation_link(auth_method.user, confirmation_token)
+            if auth_method:
+                await Email._change_confirmation_link(auth_method.user, confirmation_token, session=txn)
+                SendEmailMessage.send(
+                    user_inp.email,
+                    request.client.host,
+                    "main_confirmation.html",
+                    "Подтверждение регистрации Твой ФФ!",
+                    txn,
+                    background_tasks,
+                    url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
+                )
+                return StatusResponseModel(
+                    status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
+                )
+            if user_session:
+                user = await cls._get_user(user_session=user_session, db_session=txn)
+                if not user:
+                    raise SessionExpired(user_session.token)
+            else:
+                user = await cls._create_user(db_session=txn)
+            method_params = await Email._add_to_db(user_inp, confirmation_token, user)
+            method_params["password"] = user_inp.password  # В user_updated передаем пароль в открытую
             SendEmailMessage.send(
                 user_inp.email,
                 request.client.host,
                 "main_confirmation.html",
                 "Подтверждение регистрации Твой ФФ!",
-                db.session,
+                txn,
                 background_tasks,
                 url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
             )
-            db.session.commit()
+
+            old_user = None
+            if user_session:
+                old_user = {"user_id": user_session.user.id}
+            await AuthPluginMeta.user_updated({"user_id": user.id, Email.get_name(): method_params}, old_user)
             return StatusResponseModel(
                 status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
             )
-        if user_session:
-            user = await cls._get_user(user_session=user_session, db_session=db.session)
-            if not user:
-                raise SessionExpired(user_session.token)
-        else:
-            user = await cls._create_user(db_session=db.session)
-        method_params = await Email._add_to_db(user_inp, confirmation_token, user)
-        method_params["password"] = user_inp.password  # В user_updated передаем пароль в открытую
-        SendEmailMessage.send(
-            user_inp.email,
-            request.client.host,
-            "main_confirmation.html",
-            "Подтверждение регистрации Твой ФФ!",
-            db.session,
-            background_tasks,
-            url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
-        )
-
-        old_user = None
-        if user_session:
-            old_user = {"user_id": user_session.user.id}
-        await AuthPluginMeta.user_updated({"user_id": user.id, Email.get_name(): method_params}, old_user)
-
-        db.session.commit()
-        return StatusResponseModel(
-            status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
-        )
 
     @staticmethod
     def _hash_password(password: str, salt: str) -> str:
@@ -283,11 +282,11 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         auth_params = Email.get_auth_method_params(auth_method.user.id, session=db.session)
         auth_params["confirmed"].value = "true"
         userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             Email.generate_kafka_key(auth_method.user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         await AuthPluginMeta.user_updated(
             {"user_id": auth_method.user.id, Email.get_name(): {"confirmed": True}},
@@ -304,57 +303,59 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
     ) -> StatusResponseModel:
-        auth_params = Email.get_auth_method_params(user_session.user_id, session=db.session)
-        if "email" not in auth_params:
-            raise IncorrectUserAuthType()
-        if auth_params["confirmed"].value == "false":
-            raise AuthFailed(
-                "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
-                "Регистрация не была завершена. Попробуйте зарегистрироваться снова и не забудьте подтвердить почту",
-            )
-        if auth_params["email"].value == scheme.email:
-            raise HTTPException(
-                status_code=401,
-                detail=StatusResponseModel(
-                    status="Error", message="Email incorrect", ru="Некорректная почта"
-                ).model_dump(),
-            )
+        async with AuthMethod.lock(db.session) as txn:
+            auth_params = Email.get_auth_method_params(user_session.user_id, session=txn)
+            if "email" not in auth_params:
+                raise IncorrectUserAuthType()
+            if auth_params["confirmed"].value == "false":
+                raise AuthFailed(
+                    "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
+                    "Регистрация не была завершена. Попробуйте зарегистрироваться снова и не забудьте подтвердить почту",
+                )
+            if auth_params["email"].value == scheme.email:
+                raise HTTPException(
+                    status_code=401,
+                    detail=StatusResponseModel(
+                        status="Error", message="Email incorrect", ru="Некорректная почта"
+                    ).model_dump(),
+                )
 
-        old_user = {"user_id": user_session.user_id, cls.get_name(): {}}
-        new_user = {"user_id": user_session.user_id, cls.get_name(): {}}
-        token = random_string(length=settings.TOKEN_LENGTH)
-        if "tmp_email" in auth_params:
-            old_user[cls.get_name()]["tmp_email"] = auth_params["tmp_email"].value
-            auth_params["tmp_email"].is_deleted = True
-            old_user[cls.get_name()]["tmp_email_confirmation_token"] = auth_params["tmp_email_confirmation_token"].value
-            auth_params["tmp_email_confirmation_token"].is_deleted = True
-            db.session.flush()
-        AuthMethod.create(
-            user_id=user_session.user_id,
-            auth_method="email",
-            param="tmp_email_confirmation_token",
-            value=token,
-            session=db.session,
-        )
-        new_user[cls.get_name()]["tmp_email_confirmation_token"] = token
-        AuthMethod.create(
-            user_id=user_session.user_id, auth_method="email", param="tmp_email", value=scheme.email, session=db.session
-        )
-        new_user[cls.get_name()]["tmp_email"] = scheme.email
-        SendEmailMessage.send(
-            to_email=scheme.email,
-            ip=request.client.host,
-            message_file_name="mail_change_confirmation.html",
-            subject="Смена почты Твой ФФ!",
-            dbsession=db.session,
-            background_tasks=background_tasks,
-            url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
-        )
-        await AuthPluginMeta.user_updated(new_user, old_user)
-        db.session.commit()
-        return StatusResponseModel(
-            status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
-        )
+            old_user = {"user_id": user_session.user_id, cls.get_name(): {}}
+            new_user = {"user_id": user_session.user_id, cls.get_name(): {}}
+            token = random_string(length=settings.TOKEN_LENGTH)
+            if "tmp_email" in auth_params:
+                old_user[cls.get_name()]["tmp_email"] = auth_params["tmp_email"].value
+                auth_params["tmp_email"].is_deleted = True
+                old_user[cls.get_name()]["tmp_email_confirmation_token"] = auth_params[
+                    "tmp_email_confirmation_token"
+                ].value
+                auth_params["tmp_email_confirmation_token"].is_deleted = True
+                txn.flush()
+            AuthMethod.create(
+                user_id=user_session.user_id,
+                auth_method="email",
+                param="tmp_email_confirmation_token",
+                value=token,
+                session=txn,
+            )
+            new_user[cls.get_name()]["tmp_email_confirmation_token"] = token
+            AuthMethod.create(
+                user_id=user_session.user_id, auth_method="email", param="tmp_email", value=scheme.email, session=txn
+            )
+            new_user[cls.get_name()]["tmp_email"] = scheme.email
+            SendEmailMessage.send(
+                to_email=scheme.email,
+                ip=request.client.host,
+                message_file_name="mail_change_confirmation.html",
+                subject="Смена почты Твой ФФ!",
+                dbsession=txn,
+                background_tasks=background_tasks,
+                url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
+            )
+            await AuthPluginMeta.user_updated(new_user, old_user)
+            return StatusResponseModel(
+                status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
+            )
 
     @staticmethod
     async def _reset_email(token: str, background_tasks: BackgroundTasks) -> StatusResponseModel:
@@ -396,8 +397,11 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             Email.get_name(): {"email": auth_params["email"].value},
         }
         userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
-        await get_kafka_producer().produce(
-            settings.KAFKA_USER_LOGIN_TOPIC_NAME, Email.generate_kafka_key(user.id), userdata, bg_tasks=background_tasks
+        background_tasks.add_task(
+            get_kafka_producer().produce,
+            settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            Email.generate_kafka_key(user.id),
+            userdata,
         )
         await AuthPluginMeta.user_updated(new_user, old_user)
         db.session.commit()
@@ -454,67 +458,67 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
     async def _request_reset_forgotten_password(
         request: Request, schema: RequestResetForgottenPassword, background_tasks: BackgroundTasks
     ) -> StatusResponseModel:
-        auth_method_email: AuthMethod | None = (
-            AuthMethod.query(session=db.session)
-            .filter(
-                AuthMethod.auth_method == Email.get_name(),
-                AuthMethod.param == "email",
-                AuthMethod.value == schema.email,
+        async with AuthMethod.lock(db.session) as txn:
+            auth_method_email: AuthMethod | None = (
+                AuthMethod.query(session=txn)
+                .filter(
+                    AuthMethod.auth_method == Email.get_name(),
+                    AuthMethod.param == "email",
+                    AuthMethod.value == schema.email,
+                )
+                .one_or_none()
             )
-            .one_or_none()
-        )
-        if not auth_method_email:
-            raise HTTPException(
-                status_code=404,
-                detail=StatusResponseModel(
-                    status="Error", message="Email not found", ru="Почта не найдена"
-                ).model_dump(),
+            if not auth_method_email:
+                raise HTTPException(
+                    status_code=404,
+                    detail=StatusResponseModel(
+                        status="Error", message="Email not found", ru="Почта не найдена"
+                    ).model_dump(),
+                )
+            auth_params = Email.get_auth_method_params(auth_method_email.user.id, session=txn)
+            old_user = {"user_id": auth_method_email.user.id, Email.get_name(): {}}
+            new_user = {"user_id": auth_method_email.user.id, Email.get_name(): {}}
+            if "email" not in auth_params:
+                raise HTTPException(
+                    status_code=401,
+                    detail=StatusResponseModel(
+                        status="Error",
+                        message="Auth method restricted for this user",
+                        ru="Метод аутентификации не установлен для пользователя",
+                    ).model_dump(),
+                )
+            if auth_params["confirmed"].value.lower() == "false":
+                raise AuthFailed(
+                    "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
+                    "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту",
+                )
+            if "reset_token" in auth_params:
+                old_user[Email.get_name()]["reset_token"] = auth_params["reset_token"].value
+                auth_params["reset_token"].is_deleted = True
+                txn.flush()
+            reset_token_value = random_string(length=settings.TOKEN_LENGTH)
+            AuthMethod.create(
+                user_id=auth_method_email.user.id,
+                auth_method="email",
+                param="reset_token",
+                value=reset_token_value,
+                session=txn,
             )
-        auth_params = Email.get_auth_method_params(auth_method_email.user.id, session=db.session)
-        old_user = {"user_id": auth_method_email.user.id, Email.get_name(): {}}
-        new_user = {"user_id": auth_method_email.user.id, Email.get_name(): {}}
-        if "email" not in auth_params:
-            raise HTTPException(
-                status_code=401,
-                detail=StatusResponseModel(
-                    status="Error",
-                    message="Auth method restricted for this user",
-                    ru="Метод аутентификации не установлен для пользователя",
-                ).model_dump(),
+            new_user[Email.get_name()]["reset_token"] = reset_token_value
+            auth_params = Email.get_auth_method_params(auth_method_email.user.id, session=txn)
+            SendEmailMessage.send(
+                to_email=auth_params["email"].value,
+                ip=request.client.host,
+                message_file_name="password_change_confirmation.html",
+                subject="Смена пароля Твой ФФ!",
+                dbsession=txn,
+                background_tasks=background_tasks,
+                url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_params['reset_token'].value}",
             )
-        if auth_params["confirmed"].value.lower() == "false":
-            raise AuthFailed(
-                "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
-                "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту",
+            await AuthPluginMeta.user_updated(new_user, old_user)
+            return StatusResponseModel(
+                status="Success", message="Reset link has been successfully mailed", ru="Ссылка отправлена на почту"
             )
-        if "reset_token" in auth_params:
-            old_user[Email.get_name()]["reset_token"] = auth_params["reset_token"].value
-            auth_params["reset_token"].is_deleted = True
-            db.session.flush()
-        reset_token_value = random_string(length=settings.TOKEN_LENGTH)
-        AuthMethod.create(
-            user_id=auth_method_email.user.id,
-            auth_method="email",
-            param="reset_token",
-            value=reset_token_value,
-            session=db.session,
-        )
-        new_user[Email.get_name()]["reset_token"] = reset_token_value
-        auth_params = Email.get_auth_method_params(auth_method_email.user.id, session=db.session)
-        SendEmailMessage.send(
-            to_email=auth_params["email"].value,
-            ip=request.client.host,
-            message_file_name="password_change_confirmation.html",
-            subject="Смена пароля Твой ФФ!",
-            dbsession=db.session,
-            background_tasks=background_tasks,
-            url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_params['reset_token'].value}",
-        )
-        await AuthPluginMeta.user_updated(new_user, old_user)
-        db.session.commit()
-        return StatusResponseModel(
-            status="Success", message="Reset link has been successfully mailed", ru="Ссылка отправлена на почту"
-        )
 
     @staticmethod
     async def _reset_forgotten_password(

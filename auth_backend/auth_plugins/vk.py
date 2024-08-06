@@ -113,11 +113,11 @@ class VkAuth(OauthMeta):
         vk_id = cls.create_auth_method_param('user_id', vk_user_id, user.id, db_session=db.session)
         new_user[cls.get_name()]["user_id"] = vk_id.value
         userdata = await VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             VkAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
@@ -163,11 +163,11 @@ class VkAuth(OauthMeta):
                 'No users found for VK account', 'Не найдено пользователей с таким аккаунтом ВК', id_token
             )
         userdata = await VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             VkAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name

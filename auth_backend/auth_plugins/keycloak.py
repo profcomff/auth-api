@@ -102,11 +102,11 @@ class KeycloakAuth(OauthMeta):
         keycloak_id = cls.create_auth_method_param('user_id', keycloak_user_id, user.id, db_session=db.session)
         new_user = {cls.get_name(): {"user_id": keycloak_id.value}}
         userdata = await KeycloakAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             KeycloakAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
@@ -153,11 +153,11 @@ class KeycloakAuth(OauthMeta):
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for keycloak account', id_token)
         userdata = await KeycloakAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             KeycloakAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name

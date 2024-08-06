@@ -26,7 +26,7 @@ class EmailDelay:
         cls.check_email_delay(email, dbsession)
         user_delay = UserMessageDelay(user_ip=ip, user_email=email, delay_time=datetime.datetime.utcnow())
         dbsession.add(user_delay)
-        dbsession.commit()
+        dbsession.flush()
 
     @classmethod
     def delete_user_delay(cls, ip: str, email: str, dbsession: DbSession):
@@ -42,7 +42,7 @@ class EmailDelay:
             dbsession.query(UserMessageDelay).filter(
                 UserMessageDelay.user_email == email, UserMessageDelay.delay_time < time_filter
             ).delete()
-        dbsession.commit()
+        dbsession.flush()
 
     @classmethod
     def check_ip_delay(cls, ip: str, dbsession: DbSession):

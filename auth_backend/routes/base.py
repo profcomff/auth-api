@@ -18,7 +18,7 @@ from .user_session import user_session
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
-    await get_kafka_producer().close()
+    get_kafka_producer().close()
 
 
 settings = get_settings()
@@ -39,7 +39,7 @@ app = FastAPI(
 app.add_middleware(
     DBSessionMiddleware,
     db_url=str(settings.DB_DSN),
-    engine_args={"pool_pre_ping": True, "isolation_level": "AUTOCOMMIT"},
+    engine_args={"pool_pre_ping": True},
 )
 
 app.add_middleware(
