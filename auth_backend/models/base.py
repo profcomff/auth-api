@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
+import asyncio
 import re
-import sys
-from typing import Iterator
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
 
-from sqlalchemy import Integer, not_
 import sqlalchemy
+from sqlalchemy import Integer, not_
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Mapped, Query, Session, as_declarative, declared_attr, mapped_column
 
-from auth_backend.exceptions import ObjectNotFound
+from auth_backend.exceptions import AuthAPIError, ObjectNotFound
 
 
 @as_declarative()
@@ -78,29 +78,42 @@ class BaseDbModel(Base):
         else:
             session.delete(obj)
         session.flush()
-    
+
     @classmethod
-    @contextmanager
-    def txn(cls, session: Session) -> Iterator[Session]:
-        try:
+    @asynccontextmanager
+    async def lock(cls, session: Session) -> AsyncIterator[Session]:
+        """
+        Сначала пытаемся захватить блокировку таблицы.
+
+        Так как используем синхронную алхимимю, сставим таймаут и не будем ждать больше него
+
+        Если удерживается блокировка другой корутиной, то в конце концов выйдем из ожидания по таймауту
+        и заблочим корутину асинхронным сном
+
+        Таким образом дадим корутине, удерживающей блокировку, доделать свою работу
+        """
+        for _ in range(3):
             nested = session.begin_nested()
-            session.execute(sqlalchemy.text(f'LOCK TABLE {cls.__tablename__} IN ACCESS EXCLUSIVE MODE;'))
+            session.execute(sqlalchemy.text("SET LOCAL lock_timeout = '0.2s';"))
             try:
-                yield session
-            except Exception:
-                exception_name, _, __ = sys.exc_info()
+                session.execute(sqlalchemy.text(f'LOCK TABLE {cls.__tablename__} IN ACCESS EXCLUSIVE MODE;'))
+            except sqlalchemy.exc.OperationalError:
                 nested.rollback()
-                session.rollback()
-                if session and session.is_active:
-                    session.close()
-                raise
-            finally:
-                if locals().get("exception_name") is not None:
-                    return
-                nested.commit()
-                session.commit()
-                if session and session.is_active:
-                    session.close()
+                await asyncio.sleep(1.5)
+            else:
+                break
+        else:
+            raise AuthAPIError("Internal Server Error", "Произошла ошибка, попробуйте позже")
+        try:
+            yield session
         except Exception:
+            nested.rollback()
+            session.rollback()
+            if session and session.is_active:
+                session.close()
             raise
-        
+        else:
+            nested.commit()
+            session.commit()
+            if session and session.is_active:
+                session.close()

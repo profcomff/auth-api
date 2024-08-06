@@ -106,11 +106,12 @@ class GithubAuth(OauthMeta):
         gh_id = cls.create_auth_method_param('user_id', github_user_id, user.id, db_session=db.session)
         new_user[cls.get_name()] = {"user_id": gh_id.value}
         userdata = await GithubAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
-            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
-            GithubAuth.generate_kafka_key(user.id),
-            userdata,
-            bg_tasks=background_tasks,
+        background_tasks.add_task(
+            get_kafka_producer().produce(
+                cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+                GithubAuth.generate_kafka_key(user.id),
+                userdata,
+            )
         )
         await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
@@ -162,11 +163,10 @@ class GithubAuth(OauthMeta):
                 'No users found for github account', 'Не найдено пользователей для аккаунта GitHub', id_token
             )
         userdata = await GithubAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
-            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
-            GithubAuth.generate_kafka_key(user.id),
-            userdata,
-            bg_tasks=background_tasks,
+        background_tasks.add_task(
+            get_kafka_producer().produce(
+                cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME, GithubAuth.generate_kafka_key(user.id), userdata
+            )
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name

@@ -114,11 +114,10 @@ class GoogleAuth(OauthMeta):
         google_id = cls.create_auth_method_param('unique_google_id', userinfo['sub'], user.id, db_session=db.session)
         new_user = {cls.get_name(): {"unique_google_id": google_id.value}}
         userdata = await GoogleAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
-            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
-            GoogleAuth.generate_kafka_key(user.id),
-            userdata,
-            bg_tasks=background_tasks,
+        background_tasks.add_task(
+            get_kafka_producer().produce(
+                cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME, GoogleAuth.generate_kafka_key(user.id), userdata
+            )
         )
         await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
@@ -154,11 +153,10 @@ class GoogleAuth(OauthMeta):
                 id_token=credentials.get("id_token"),
             )
         userdata = await GoogleAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
-            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
-            GoogleAuth.generate_kafka_key(user.id),
-            userdata,
-            bg_tasks=background_tasks,
+        background_tasks.add_task(
+            get_kafka_producer().produce(
+                cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME, GoogleAuth.generate_kafka_key(user.id), userdata
+            )
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name

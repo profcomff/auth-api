@@ -18,7 +18,7 @@ from .user_session import user_session
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
-    await get_kafka_producer().close()
+    get_kafka_producer().close()
 
 
 settings = get_settings()

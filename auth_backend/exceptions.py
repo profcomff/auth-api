@@ -61,7 +61,7 @@ class TooManyEmailRequests(AuthAPIError):
         self.delay_time = dtime
         super().__init__(
             f'Too many email requests. Delay: {dtime}',
-            f'Слишком много запрос к email. Задержка: {dtime}',
+            f'Слишком много запросов к email. Задержка: {dtime}',
         )
 
 
