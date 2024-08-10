@@ -10,7 +10,7 @@ from starlette.responses import JSONResponse
 from auth_backend.auth_plugins.email import Email
 from auth_backend.base import StatusResponseModel
 from auth_backend.exceptions import ObjectNotFound, SessionExpired
-from auth_backend.models.db import AuthMethod, UserSession, session_expires_date
+from auth_backend.models.db import AuthMethod, UserSession
 from auth_backend.schemas.models import (
     Session,
     SessionPatch,
@@ -53,7 +53,6 @@ async def me(
     ),
 ) -> dict[str, str | int]:
     auth_params = Email.get_auth_method_params(session.user_id, session=db.session)
-    session.expires = session_expires_date()  # Автопродление сессии при активности пользователя
     result: dict[str, str | int] = {}
     result = (
         result
