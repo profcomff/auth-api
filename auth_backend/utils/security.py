@@ -7,7 +7,7 @@ from fastapi_sqlalchemy import db
 from starlette.requests import Request
 from starlette.status import HTTP_403_FORBIDDEN
 
-from auth_backend.models.db import UserSession
+from auth_backend.models.db import UserSession, session_expires_date
 
 
 class UnionAuth(SecurityBase):
@@ -21,6 +21,7 @@ class UnionAuth(SecurityBase):
     auto_error: bool
     allow_none: bool
     _scopes: list[str] = []
+    auth_session_update_scope = 'auth.session.update'
 
     def __init__(self, scopes: list[str] = None, allow_none=False, auto_error=False) -> None:
         super().__init__()
@@ -49,9 +50,13 @@ class UnionAuth(SecurityBase):
         if not user_session:
             self._except()
         user_session.last_activity = datetime.datetime.utcnow()
-        db.session.commit()
+
         if user_session.expired:
             self._except()
+        session_scopes = [scope.name.lower() for scope in user_session.scopes]
+        if self.auth_session_update_scope in session_scopes:
+            user_session.expires = session_expires_date()
+        db.session.commit()
         if len(
             set([_scope.lower() for _scope in self._scopes])
             & set([scope.name.lower() for scope in user_session.scopes])
