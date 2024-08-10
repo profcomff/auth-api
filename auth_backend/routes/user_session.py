@@ -53,7 +53,6 @@ async def me(
     ),
 ) -> dict[str, str | int]:
     auth_params = Email.get_auth_method_params(session.user_id, session=db.session)
-    session.expires = session_expires_date()  # Автопродление сессии при активности пользователя
     result: dict[str, str | int] = {}
     result = (
         result

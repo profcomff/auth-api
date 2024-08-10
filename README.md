@@ -33,7 +33,7 @@ foo@bar:~$ pip install -r requirements.txt
 
 4) Запускайте приложение!
 ```console
-foo@bar:~$ python -m auth_backend
+foo@bar:~$ python -m auth_backend start
 ```
 
 ---
