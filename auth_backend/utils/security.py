@@ -21,7 +21,7 @@ class UnionAuth(SecurityBase):
     auto_error: bool
     allow_none: bool
     _scopes: list[str] = []
-    auth_session_update_scope = 'auth.session.update'
+    AUTH_SESSION_UPDATE_SCOPE = 'auth.session.update'
 
     def __init__(self, scopes: list[str] = None, allow_none=False, auto_error=False) -> None:
         super().__init__()
@@ -53,13 +53,10 @@ class UnionAuth(SecurityBase):
 
         if user_session.expired:
             self._except()
-        session_scopes = [scope.name.lower() for scope in user_session.scopes]
-        if self.auth_session_update_scope in session_scopes:
+        session_scopes = set([scope.name.lower() for scope in user_session.scopes])
+        if self.AUTH_SESSION_UPDATE_SCOPE in session_scopes:
             user_session.expires = session_expires_date()
         db.session.commit()
-        if len(
-            set([_scope.lower() for _scope in self._scopes])
-            & set([scope.name.lower() for scope in user_session.scopes])
-        ) != len(set(self._scopes)):
+        if len(set([_scope.lower() for _scope in self._scopes]) & session_scopes) != len(set(self._scopes)):
             self._except()
         return user_session

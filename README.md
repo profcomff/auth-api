@@ -21,7 +21,7 @@
 ```console
 foo@bar:~$ python3 -m venv venv
 foo@bar:~$ source ./venv/bin/activate  # На MacOS и Linux
-foo@bar:~$ .venv\Scripts\activate  # На Windows
+foo@bar:~$ venv\Scripts\activate  # На Windows
 ```
 
 3) Установите библиотеки
