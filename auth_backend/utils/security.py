@@ -49,10 +49,12 @@ class UnionAuth(SecurityBase):
         if not user_session:
             self._except()
         user_session.last_activity = datetime.datetime.utcnow()
-        user_session.expires = session_expires_date()  # Автопродление сессии при активности пользователя
-        db.session.commit()
+
         if user_session.expired:
             self._except()
+        if "auth.session.update" in set([scope.name.lower() for scope in user_session.scopes]):
+            user_session.expires = session_expires_date()
+        db.session.commit()
         if len(
             set([_scope.lower() for _scope in self._scopes])
             & set([scope.name.lower() for scope in user_session.scopes])
