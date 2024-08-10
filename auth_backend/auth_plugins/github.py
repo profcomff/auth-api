@@ -10,14 +10,13 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-
-from .auth_method import MethodMeta, OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -29,21 +28,11 @@ class GithubSettings(Settings):
     GITHUB_CLIENT_SECRET: str | None = None
 
 
-class GithubAuthParams(MethodMeta):
-    __auth_method__ = "GithubAuth"
-    __fields__ = frozenset(("user_id",))
-    __required_fields__ = frozenset(("user_id",))
-
-    user_id: AuthMethod = None
-
-
 class GithubAuth(OauthMeta):
     """Вход в приложение по аккаунту GitHub"""
 
     prefix = '/github'
     tags = ['github']
-
-    fields = GithubAuthParams
     settings = GithubSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -65,6 +54,8 @@ class GithubAuth(OauthMeta):
         аккаунту в активной сессии. Иначе, создает новый пользователь и делает https://github.com
         первым методом входа.
         """
+        old_user = None
+        new_user = {}
         payload = {
             "code": user_inp.code,
             "client_id": cls.settings.GITHUB_CLIENT_ID,
@@ -99,7 +90,7 @@ class GithubAuth(OauthMeta):
                     github_user_id = userinfo['id']
         else:
             userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
-            github_user_id = userinfo['user_id']
+            github_user_id = userinfo['id']
             logger.debug(userinfo)
 
         user = await cls._get_user('user_id', github_user_id, db_session=db.session)
@@ -110,14 +101,18 @@ class GithubAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', github_user_id, user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user['user_id'] = user.id
+        gh_id = cls.create_auth_method_param('user_id', github_user_id, user.id, db_session=db.session)
+        new_user[cls.get_name()] = {"user_id": gh_id.value}
         userdata = await GithubAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GithubAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
+        await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -167,11 +162,11 @@ class GithubAuth(OauthMeta):
                 'No users found for github account', 'Не найдено пользователей для аккаунта GitHub', id_token
             )
         userdata = await GithubAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GithubAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name

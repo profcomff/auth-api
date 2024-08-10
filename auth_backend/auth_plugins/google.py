@@ -12,14 +12,13 @@ from google.auth.transport import requests
 from google.oauth2.id_token import verify_oauth2_token
 from pydantic import BaseModel, Field, Json
 
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed, OauthCredentialsIncorrect
 from auth_backend.kafka.kafka import get_kafka_producer
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-
-from .auth_method import MethodMeta, OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -37,20 +36,11 @@ class GoogleSettings(Settings):
     GOOGLE_BLACKLIST_DOMAINS: list[str] | None = ['physics.msu.ru']
 
 
-class GoogleAuthParams(MethodMeta):
-    __auth_method__ = "GoogleAuth"
-    __fields__ = frozenset(("unique_google_id",))
-    __required_fields__ = frozenset(("unique_google_id",))
-
-    unique_google_id: AuthMethod = None
-
-
 class GoogleAuth(OauthMeta):
     """Вход в приложение по аккаунту гугл"""
 
     prefix = '/google'
     tags = ['Google']
-    fields = GoogleAuthParams
     settings = GoogleSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -72,6 +62,8 @@ class GoogleAuth(OauthMeta):
         Если передана активная сессия пользователя, то привязывает аккаунт Google к аккаунту в
         активной сессии. иначе, создает новый пользователь и делает Google первым методом входа.
         """
+        old_user = None
+        new_user = {}
         credentials = None
         if not user_inp.id_token:
             flow = await cls._default_flow()
@@ -117,14 +109,18 @@ class GoogleAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('unique_google_id', userinfo['sub'], user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        google_id = cls.create_auth_method_param('unique_google_id', userinfo['sub'], user.id, db_session=db.session)
+        new_user = {cls.get_name(): {"unique_google_id": google_id.value}}
         userdata = await GoogleAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
+        await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -158,11 +154,11 @@ class GoogleAuth(OauthMeta):
                 id_token=credentials.get("id_token"),
             )
         userdata = await GoogleAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             GoogleAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name

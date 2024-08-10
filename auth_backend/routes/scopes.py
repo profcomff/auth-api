@@ -26,9 +26,11 @@ async def create_scope(
             detail=StatusResponseModel(status="Error", message="Already exists", ru="Уже существует").model_dump(),
         )
     scope.name = scope.name.lower()
-    return ScopeGet.model_validate(
+    retval = ScopeGet.model_validate(
         Scope.create(**scope.model_dump(), creator_id=user_session.user_id, session=db.session)
     )
+    db.session.commit()
+    return retval
 
 
 @scopes.get("/{id}", response_model=ScopeGet)
@@ -62,9 +64,11 @@ async def update_scope(
     Scopes: `["auth.scope.update"]`
     """
     scope = Scope.get(id, session=db.session)
-    return ScopeGet.model_validate(
+    retval = ScopeGet.model_validate(
         Scope.update(scope.id, **scope_inp.model_dump(exclude_unset=True), session=db.session)
     )
+    db.session.commit()
+    return retval
 
 
 @scopes.delete("/{id}", response_model=StatusResponseModel)
@@ -75,4 +79,6 @@ async def delete_scope(
     Scopes: `["auth.scope.delete"]`
     """
     Scope.delete(session=db.session, id=id)
-    return StatusResponseModel(status="Success", message="Scope has been deleted", ru="Скоуп удален")
+    retval = StatusResponseModel(status="Success", message="Scope has been deleted", ru="Скоуп удален")
+    db.session.commit()
+    return retval

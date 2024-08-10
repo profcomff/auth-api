@@ -76,14 +76,6 @@ async def session_expired_handler(req: starlette.requests.Request, exc: SessionE
     )
 
 
-@app.exception_handler(Exception)
-async def http_error_handler(req: starlette.requests.Request, exc: Exception):
-    return JSONResponse(
-        content=StatusResponseModel(status="Error", message="Internal server error", ru="Ошибка").model_dump(),
-        status_code=500,
-    )
-
-
 @app.exception_handler(TooManyEmailRequests)
 async def too_many_requests_handler(req: starlette.requests.Request, exc: TooManyEmailRequests):
     return JSONResponse(
@@ -105,4 +97,12 @@ async def last_auth_method_delete_handler(req: starlette.requests.Request, exc: 
             ru=exc.ru,
         ).model_dump(),
         status_code=403,
+    )
+
+
+@app.exception_handler(Exception)
+async def http_error_handler(req: starlette.requests.Request, exc: Exception):
+    return JSONResponse(
+        content=StatusResponseModel(status="Error", message="Internal server error", ru="Ошибка").model_dump(),
+        status_code=500,
     )

@@ -76,33 +76,6 @@ class User(BaseDbModel):
     def active_sessions(self) -> list[UserSession]:
         return [row for row in self.sessions if not row.expired]
 
-    @hybrid_property
-    def auth_methods(self):
-        """Все доступные методы авторизации юзера
-
-        Args:
-            None
-        Returns:
-            MethodsDict
-
-        user.auth_method.<auth_method>.<param> === AuthMethod instance
-
-        user.auth_methods.<param> = Соответствущему объекту MethodsMeta
-
-        Пример:
-        ```
-        user.auth_methods.email.email.value
-        ```
-
-        """
-        from auth_backend.auth_plugins.methods_dict import MethodsDict
-
-        self.__auth_methods_cached = self.__auth_methods_cached or MethodsDict.__new__(
-            MethodsDict, self._auth_methods, self
-        )
-
-        return self.__auth_methods_cached
-
 
 class Group(BaseDbModel):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

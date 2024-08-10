@@ -10,15 +10,15 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import User, UserSession
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.string import concantenate_strings
 
 from ..schemas.types.scopes import Scope
-from .auth_method import MethodMeta, OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -44,19 +44,9 @@ class VkSettings(Settings):
     ]  # Другие данные https://dev.vk.com/ru/reference/objects/user
 
 
-class VkAuthParams(MethodMeta):
-    __auth_method__ = "VkAuth"
-    __fields__ = frozenset(("user_id",))
-    __required_fields__ = frozenset(("user_id",))
-
-    user_id: AuthMethod = None
-
-
 class VkAuth(OauthMeta):
     prefix = '/vk'
     tags = ['vk']
-
-    fields = VkAuthParams
     settings = VkSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -78,6 +68,8 @@ class VkAuth(OauthMeta):
         аккаунту в активной сессии. Иначе, создает новый пользователь и делает https://vk.com
         первым методом входа.
         """
+        old_user = None
+        new_user = {}
         payload = {
             "code": user_inp.code,
             "client_id": cls.settings.VK_CLIENT_ID,
@@ -116,14 +108,18 @@ class VkAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', vk_user_id, user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        vk_id = cls.create_auth_method_param('user_id', vk_user_id, user.id, db_session=db.session)
+        new_user[cls.get_name()]["user_id"] = vk_id.value
         userdata = await VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             VkAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
+        await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -167,11 +163,11 @@ class VkAuth(OauthMeta):
                 'No users found for VK account', 'Не найдено пользователей с таким аккаунтом ВК', id_token
             )
         userdata = await VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             VkAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name

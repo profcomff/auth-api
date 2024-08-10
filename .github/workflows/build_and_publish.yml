@@ -53,10 +53,10 @@ jobs:
   deploy-testing:
     name: Deploy Testing
     needs: build-and-push-image
-    runs-on: [ self-hosted, Linux ]
+    runs-on: [ self-hosted, Linux, testing ]
     environment:
       name: Testing
-      url: https://api.test.profcomff.com/auth
+      url: https://api.test.profcomff.com/
     env:
       CONTAINER_NAME: com_profcomff_api_auth_test
     permissions:
@@ -78,87 +78,13 @@ jobs:
             alembic upgrade head
 
       - name: Run new version
-        id: run_prod
-        run: |
-          docker stop ${{ env.CONTAINER_NAME }} || true && docker rm ${{ env.CONTAINER_NAME }} || true
-          docker run \
-            --detach \
-            --restart always \
-            --network=web \
-            --env DB_DSN='${{ secrets.DB_DSN }}' \
-            --env ROOT_PATH='/auth' \
-            --env EMAIL='${{ secrets.EMAIL }}' \
-            --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
-            --env SMTP_HOST='mail.profcomff.com' \
-            --env SMTP_PORT='465' \
-            --env APPLICATION_HOST='${{ vars.HOST }}' \
-            --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
-            --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
-            --env PHYSICS_REDIRECT_URL='${{ vars.PHYSICS_REDIRECT_URL }}' \
-            --env PHYSICS_CREDENTIALS='${{ secrets.PHYSICS_CREDENTIALS }}' \
-            --env LKMSU_REDIRECT_URL='${{ vars.LKMSU_REDIRECT_URL }}' \
-            --env LKMSU_CLIENT_ID='${{ secrets.LKMSU_CLIENT_ID }}' \
-            --env LKMSU_CLIENT_SECRET='${{ secrets.LKMSU_CLIENT_SECRET }}' \
-            --env YANDEX_REDIRECT_URL='${{ vars.YANDEX_REDIRECT_URL }}' \
-            --env YANDEX_CLIENT_ID='${{ secrets.YANDEX_CLIENT_ID }}' \
-            --env YANDEX_CLIENT_SECRET='${{ secrets.YANDEX_CLIENT_SECRET }}' \
-            --env MY_MSU_REDIRECT_URL='${{ vars.MY_MSU_REDIRECT_URL }}' \
-            --env MY_MSU_CLIENT_ID='${{ secrets.MY_MSU_CLIENT_ID }}' \
-            --env MY_MSU_CLIENT_SECRET='${{ secrets.MY_MSU_CLIENT_SECRET }}' \
-            --env GITHUB_REDIRECT_URL='${{ vars.GH_REDIRECT_URL }}' \
-            --env GITHUB_CLIENT_ID='${{ secrets.GH_CLIENT_ID }}' \
-            --env GITHUB_CLIENT_SECRET='${{ secrets.GH_CLIENT_SECRET }}' \
-            --env TELEGRAM_REDIRECT_URL='${{ vars.TELEGRAM_REDIRECT_URL }}' \
-            --env TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' \
-            --env VK_REDIRECT_URL='${{ vars.VK_REDIRECT_URL }}' \
-            --env VK_CLIENT_ID='${{ secrets.VK_CLIENT_ID }}' \
-            --env VK_CLIENT_ACCESS_TOKEN='${{ secrets.VK_CLIENT_ACCESS_TOKEN }}' \
-            --env VK_CLIENT_SECRET='${{ secrets.VK_CLIENT_SECRET }}' \
-            --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
-            --env KAFKA_DSN='${{ secrets.KAFKA_DSN }}' \
-            --env KAFKA_LOGIN='${{ secrets.KAFKA_LOGIN }}' \
-            --env KAFKA_PASSWORD='${{ secrets.KAFKA_PASSWORD }}' \
-            --env KAFKA_USER_LOGIN_TOPIC_NAME='${{ secrets.KAFKA_USER_LOGIN_TOPIC_NAME }}' \
-            --env GUNICORN_CMD_ARGS='--log-config  logging_test.conf' \
-            --name ${{ env.CONTAINER_NAME }} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
-
-  deploy-production:
-    name: Deploy Production
-    needs: build-and-push-image
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: [ self-hosted, Linux ]
-    environment:
-      name: Production
-      url: https://api.profcomff.com/auth
-    env:
-      CONTAINER_NAME: com_profcomff_api_auth
-    permissions:
-      packages: read
-
-    steps:
-      - name: Pull new version
-        run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-
-      - name: Migrate DB
-        run: |
-          docker run \
-            --rm \
-            --network=web \
-            --env DB_DSN=${{ secrets.DB_DSN }} \
-            --name ${{ env.CONTAINER_NAME }}_migration \
-            --workdir="/" \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
-            alembic upgrade head
-
-      - name: Run new version
         id: run_test
         run: |
           docker stop ${{ env.CONTAINER_NAME }} || true && docker rm ${{ env.CONTAINER_NAME }} || true
           docker run \
             --detach \
             --restart always \
-            --network=web \
+            --network=kafka \
             --env DB_DSN='${{ secrets.DB_DSN }}' \
             --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
@@ -189,6 +115,98 @@ jobs:
             --env VK_CLIENT_ID='${{ secrets.VK_CLIENT_ID }}' \
             --env VK_CLIENT_ACCESS_TOKEN='${{ secrets.VK_CLIENT_ACCESS_TOKEN }}' \
             --env VK_CLIENT_SECRET='${{ secrets.VK_CLIENT_SECRET }}' \
+            --env AIRFLOW_AUTH_BASE_URL='${{ vars.AIRFLOW_AUTH_BASE_URL }}' \
+            --env AIRFLOW_AUTH_ADMIN_USERNAME='${{ secrets.AIRFLOW_AUTH_ADMIN_USERNAME }}' \
+            --env AIRFLOW_AUTH_ADMIN_PASSWORD='${{ secrets.AIRFLOW_AUTH_ADMIN_PASSWORD }}' \
+            --env CODER_AUTH_BASE_URL='${{ vars.CODER_AUTH_BASE_URL }}' \
+            --env CODER_AUTH_ADMIN_TOKEN='${{ secrets.CODER_AUTH_ADMIN_TOKEN }}' \
+            --env MAILU_AUTH_BASE_URL='${{ vars.MAILU_AUTH_BASE_URL }}' \
+            --env MAILU_AUTH_API_KEY='${{ secrets.MAILU_AUTH_API_KEY }}' \
+            --env POSTGRES_AUTH_DB_DSN='${{ secrets.POSTGRES_AUTH_DB_DSN }}' \
+            --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
+            --env KAFKA_DSN='${{ secrets.KAFKA_DSN }}' \
+            --env KAFKA_LOGIN='${{ secrets.KAFKA_LOGIN }}' \
+            --env KAFKA_PASSWORD='${{ secrets.KAFKA_PASSWORD }}' \
+            --env KAFKA_USER_LOGIN_TOPIC_NAME='${{ secrets.KAFKA_USER_LOGIN_TOPIC_NAME }}' \
+            --env GUNICORN_CMD_ARGS='--log-config  logging_test.conf' \
+            --name ${{ env.CONTAINER_NAME }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
+          docker network connect web ${{ env.CONTAINER_NAME }}
+
+  deploy-production:
+    name: Deploy Production
+    needs: build-and-push-image
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: [ self-hosted, Linux, production ]
+    environment:
+      name: Production
+      url: https://api.profcomff.com/
+    env:
+      CONTAINER_NAME: com_profcomff_api_auth
+    permissions:
+      packages: read
+
+    steps:
+      - name: Pull new version
+        run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Migrate DB
+        run: |
+          docker run \
+            --rm \
+            --network=web \
+            --env DB_DSN=${{ secrets.DB_DSN }} \
+            --name ${{ env.CONTAINER_NAME }}_migration \
+            --workdir="/" \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            alembic upgrade head
+
+      - name: Run new version
+        id: run_test
+        run: |
+          docker stop ${{ env.CONTAINER_NAME }} || true && docker rm ${{ env.CONTAINER_NAME }} || true
+          docker run \
+            --detach \
+            --restart always \
+            --network=kafka \
+            --env DB_DSN='${{ secrets.DB_DSN }}' \
+            --env ROOT_PATH='/auth' \
+            --env EMAIL='${{ secrets.EMAIL }}' \
+            --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
+            --env ENABLED_AUTH_METHODS='${{ vars.ENABLED_AUTH_METHODS }}' \
+            --env SMTP_HOST='mail.profcomff.com' \
+            --env SMTP_PORT='465' \
+            --env APPLICATION_HOST='${{ vars.HOST }}' \
+            --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
+            --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
+            --env PHYSICS_REDIRECT_URL='${{ vars.PHYSICS_REDIRECT_URL }}' \
+            --env PHYSICS_CREDENTIALS='${{ secrets.PHYSICS_CREDENTIALS }}' \
+            --env LKMSU_REDIRECT_URL='${{ vars.LKMSU_REDIRECT_URL }}' \
+            --env LKMSU_CLIENT_ID='${{ secrets.LKMSU_CLIENT_ID }}' \
+            --env LKMSU_CLIENT_SECRET='${{ secrets.LKMSU_CLIENT_SECRET }}' \
+            --env YANDEX_REDIRECT_URL='${{ vars.YANDEX_REDIRECT_URL }}' \
+            --env YANDEX_CLIENT_ID='${{ secrets.YANDEX_CLIENT_ID }}' \
+            --env YANDEX_CLIENT_SECRET='${{ secrets.YANDEX_CLIENT_SECRET }}' \
+            --env MY_MSU_REDIRECT_URL='${{ vars.MY_MSU_REDIRECT_URL }}' \
+            --env MY_MSU_CLIENT_ID='${{ secrets.MY_MSU_CLIENT_ID }}' \
+            --env MY_MSU_CLIENT_SECRET='${{ secrets.MY_MSU_CLIENT_SECRET }}' \
+            --env GITHUB_REDIRECT_URL='${{ vars.GH_REDIRECT_URL }}' \
+            --env GITHUB_CLIENT_ID='${{ secrets.GH_CLIENT_ID }}' \
+            --env GITHUB_CLIENT_SECRET='${{ secrets.GH_CLIENT_SECRET }}' \
+            --env TELEGRAM_REDIRECT_URL='${{ vars.TELEGRAM_REDIRECT_URL }}' \
+            --env TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' \
+            --env VK_REDIRECT_URL='${{ vars.VK_REDIRECT_URL }}' \
+            --env VK_CLIENT_ID='${{ secrets.VK_CLIENT_ID }}' \
+            --env VK_CLIENT_ACCESS_TOKEN='${{ secrets.VK_CLIENT_ACCESS_TOKEN }}' \
+            --env VK_CLIENT_SECRET='${{ secrets.VK_CLIENT_SECRET }}' \
+            --env AIRFLOW_AUTH_BASE_URL='${{ vars.AIRFLOW_AUTH_BASE_URL }}' \
+            --env AIRFLOW_AUTH_ADMIN_USERNAME='${{ secrets.AIRFLOW_AUTH_ADMIN_USERNAME }}' \
+            --env AIRFLOW_AUTH_ADMIN_PASSWORD='${{ secrets.AIRFLOW_AUTH_ADMIN_PASSWORD }}' \
+            --env CODER_AUTH_BASE_URL='${{ vars.CODER_AUTH_BASE_URL }}' \
+            --env CODER_AUTH_ADMIN_TOKEN='${{ secrets.CODER_AUTH_ADMIN_TOKEN }}' \
+            --env MAILU_AUTH_BASE_URL='${{ vars.MAILU_AUTH_BASE_URL }}' \
+            --env MAILU_AUTH_API_KEY='${{ secrets.MAILU_AUTH_API_KEY }}' \
+            --env POSTGRES_AUTH_DB_DSN='${{ secrets.POSTGRES_AUTH_DB_DSN }}' \
             --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
             --env KAFKA_DSN='${{ secrets.KAFKA_DSN }}' \
             --env KAFKA_LOGIN='${{ secrets.KAFKA_LOGIN }}' \
@@ -197,3 +215,4 @@ jobs:
             --env GUNICORN_CMD_ARGS='--log-config  logging_prod.conf' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker network connect web ${{ env.CONTAINER_NAME }}

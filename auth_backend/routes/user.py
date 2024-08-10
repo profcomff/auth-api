@@ -3,7 +3,10 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
+from sqlalchemy.orm import Session
 
+from auth_backend.auth_method import AuthPluginMeta
+from auth_backend.auth_plugins.email import Email
 from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
 from auth_backend.schemas.models import User as UserModel
 from auth_backend.schemas.models import (
@@ -33,12 +36,13 @@ async def get_user(
     Scopes: `["auth.user.read"]`
     """
     result: dict[str, str | int] = {}
-    user = User.get(user_id, session=db.session)
+    user: User = User.get(user_id, session=db.session)  # type: ignore
+    auth_params = Email.get_auth_method_params(user.id, session=db.session)
     result = (
         result
         | UserInfo(
             id=user_id,
-            email=user.auth_methods.email.email.value if user.auth_methods.email.email else None,
+            email=auth_params["email"].value if "email" in auth_params else None,
         ).model_dump()
     )
     if "groups" in info:
@@ -61,6 +65,17 @@ async def get_user(
     return UserGet(**result).model_dump(exclude_unset=True, exclude={"session_scopes"})
 
 
+def get_users_auth_params(auth_method: str, session: Session) -> dict[int, dict[str, AuthMethod]]:
+    """Don't use it in public API routes"""
+    retval = {}
+    methods: list[AuthMethod] = AuthMethod.query(session=session).filter(AuthMethod.auth_method == auth_method).all()
+    for method in methods:
+        if method.user_id not in retval:
+            retval[method.user_id] = {}
+        retval[method.user_id][method.param] = method
+    return retval
+
+
 @user.get("", response_model=UsersGet, response_model_exclude_unset=True)
 async def get_users(
     _: UserSession = Depends(UnionAuth(scopes=["auth.user.read"], allow_none=False, auto_error=True)),
@@ -69,13 +84,19 @@ async def get_users(
     """
     Scopes: `["auth.user.read"]`
     """
+    ##  TODO: Add pagination
     users = User.query(session=db.session).all()
     result = {}
     result["items"] = []
+    all_user_auth_params = get_users_auth_params("email", db.session)
     for user in users:
         add = {
             "id": user.id,
-            "email": user.auth_methods.email.email.value if user.auth_methods.email.email else None,
+            "email": (
+                all_user_auth_params[user.id]["email"].value
+                if "email" in (all_user_auth_params.get(user.id) or [])
+                else None
+            ),
         }
         if "groups" in info:
             add["groups"] = [group.id for group in user.groups]
@@ -126,12 +147,20 @@ async def delete_user(
     Scopes: `["auth.user.delete"]`
     """
     logger.debug(f'User id={current_user.id} triggered delete_user')
+    old_user = {"user_id": current_user.id}
     user: User = User.get(user_id, session=db.session)
+
     for method in user._auth_methods:
+        if method.is_deleted:
+            continue
+        # Сохраняем старое состояние пользователя
+        if method.auth_method not in old_user:
+            old_user[method.auth_method] = {}
+        old_user[method.auth_method][method.param] = method.value
+        # Удаляем AuthMethod
         AuthMethod.delete(method.id, session=db.session)
         logger.info(f'{method=} for {user.id=} deleted')
 
     User.delete(user_id, session=db.session)
+    await AuthPluginMeta.user_updated(None, old_user)
     logger.info(f'{user=} deleted')
-
-    return None

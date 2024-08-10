@@ -11,10 +11,10 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
@@ -29,18 +29,9 @@ class TelegramSettings(Settings):
     TELEGRAM_BOT_TOKEN: str | None = None
 
 
-class TelegramAuthParams(MethodMeta):
-    __auth_method__ = "TelegramAuth"
-    __fields__ = frozenset(("user_id",))
-    __required_fields__ = frozenset(("user_id",))
-
-    user_id: AuthMethod = None
-
-
 class TelegramAuth(OauthMeta):
     prefix = '/telegram'
     tags = ['Telegram']
-    fields = TelegramAuthParams
     settings = TelegramSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -62,6 +53,8 @@ class TelegramAuth(OauthMeta):
         background_tasks: BackgroundTasks,
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
+        old_user = None
+        new_user = {}
         telegram_user_id = None
         userinfo = None
 
@@ -82,14 +75,18 @@ class TelegramAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', telegram_user_id, user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        tg_id = cls.create_auth_method_param('user_id', telegram_user_id, user.id, db_session=db.session)
+        new_user[cls.get_name()]["user_id"] = tg_id.value
         userdata = await TelegramAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             TelegramAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
+        await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -114,11 +111,11 @@ class TelegramAuth(OauthMeta):
                 'No users found for Telegram account', 'Не найдено пользователей с таким ТГ аккаунтом', id_token
             )
         userdata = await TelegramAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             TelegramAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name

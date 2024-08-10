@@ -7,6 +7,7 @@ from fastapi_sqlalchemy import db
 from sqlalchemy import not_
 from starlette.responses import JSONResponse
 
+from auth_backend.auth_plugins.email import Email
 from auth_backend.base import StatusResponseModel
 from auth_backend.exceptions import ObjectNotFound, SessionExpired
 from auth_backend.models.db import AuthMethod, UserSession
@@ -56,7 +57,7 @@ async def me(
         result
         | UserInfo(
             id=session.user_id,
-            email=session.user.auth_methods.email.email.value if session.user.auth_methods.email.email else None,
+            email=auth_params["email"].value if "email" in auth_params else None,
         ).model_dump()
     )
     if "groups" in info:

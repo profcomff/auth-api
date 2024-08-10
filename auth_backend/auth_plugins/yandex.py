@@ -10,10 +10,10 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_plugins.auth_method import MethodMeta, OauthMeta, Session
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
@@ -31,19 +31,9 @@ class YandexSettings(Settings):
     YANDEX_BLACKLIST_DOMAINS: list[str] | None = ['my.msu.ru']
 
 
-class YandexAuthParams(MethodMeta):
-    __auth_method__ = "YandexAuth"
-    __fields__ = frozenset(("user_id",))
-    __required_fields__ = frozenset(("user_id",))
-
-    user_id: AuthMethod = None
-
-
 class YandexAuth(OauthMeta):
     prefix = '/yandex'
     tags = ['Yandex']
-
-    fields = YandexAuthParams
     settings = YandexSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -65,6 +55,8 @@ class YandexAuth(OauthMeta):
         аккаунту в активной сессии. Иначе, создает новый пользователь и делает Yandex
         первым методом входа.
         """
+        old_user = None
+        new_user = {}
         header = {"content-type": "application/x-www-form-urlencoded"}
         payload = {
             "grant_type": "authorization_code",
@@ -121,14 +113,18 @@ class YandexAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', yandex_user_id, user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        ya_id = cls.create_auth_method_param('user_id', yandex_user_id, user.id, db_session=db.session)
+        new_user[cls.get_name()]["user_id"] = ya_id.value
         userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             YandexAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
+        await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -171,11 +167,11 @@ class YandexAuth(OauthMeta):
                 'No users found for Yandex account', 'Не найдено пользователей для аккаунт Яндекс', id_token
             )
         userdata = await YandexAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             YandexAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name

@@ -10,14 +10,13 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
-from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.models.db import User, UserSession
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
-
-from .auth_method import MethodMeta, OauthMeta, Session
 
 
 logger = logging.getLogger(__name__)
@@ -30,21 +29,11 @@ class KeycloakSettings(Settings):
     KEYCLOAK_CLIENT_SECRET: str | None = None
 
 
-class KeycloakAuthParams(MethodMeta):
-    __auth_method__ = "KeycloakAuth"
-    __fields__ = frozenset(("user_id",))
-    __required_fields__ = frozenset(("user_id",))
-
-    user_id: AuthMethod = None
-
-
 class KeycloakAuth(OauthMeta):
     """Вход в приложение по аккаунту Keycloak"""
 
     prefix = '/keycloak'
     tags = ['keycloak']
-
-    fields = KeycloakAuthParams
     settings = KeycloakSettings()
 
     class OauthResponseSchema(BaseModel):
@@ -61,6 +50,8 @@ class KeycloakAuth(OauthMeta):
         user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
     ) -> Session:
         """Создает аккаунт или привязывает существующий"""
+        old_user = None
+        new_user = {}
         keycloak_user_id = None
         userinfo = None
 
@@ -106,14 +97,18 @@ class KeycloakAuth(OauthMeta):
             user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
         else:
             user = user_session.user
-        await cls._register_auth_method('user_id', keycloak_user_id, user, db_session=db.session)
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        keycloak_id = cls.create_auth_method_param('user_id', keycloak_user_id, user.id, db_session=db.session)
+        new_user = {cls.get_name(): {"user_id": keycloak_id.value}}
         userdata = await KeycloakAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             KeycloakAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
+        await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
         )
@@ -158,11 +153,11 @@ class KeycloakAuth(OauthMeta):
             id_token = jwt.encode(userinfo, cls.settings.ENCRYPTION_KEY, algorithm="HS256")
             raise OauthAuthFailed('No users found for keycloak account', id_token)
         userdata = await KeycloakAuth._convert_data_to_userdata_format(userinfo)
-        await get_kafka_producer().produce(
+        background_tasks.add_task(
+            get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             KeycloakAuth.generate_kafka_key(user.id),
             userdata,
-            bg_tasks=background_tasks,
         )
         return await cls._create_session(
             user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
