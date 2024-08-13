@@ -5,11 +5,11 @@ from fastapi import Depends
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session as DbSession
 
+from auth_backend.auth_method import AUTH_METHODS
 from auth_backend.base import Base
 from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.utils.security import UnionAuth
-from auth_backend.auth_method import AUTH_METHODS
 
 from .base import AuthPluginMeta
 from .method_mixins import LoginableMixin, RegistrableMixin
