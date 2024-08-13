@@ -9,6 +9,7 @@ from auth_backend.base import Base
 from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.utils.security import UnionAuth
+from auth_backend.auth_method import AUTH_METHODS
 
 from .base import AuthPluginMeta
 from .method_mixins import LoginableMixin, RegistrableMixin
@@ -78,9 +79,14 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
             )
             .all()
         )
-        all_auth_methods = AuthMethod.query(session=db_session).filter(AuthMethod.user_id == user.id).all()
-        if len(all_auth_methods) - len(auth_methods) == 0:
-            raise LastAuthMethodDelete()
+        LOGGINABLE_AUTH_METHODS: list = [method.get_name() for method in AUTH_METHODS.values() if method.loginable]
+        loginable_auth_methods = (
+            AuthMethod.query(session=db_session)
+            .filter(AuthMethod.user_id == user.id, AuthMethod.auth_method.in_(LOGGINABLE_AUTH_METHODS))
+            .all()
+        )
+        if len(loginable_auth_methods) == 1 and loginable_auth_methods[0] in auth_methods:
+            raise LastAuthMethodDelete
         logger.debug(auth_methods)
         for method in auth_methods:
             method.is_deleted = True

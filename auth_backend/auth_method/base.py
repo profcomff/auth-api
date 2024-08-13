@@ -24,6 +24,7 @@ class AuthPluginMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
+    loginable: bool = True
 
     @classmethod
     def get_name(cls) -> str:

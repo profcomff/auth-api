@@ -18,6 +18,7 @@ class CoderOuterAuthSettings(Settings):
 class CoderOuterAuth(OuterAuthMeta):
     prefix = '/coder'
     settings = CoderOuterAuthSettings()
+    loginable = False
 
     @classmethod
     async def _is_outer_user_exists(cls, username: str) -> bool:

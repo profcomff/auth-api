@@ -21,6 +21,7 @@ class PostgresOuterAuthSettings(Settings):
 class PostgresOuterAuth(OuterAuthMeta):
     prefix = '/postgres'
     settings = PostgresOuterAuthSettings()
+    loginable = False
     __sessionmaker: type[Session] | None = None
 
     @classmethod
