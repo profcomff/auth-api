@@ -75,21 +75,11 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
             AuthMethod.query(session=db_session)
             .filter(
                 AuthMethod.user_id == user.id,
-                AuthMethod.auth_method == cls.get_name(),
+                AuthMethod.auth_method.in_([method.get_name() for method in AUTH_METHODS.values() if method.loginable]),
             )
             .all()
         )
-
-        auth_methods: list[AuthMethod] = (
-            AuthMethod.query(session=db_session)
-            .filter(
-                AuthMethod.user_id == user.id,
-                AuthMethod.auth_method.in_(
-                    [cls.get_name()] + [method.get_name() for method in AUTH_METHODS.values() if method.loginable]
-                ),
-            )
-            .all()
-        )
+        a = len([method for method in auth_methods if method.auth_method == cls.get_name()])
         if cls.loginable and len([method for method in auth_methods if method.auth_method == cls.get_name()]) == len(
             auth_methods
         ):

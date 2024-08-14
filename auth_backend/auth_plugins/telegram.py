@@ -31,6 +31,7 @@ class TelegramSettings(Settings):
 
 class TelegramAuth(OauthMeta):
     prefix = '/telegram'
+    loginable = True
     tags = ['Telegram']
     settings = TelegramSettings()
 

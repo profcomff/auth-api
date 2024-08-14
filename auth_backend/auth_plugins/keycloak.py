@@ -33,6 +33,7 @@ class KeycloakAuth(OauthMeta):
     """Вход в приложение по аккаунту Keycloak"""
 
     prefix = '/keycloak'
+    loginable = True
     tags = ['keycloak']
     settings = KeycloakSettings()
 

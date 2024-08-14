@@ -46,6 +46,7 @@ class VkSettings(Settings):
 
 class VkAuth(OauthMeta):
     prefix = '/vk'
+    loginable = True
     tags = ['vk']
     settings = VkSettings()
 

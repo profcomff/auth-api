@@ -40,6 +40,7 @@ class GoogleAuth(OauthMeta):
     """Вход в приложение по аккаунту гугл"""
 
     prefix = '/google'
+    loginable = True
     tags = ['Google']
     settings = GoogleSettings()
 

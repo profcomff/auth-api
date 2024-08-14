@@ -32,6 +32,7 @@ class GithubAuth(OauthMeta):
     """Вход в приложение по аккаунту GitHub"""
 
     prefix = '/github'
+    loginable = True
     tags = ['github']
     settings = GithubSettings()
 
