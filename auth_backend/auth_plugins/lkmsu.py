@@ -34,6 +34,7 @@ class LkmsuAuth(OauthMeta):
     """Вход в приложение по аккаунту гугл"""
 
     prefix = '/lk-msu'
+    loginable = True
     tags = ['lk_msu']
     settings = LkmsuSettings()
 

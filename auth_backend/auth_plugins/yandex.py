@@ -33,6 +33,7 @@ class YandexSettings(Settings):
 
 class YandexAuth(OauthMeta):
     prefix = '/yandex'
+    loginable = True
     tags = ['Yandex']
     settings = YandexSettings()
 

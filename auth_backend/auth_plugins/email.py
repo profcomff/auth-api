@@ -105,6 +105,7 @@ class ResetForgottenPassword(Base):
 
 class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
     prefix = "/email"
+    loginable = True
 
     def __init__(self):
         super().__init__()
