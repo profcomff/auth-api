@@ -79,13 +79,14 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
             )
             .all()
         )
-        LOGGINABLE_AUTH_METHODS: list = [method.get_name() for method in AUTH_METHODS.values() if method.loginable]
-        loginable_auth_methods = (
+        if cls.loginable and len(auth_methods) == len(
             AuthMethod.query(session=db_session)
-            .filter(AuthMethod.user_id == user.id, AuthMethod.auth_method.in_(LOGGINABLE_AUTH_METHODS))
+            .filter(
+                AuthMethod.user_id == user.id,
+                AuthMethod.auth_method.in_([method.get_name() for method in AUTH_METHODS.values() if method.loginable]),
+            )
             .all()
-        )
-        if len(loginable_auth_methods) == 1 and loginable_auth_methods[0] in auth_methods:
+        ):
             raise LastAuthMethodDelete
         logger.debug(auth_methods)
         for method in auth_methods:
