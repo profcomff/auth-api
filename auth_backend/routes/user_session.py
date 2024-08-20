@@ -70,7 +70,7 @@ async def me(
         )
     if "session_scopes" in info:
         result = result | (
-            UserScopes(user_scopes=session.user.scopes).model_dump()
+            SessionScopes(session_scopes=session.user.scopes).model_dump()
             if session.is_unbounded
             else SessionScopes(session_scopes=session.scopes).model_dump()
         )
