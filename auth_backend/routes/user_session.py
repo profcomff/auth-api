@@ -69,7 +69,11 @@ async def me(
             | UserIndirectGroups(indirect_groups=[group.id for group in session.user.indirect_groups]).model_dump()
         )
     if "session_scopes" in info:
-        result = result | SessionScopes(session_scopes=session.scopes).model_dump()
+        result = result | (
+            UserScopes(user_scopes=session.user.scopes).model_dump()
+            if session.is_unbounded
+            else SessionScopes(session_scopes=session.scopes).model_dump()
+        )
     if "user_scopes" in info:
         result = result | UserScopes(user_scopes=session.user.scopes).model_dump()
     if "auth_methods" in info:
@@ -98,6 +102,7 @@ async def create_session(
         new_session.expires,
         db_session=db.session,
         session_name=new_session.session_name,
+        is_unbounded=new_session.is_unbounded,
     )
 
 
@@ -146,6 +151,7 @@ async def get_sessions(
             id=session.id,
             last_activity=session.last_activity,
             session_name=session.session_name,
+            is_unbounded=session.is_unbounded,
         )
         if "session_scopes" in info:
             result['session_scopes'] = [_scope.name for _scope in session.scopes]
