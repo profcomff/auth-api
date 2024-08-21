@@ -75,7 +75,7 @@ class KeycloakAuth(OauthMeta):
                 token = token_result['access_token']
 
                 async with session.get(
-                    f'{cls.settings.KEYCLOAK_ROOT_URL}/auth',
+                    f'{cls.settings.KEYCLOAK_ROOT_URL}/userinfo',
                     headers={
                         "Authorization": f"Bearer {token}",
                         "Accept": "application/json",
