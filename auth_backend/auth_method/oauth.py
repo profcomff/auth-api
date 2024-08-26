@@ -70,19 +70,23 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
 
     @classmethod
     async def _delete_auth_methods(cls, user: User, *, db_session) -> list[AuthMethod]:
-        """Удаляет пользователю все AuthMethod конкретной авторизации"""
         auth_methods: list[AuthMethod] = (
+            AuthMethod.query(session=db_session)
+            .filter(
+                AuthMethod.user_id == user.id,
+                AuthMethod.auth_method == cls.get_name(),
+            )
+            .all()
+        )
+        loginable_auth_methods_count: int = (
             AuthMethod.query(session=db_session)
             .filter(
                 AuthMethod.user_id == user.id,
                 AuthMethod.auth_method.in_([method.get_name() for method in AUTH_METHODS.values() if method.loginable]),
             )
-            .all()
+            .count()
         )
-        a = len([method for method in auth_methods if method.auth_method == cls.get_name()])
-        if cls.loginable and len([method for method in auth_methods if method.auth_method == cls.get_name()]) == len(
-            auth_methods
-        ):
+        if cls.loginable and len(auth_methods) == loginable_auth_methods_count:
             raise LastAuthMethodDelete
         logger.debug(auth_methods)
         for method in auth_methods:
