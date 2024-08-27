@@ -154,7 +154,9 @@ async def get_sessions(
             is_unbounded=session.is_unbounded,
         )
         if "session_scopes" in info:
-            result['session_scopes'] = [_scope.name for _scope in session.scopes]
+            result['session_scopes'] = [
+                _scope.name for _scope in (session.user.scopes if session.is_unbounded else session.scopes)
+            ]
         if "token" in info:
             result['token'] = session.token[-4:]
         if "expires" in info:
