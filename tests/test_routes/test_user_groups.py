@@ -65,6 +65,8 @@ def test_get_user_list(client, dbsession, user_factory):
     assert us1 in gr.users
     assert us2 in gr.users
     assert us3 in gr.users
+    dbsession.delete(gr)
+    dbsession.commit()
 
 
 def test_del_user_from_group(client, dbsession, user_factory):
@@ -99,3 +101,6 @@ def test_del_user_from_group(client, dbsession, user_factory):
     assert us1 in gr.users
     assert us2 not in gr.users
     assert us3 in gr.users
+    gr.users.clear()
+    gr.delete(id=group, session=dbsession)
+    dbsession.commit()

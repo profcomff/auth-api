@@ -115,7 +115,9 @@ def parent_id(client, dbsession):
     body = {"name": f"group{time}", "parent_id": None, "scopes": []}
     response = client.post(url="/group", json=body)
     yield response.json()["id"]
-    dbsession.query(Group).get(response.json()["id"])
+    group: Group = Group.get(response.json()["id"], session=dbsession)
+    group.users.clear()
+    group.delete(id=response.json()["id"], session=dbsession)
     dbsession.commit()
 
 
@@ -135,7 +137,7 @@ def group(dbsession, parent_id):
     for row in _ids:
         group: Group = Group.get(row, session=dbsession)
         group.users.clear()
-        group.delete(session=dbsession)
+        group.delete(id=row, session=dbsession)
     dbsession.commit()
 
 
@@ -153,31 +155,13 @@ def user_factory(dbsession):
 
     yield _user
 
-    for row in dbsession.query(UserGroup).all():
-        dbsession.delete(row)
-    dbsession.flush()
-
-    dbsession.query(GroupScope).delete()
-    dbsession.flush()
-
-    dbsession.query(Scope).delete()
-    dbsession.flush()
-
-    dbsession.query(Group).delete()
-    dbsession.flush()
-
-    dbsession.query(AuthMethod).delete()
-    dbsession.flush()
-
-    dbsession.query(UserSession).delete()
-    dbsession.flush()
-
-    dbsession.query(User).delete()
+    for user in _users:
+        dbsession.delete(user)
     dbsession.commit()
 
 
 @pytest.fixture()
-def user_scopes(dbsession, user):
+def user_scopes(dbsession, user, group, client):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
     scopes_names = [
         "auth.scope.create",
@@ -201,14 +185,17 @@ def user_scopes(dbsession, user):
     token_ = random_string()
     dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
     dbsession.commit()
-    user_scopes = []
+    group_scopes = []
+    group_id = group(client)
     for i in scopes:
-        dbsession.add(user_scope1 := UserSessionScope(scope_id=i.id, user_session_id=user_session.id))
-        user_scopes.append(user_scope1)
+        dbsession.add(group_scope := GroupScope(scope_id=i.id, group_id=group_id))
+        group_scopes.append(group_scope)
+    dbsession.add(user_group := UserGroup(user_id=user_id, group_id=group_id))
     dbsession.flush()
     dbsession.commit()
     yield token_, user
-    for i in user_scopes:
+    dbsession.delete(user_group)
+    for i in group_scopes:
         dbsession.delete(i)
     dbsession.flush()
     for i in scopes:

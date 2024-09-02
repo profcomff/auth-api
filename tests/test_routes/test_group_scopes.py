@@ -2,7 +2,6 @@ import datetime
 
 from auth_backend.models.db import Group, GroupScope, Scope, UserGroup
 
-
 def test_scopes_groups(client_auth, dbsession, user_scopes):
     token = user_scopes[0]
     scope1 = dbsession.query(Scope).filter(Scope.name == "auth.group.create").one()
@@ -10,7 +9,8 @@ def test_scopes_groups(client_auth, dbsession, user_scopes):
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
     headers = {"Authorization": token}
-    _group1 = client_auth.post(url="/group", json=body, headers=headers).json()["id"]
+    resp = client_auth.post(url="/group", json=body, headers=headers).json()
+    _group1 = resp["id"]
     time2 = datetime.datetime.utcnow()
     body = {"name": f"group{time2}", "parent_id": _group1, "scopes": []}
     _group2 = client_auth.post(url="/group", json=body, headers=headers).json()["id"]
