@@ -4,13 +4,13 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from starlette import status
 
 from auth_backend.auth_plugins import YandexAuth
 from auth_backend.models import AuthMethod, User
-from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
+from auth_backend.models.db import AuthMethod, Group, Scope, User, UserSession, UserSessionScope
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 from auth_backend.utils.string import random_string
@@ -78,7 +78,7 @@ def user_id(client_auth: TestClient, dbsession):
 def user(client_auth: TestClient, dbsession):
     url = "/email/login"
     time = datetime.datetime.utcnow()
-    body = {"email": f"user{time}@example.com", "password": "string", "scopes": []}
+    body = {"email": f"user{time}@example.com", "password": "string", "scopes": [], "is_unbounded": False}
     response = client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
@@ -161,7 +161,7 @@ def user_factory(dbsession):
 
 
 @pytest.fixture()
-def user_scopes(dbsession, user, group, client):
+def user_scopes(dbsession, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
     scopes_names = [
         "auth.scope.create",
@@ -179,28 +179,29 @@ def user_scopes(dbsession, user, group, client):
         "auth.session.update",
     ]
     scopes = []
+    created_scopes = []
     for i in scopes_names:
-        dbsession.add(scope1 := Scope(name=i, creator_id=user_id))
+        scope1 = Scope.query(session=dbsession).filter(func.lower(Scope.name) == i.lower()).one_or_none()
+        if scope1 is None:
+            dbsession.add(scope1 := Scope(name=i, creator_id=user_id))
+            created_scopes.append(scope1)
         scopes.append(scope1)
     token_ = random_string()
-    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
+    dbsession.add(user_session := UserSession(user_id=user_id, token=token_, is_unbounded=False))
     dbsession.commit()
-    group_scopes = []
-    group_id = group(client)
+    user_scopes = []
     for i in scopes:
-        dbsession.add(group_scope := GroupScope(scope_id=i.id, group_id=group_id))
-        group_scopes.append(group_scope)
-    dbsession.add(user_group := UserGroup(user_id=user_id, group_id=group_id))
+        dbsession.add(user_scope1 := UserSessionScope(scope_id=i.id, user_session_id=user_session.id))
+        user_scopes.append(user_scope1)
     dbsession.flush()
     dbsession.commit()
     yield token_, user
-    dbsession.delete(user_group)
-    for i in group_scopes:
+    for i in user_scopes:
         dbsession.delete(i)
     dbsession.flush()
-    for i in scopes:
+    for i in created_scopes:
         dbsession.delete(i)
-    dbsession.delete(user_session)
+    dbsession.flush()
     dbsession.commit()
 
 

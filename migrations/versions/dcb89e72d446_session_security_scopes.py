@@ -43,8 +43,8 @@ def upgrade():
     session.flush()
     sessions_id = session.query(UserSession.id).all()
     for session_id in sessions_id:
-            UserSessionScope.create(user_session_id=session_id.id, scope_id=scope1.id, is_deleted=False, session=session)
-            UserSessionScope.create(user_session_id=session_id.id, scope_id=scope2.id, is_deleted=False, session=session)
+        UserSessionScope.create(user_session_id=session_id.id, scope_id=scope1.id, is_deleted=False, session=session)
+        UserSessionScope.create(user_session_id=session_id.id, scope_id=scope2.id, is_deleted=False, session=session)
     session.commit()
 
 
