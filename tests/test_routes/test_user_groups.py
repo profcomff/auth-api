@@ -25,6 +25,9 @@ def test_add_user(client: TestClient, dbsession: Session, user_factory):
     user = User.get(usergroup.user_id, session=dbsession)
     assert user in gr.users
     assert gr in user.groups
+
+    for row in dbsession.query(UserGroup).filter(UserGroup.user_id == user1).all():
+        dbsession.delete(row)
     dbsession.delete(gr)
     dbsession.commit()
 
@@ -65,6 +68,11 @@ def test_get_user_list(client, dbsession, user_factory):
     assert us1 in gr.users
     assert us2 in gr.users
     assert us3 in gr.users
+
+    for user_id in [user1, user2, user3]:
+        for row in dbsession.query(UserGroup).filter(UserGroup.user_id == user_id).all():
+            dbsession.delete(row)
+        dbsession.commit()
     dbsession.delete(gr)
     dbsession.commit()
 
@@ -103,4 +111,10 @@ def test_del_user_from_group(client, dbsession, user_factory):
     assert us3 in gr.users
     gr.users.clear()
     gr.delete(id=group, session=dbsession)
+    dbsession.commit()
+
+    for user_id in [user1, user2, user3]:
+        for row in dbsession.query(UserGroup).filter(UserGroup.user_id == user_id).all():
+            dbsession.delete(row)
+    dbsession.delete(gr)
     dbsession.commit()

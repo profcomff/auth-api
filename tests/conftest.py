@@ -10,7 +10,7 @@ from starlette import status
 
 from auth_backend.auth_plugins import YandexAuth
 from auth_backend.models import AuthMethod, User
-from auth_backend.models.db import AuthMethod, Group, Scope, User, UserSession, UserSessionScope
+from auth_backend.models.db import AuthMethod, Group, Scope, User, UserGroup, UserSession, UserSessionScope
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 from auth_backend.utils.string import random_string
@@ -103,6 +103,8 @@ def user(client_auth: TestClient, dbsession):
     for row in session:
         dbsession.delete(row)
     dbsession.commit()
+    for row in dbsession.query(UserGroup).filter(UserGroup.user_id == db_user.user_id).all():
+        dbsession.delete(row)
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
