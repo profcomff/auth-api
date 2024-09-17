@@ -160,16 +160,6 @@ async def delete_user(
         # Удаляем AuthMethod
         AuthMethod.delete(method.id, session=db.session)
         logger.info(f'{method=} for {user.id=} deleted')
-
-    for group in user.groups:
-        if group.is_deleted:
-            continue
-        user_group: UserGroup = (
-            UserGroup.query(session=db.session)
-            .filter(UserGroup.group_id == group.id, UserGroup.user_id == user_id)
-            .one()
-        )
-        UserGroup.delete(user_group.id, session=db.session)
     User.delete(user_id, session=db.session)
     db.session.commit()
     await AuthPluginMeta.user_updated(None, old_user)
