@@ -12,7 +12,7 @@ from auth_backend.models.db import AuthMethod, User, UserSession
 url = "/email/registration"
 
 
-def test_invalid_email(client_auth: TestClient):
+def test_invalid_email(client_auth: TestClient, dbsession: Session):
     body1 = {"email": f"notEmailForSure", "password": "string"}
     body2 = {"email": f"EmailForSure{datetime.datetime.utcnow()}@mail.gtg", "password": ""}
     body3 = {
@@ -37,6 +37,17 @@ def test_invalid_email(client_auth: TestClient):
     assert response.status_code == status.HTTP_200_OK
     response = client_auth.post(url, json=body6)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    ids = []
+    for email in [body3["email"], body4["email"], body5["email"]]:
+        ids.append(
+            dbsession.query(AuthMethod).filter(AuthMethod.param == "email", AuthMethod.value == email).one().user_id
+        )
+    for user_id in ids:
+        for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == user_id).all():
+            dbsession.delete(row)
+        dbsession.delete(dbsession.query(User).filter(User.id == user_id).one())
+    dbsession.commit()
 
 
 def test_main_scenario(client_auth: TestClient, dbsession: Session):

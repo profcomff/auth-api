@@ -177,7 +177,7 @@ def test_patch_session(client_auth: TestClient, dbsession: Session, user_scopes)
     token = user_scopes[0]
     header = {"Authorization": token}
     params = {"info": ["session_scopes", "token", "expires"]}
-    payload = {"session_name": "test_session"}
+    payload = {"session_name": "test_session", "is_unbounded": False}
     new_session1 = client_auth.post("/session", headers=header, json=payload)
     assert new_session1.status_code == status.HTTP_200_OK
     assert new_session1.json()['session_name'] == payload['session_name']
@@ -193,3 +193,28 @@ def test_patch_session(client_auth: TestClient, dbsession: Session, user_scopes)
     for session in get_patch_session2.json():
         if session['id'] == new_session1.json()['id']:
             assert session["session_scopes"] == []
+
+
+def test_create_unbounded_session(client_auth: TestClient, user_scopes, dbsession):
+    token_, user = user_scopes
+    scope1 = dbsession.query(Scope).filter(Scope.name == "auth.group.create").one()
+    time1 = datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
+    headers = {"Authorization": token_}
+    _group1 = client_auth.post(url="/group", json=body, headers=headers).json()["id"]
+    client_auth.patch(f"/user/{user['user_id']}", json={"groups": [_group1]}, headers={"Authorization": token_})
+    response = client_auth.post("/session", json={"is_unbounded": True}, headers=headers)
+    assert response.status_code == status.HTTP_200_OK
+    token = response.json()["token"]
+    response = client_auth.get(
+        "/me", headers={"Authorization": token}, params={"info": ["session_scopes", "user_scopes"]}
+    )
+    assert response.json()["session_scopes"] == response.json()["user_scopes"]
+    assert scope1.id not in [row["id"] for row in response.json()["session_scopes"]]
+    client_auth.patch(f"/group/{_group1}", json={"scopes": [scope1.id]}, headers=headers)
+    response = client_auth.get("/me", headers={"Authorization": token}, params={"info": ["session_scopes"]})
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
+    dbsession.query(GroupScope).filter(GroupScope.group_id == _group1).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == _group1).delete()
+    dbsession.query(Group).filter(Group.id == _group1).delete()
+    dbsession.commit()

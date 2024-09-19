@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from auth_backend.models import AuthMethod, User
-from auth_backend.models.db import Group
+from auth_backend.models.db import Group, UserGroup
 
 
 def test_user_email(client: TestClient, dbsession: Session, user_factory):
@@ -19,7 +19,10 @@ def test_user_email(client: TestClient, dbsession: Session, user_factory):
     resp = client.patch(f"/user/{user1}", json={"groups": [group]})
     assert resp.status_code == 200
     assert "email" not in resp.json().keys()
+
     dbsession.delete(email_user)
+    for row in dbsession.query(UserGroup).filter(UserGroup.user_id == user1).all():
+        dbsession.delete(row)
     gr = Group.get(group, session=dbsession)
     dbsession.delete(gr)
     dbsession.commit()

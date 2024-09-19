@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from starlette import status
 
-from auth_backend.models.db import AuthMethod, Group, User, UserGroup, UserSession
+from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession
 
 
 url = "/email/login"
@@ -134,3 +134,47 @@ def test_check_me_groups(client_auth: TestClient, user_scopes, dbsession):
     dbsession.query(Group).filter(Group.id == _group2).delete()
     dbsession.query(Group).filter(Group.id == _group1).delete()
     dbsession.commit()
+
+
+def test_check_unbounded_session(client_auth: TestClient, user_scopes, dbsession):
+    token_, user = user_scopes
+    body_user = user["body"]
+    body_user["is_unbounded"] = True
+    scope1 = dbsession.query(Scope).filter(Scope.name == "auth.group.create").one()
+    time1 = datetime.datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
+    headers = {"Authorization": token_}
+    _group1 = client_auth.post(url="/group", json=body, headers=headers).json()["id"]
+    client_auth.patch(f"/user/{user['user_id']}", json={"groups": [_group1]}, headers={"Authorization": token_})
+    response = client_auth.post("/email/login", json=body_user)
+    assert response.status_code == status.HTTP_200_OK
+    token = response.json()["token"]
+    response = client_auth.get(
+        "/me", headers={"Authorization": token}, params={"info": ["session_scopes", "user_scopes"]}
+    )
+    assert response.json()["session_scopes"] == response.json()["user_scopes"]
+    assert scope1.id not in [row["id"] for row in response.json()["session_scopes"]]
+    client_auth.patch(f"/group/{_group1}", json={"scopes": [scope1.id]}, headers=headers)
+    response = client_auth.get("/me", headers={"Authorization": token}, params={"info": ["session_scopes"]})
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
+    dbsession.query(GroupScope).filter(GroupScope.group_id == _group1).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == _group1).delete()
+    dbsession.query(Group).filter(Group.id == _group1).delete()
+    dbsession.commit()
+
+
+def test_check_unbounded_session_scopes(client_auth: TestClient, user_scopes, dbsession):
+    token_, user = user_scopes
+    body_user = user["body"]
+    body_user["is_unbounded"] = True
+    scope1 = dbsession.query(Scope).filter(Scope.name == "auth.session.create").one()
+    scope2 = dbsession.query(Scope).filter(Scope.name == "auth.session.update").one()
+    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.name]})
+    assert response.status_code == status.HTTP_200_OK
+    token = response.json()["token"]
+    response = client_auth.get(
+        "/me", headers={"Authorization": token}, params={"info": ["session_scopes", "user_scopes"]}
+    )
+    assert response.json()["session_scopes"] == response.json()["user_scopes"]
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["session_scopes"]]

@@ -132,6 +132,7 @@ class Session(Base):
     expires: datetime | None = None
     id: int
     user_id: int
+    is_unbounded: bool | None = None
     session_scopes: list[Scope] | None = None
     last_activity: datetime
 
@@ -140,6 +141,7 @@ class SessionPost(Base):
     session_name: str | None = None
     scopes: list[Scope] = []
     expires: datetime | None = None
+    is_unbounded: bool | None = None
 
     @classmethod
     @field_validator("expires")

@@ -45,6 +45,7 @@ class TelegramAuth(OauthMeta):
         hash: str | None = None
         scopes: list[Scope] | None = None
         session_name: str | None = None
+        is_unbounded: bool | None = None
 
     @classmethod
     async def _register(
@@ -88,7 +89,11 @@ class TelegramAuth(OauthMeta):
         )
         await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
-            user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+            user,
+            user_inp.scopes,
+            db_session=db.session,
+            session_name=user_inp.session_name,
+            is_unbounded=user_inp.is_unbounded,
         )
 
     @classmethod
@@ -118,7 +123,11 @@ class TelegramAuth(OauthMeta):
             userdata,
         )
         return await cls._create_session(
-            user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+            user,
+            user_inp.scopes,
+            db_session=db.session,
+            session_name=user_inp.session_name,
+            is_unbounded=user_inp.is_unbounded,
         )
 
     @classmethod
