@@ -160,7 +160,7 @@ async def delete_user(
         # Удаляем AuthMethod
         AuthMethod.delete(method.id, session=db.session)
         logger.info(f'{method=} for {user.id=} deleted')
-
     User.delete(user_id, session=db.session)
+    db.session.commit()
     await AuthPluginMeta.user_updated(None, old_user)
     logger.info(f'{user=} deleted')
