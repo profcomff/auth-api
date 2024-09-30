@@ -1,7 +1,8 @@
 from pydantic import Field
 
-from auth_backend.settings import Settings
 from auth_backend.auth_method import LoginableMixin
+from auth_backend.settings import Settings
+
 from .yandex import YandexAuth
 
 
