@@ -1,7 +1,7 @@
 from pydantic import Field, Json
 
-from auth_backend.settings import Settings
 from auth_backend.auth_method import LoginableMixin
+from auth_backend.settings import Settings
 
 from .google import GoogleAuth
 
