@@ -8,7 +8,6 @@ from typing import Any, Iterable
 
 from fastapi import APIRouter
 from sqlalchemy.orm import Session as DbSession
-
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import get_settings
 
@@ -24,7 +23,6 @@ class AuthPluginMeta(metaclass=ABCMeta):
     router: APIRouter
     prefix: str
     tags: list[str] = []
-    loginable: bool
 
     @classmethod
     def get_name(cls) -> str:

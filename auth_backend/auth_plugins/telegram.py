@@ -11,7 +11,7 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session, LoginableMixin
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import User, UserSession
@@ -29,9 +29,8 @@ class TelegramSettings(Settings):
     TELEGRAM_BOT_TOKEN: str | None = None
 
 
-class TelegramAuth(OauthMeta):
+class TelegramAuth(OauthMeta, LoginableMixin):
     prefix = '/telegram'
-    loginable = True
     tags = ['Telegram']
     settings = TelegramSettings()
 

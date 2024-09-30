@@ -1,6 +1,7 @@
 from pydantic import Field, Json
 
 from auth_backend.settings import Settings
+from auth_backend.auth_method import LoginableMixin
 
 from .google import GoogleAuth
 
@@ -23,9 +24,8 @@ class PhysicsSettings(Settings):
     GOOGLE_BLACKLIST_DOMAINS: list[str] | None = None
 
 
-class PhysicsAuth(GoogleAuth):
+class PhysicsAuth(GoogleAuth, LoginableMixin):
     """Вход в приложение по почте @physics.msu.ru"""
 
     prefix = '/physics-msu'
-    loginable = True
     settings = PhysicsSettings()
