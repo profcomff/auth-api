@@ -1,7 +1,7 @@
 from pydantic import Field
 
 from auth_backend.settings import Settings
-
+from auth_backend.auth_method import LoginableMixin
 from .yandex import YandexAuth
 
 
@@ -16,9 +16,8 @@ class MyMsuSettings(Settings):
     YANDEX_BLACKLIST_DOMAINS: list[str] | None = None
 
 
-class MyMsuAuth(YandexAuth):
+class MyMsuAuth(YandexAuth, LoginableMixin):
     """Вход в приложение по почте @my.msu.ru"""
 
     prefix = '/my-msu'
-    loginable = True
     settings = MyMsuSettings()

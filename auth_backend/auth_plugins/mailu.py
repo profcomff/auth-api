@@ -18,7 +18,6 @@ class MailuOuterAuthSettings(Settings):
 class MailuOuterAuth(OuterAuthMeta):
     prefix = '/mailu'
     settings = MailuOuterAuthSettings()
-    loginable = False
 
     @classmethod
     async def _is_outer_user_exists(cls, username: str) -> bool:

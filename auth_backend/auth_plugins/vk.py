@@ -10,7 +10,7 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session, LoginableMixin
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import User, UserSession
@@ -44,9 +44,8 @@ class VkSettings(Settings):
     ]  # Другие данные https://dev.vk.com/ru/reference/objects/user
 
 
-class VkAuth(OauthMeta):
+class VkAuth(OauthMeta, LoginableMixin):
     prefix = '/vk'
-    loginable = True
     tags = ['vk']
     settings = VkSettings()
 

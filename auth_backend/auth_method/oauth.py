@@ -5,7 +5,7 @@ from fastapi import Depends
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session as DbSession
 
-from auth_backend.auth_method import AUTH_METHODS
+from auth_backend.auth_method import AUTH_METHODS, LoginableMixin
 from auth_backend.base import Base
 from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
@@ -30,6 +30,10 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
         self.router.add_api_route("/redirect_url", self._redirect_url, methods=["GET"], response_model=self.UrlSchema)
         self.router.add_api_route("/auth_url", self._auth_url, methods=["GET"], response_model=self.UrlSchema)
         self.router.add_api_route("", self._unregister, methods=["DELETE"])
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.loginable = issubclass(cls, LoginableMixin)
 
     @staticmethod
     @abstractmethod

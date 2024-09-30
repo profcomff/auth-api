@@ -19,7 +19,6 @@ class AirflowOuterAuthSettings(Settings):
 class AirflowOuterAuth(OuterAuthMeta):
     prefix = '/airflow'
     settings = AirflowOuterAuthSettings()
-    loginable = False
 
     @classmethod
     async def _is_outer_user_exists(cls, username: str) -> bool:

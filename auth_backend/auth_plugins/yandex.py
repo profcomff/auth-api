@@ -10,7 +10,7 @@ from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
 
-from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session, LoginableMixin
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import User, UserSession
@@ -31,9 +31,8 @@ class YandexSettings(Settings):
     YANDEX_BLACKLIST_DOMAINS: list[str] | None = ['my.msu.ru']
 
 
-class YandexAuth(OauthMeta):
+class YandexAuth(OauthMeta, LoginableMixin):
     prefix = '/yandex'
-    loginable = True
     tags = ['Yandex']
     settings = YandexSettings()
 
