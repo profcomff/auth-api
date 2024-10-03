@@ -7,6 +7,8 @@ from auth_backend.models.db import AuthMethod
 
 
 class Test(OuterAuthMeta):
+    loginable = True
+
     @classmethod
     async def _is_outer_user_exists(cls, username):
         return True

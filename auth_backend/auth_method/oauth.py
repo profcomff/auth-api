@@ -5,6 +5,7 @@ from fastapi import Depends
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session as DbSession
 
+from auth_backend.auth_method import AUTH_METHODS, LoginableMixin
 from auth_backend.base import Base
 from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
@@ -29,6 +30,10 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
         self.router.add_api_route("/redirect_url", self._redirect_url, methods=["GET"], response_model=self.UrlSchema)
         self.router.add_api_route("/auth_url", self._auth_url, methods=["GET"], response_model=self.UrlSchema)
         self.router.add_api_route("", self._unregister, methods=["DELETE"])
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls.loginable = issubclass(cls, LoginableMixin)
 
     @staticmethod
     @abstractmethod
@@ -69,7 +74,6 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
 
     @classmethod
     async def _delete_auth_methods(cls, user: User, *, db_session) -> list[AuthMethod]:
-        """Удаляет пользователю все AuthMethod конкретной авторизации"""
         auth_methods: list[AuthMethod] = (
             AuthMethod.query(session=db_session)
             .filter(
@@ -78,9 +82,19 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
             )
             .all()
         )
-        all_auth_methods = AuthMethod.query(session=db_session).filter(AuthMethod.user_id == user.id).all()
-        if len(all_auth_methods) - len(auth_methods) == 0:
-            raise LastAuthMethodDelete()
+        if cls.loginable:
+            loginable_auth_methods_count: int = (
+                AuthMethod.query(session=db_session)
+                .filter(
+                    AuthMethod.user_id == user.id,
+                    AuthMethod.auth_method.in_(
+                        [method.get_name() for method in AUTH_METHODS.values() if method.loginable]
+                    ),
+                )
+                .count()
+            )
+            if len(auth_methods) == loginable_auth_methods_count:
+                raise LastAuthMethodDelete
         logger.debug(auth_methods)
         for method in auth_methods:
             method.is_deleted = True
