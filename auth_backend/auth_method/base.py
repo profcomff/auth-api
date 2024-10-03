@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session as DbSession
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import get_settings
 
-
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
@@ -36,6 +35,7 @@ class AuthPluginMeta(metaclass=ABCMeta):
         if cls.__name__.endswith('Meta') or cls.__name__.endswith('Mixin'):
             return
         logger.info(f'Init authmethod {cls.__name__}')
+        cls.loginable = cls.__name__ == "LoginableMixin"
         AUTH_METHODS[cls.__name__] = cls
 
     async def _get_user(
