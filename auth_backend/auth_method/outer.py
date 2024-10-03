@@ -78,10 +78,6 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         self.router.add_api_route("/{user_id}/link", self._link, methods=["POST"])
         self.router.add_api_route("/{user_id}/link", self._unlink, methods=["DELETE"])
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls.loginable = issubclass(cls, LoginableMixin)
-
     @classmethod
     def get_scope(cls):
         """Права, необходимые пользователю для получения данных о внешнем аккаунте"""
