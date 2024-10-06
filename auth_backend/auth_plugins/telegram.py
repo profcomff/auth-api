@@ -78,7 +78,7 @@ class TelegramAuth(OauthMeta):
             old_user = {'user_id': user.id}
         new_user["user_id"] = user.id
         tg_id = cls.create_auth_method_param('user_id', telegram_user_id, user.id, db_session=db.session)
-        new_user[cls.get_name()]["user_id"] = tg_id.value
+        new_user[cls.get_name()] = {"user_id": tg_id.value}
         userdata = await TelegramAuth._convert_data_to_userdata_format(userinfo)
         background_tasks.add_task(
             get_kafka_producer().produce,
