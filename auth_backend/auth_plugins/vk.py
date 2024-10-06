@@ -111,7 +111,7 @@ class VkAuth(OauthMeta):
             old_user = {'user_id': user.id}
         new_user["user_id"] = user.id
         vk_id = cls.create_auth_method_param('user_id', vk_user_id, user.id, db_session=db.session)
-        new_user[cls.get_name()]["user_id"] = vk_id.value
+        new_user[cls.get_name()] = {"user_id": vk_id.value}
         userdata = await VkAuth._convert_data_to_userdata_format(userinfo['response'][0])
         background_tasks.add_task(
             get_kafka_producer().produce,
