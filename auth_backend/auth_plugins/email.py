@@ -229,6 +229,13 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                 user = await cls._get_user(user_session=user_session, db_session=txn)
                 if not user:
                     raise SessionExpired(user_session.token)
+                auth_method: AuthMethod | None = (
+                    AuthMethod.query(session=txn)
+                    .filter(AuthMethod.auth_method == Email.get_name(), AuthMethod.user_id == user.id)
+                    .first()
+                )
+                if auth_method:
+                    raise AlreadyExists(User, user.id)
             else:
                 user = await cls._create_user(db_session=txn)
             method_params = await Email._add_to_db(user_inp, confirmation_token, user)
