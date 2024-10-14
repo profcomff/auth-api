@@ -17,7 +17,7 @@ class MyMsuSettings(Settings):
     YANDEX_BLACKLIST_DOMAINS: list[str] | None = None
 
 
-class MyMsuAuth(YandexAuth, LoginableMixin):
+class MyMsuAuth(YandexAuth):
     """Вход в приложение по почте @my.msu.ru"""
 
     prefix = '/my-msu'

@@ -7,7 +7,6 @@ from fastapi.exceptions import HTTPException
 from fastapi_sqlalchemy import db
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT, HTTP_424_FAILED_DEPENDENCY
 
-from auth_backend.auth_method import LoginableMixin
 from auth_backend.auth_method.base import AuthPluginMeta
 from auth_backend.base import Base
 from auth_backend.models.db import AuthMethod, UserSession

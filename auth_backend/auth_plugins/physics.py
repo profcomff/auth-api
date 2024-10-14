@@ -24,7 +24,7 @@ class PhysicsSettings(Settings):
     GOOGLE_BLACKLIST_DOMAINS: list[str] | None = None
 
 
-class PhysicsAuth(GoogleAuth, LoginableMixin):
+class PhysicsAuth(GoogleAuth):
     """Вход в приложение по почте @physics.msu.ru"""
 
     prefix = '/physics-msu'

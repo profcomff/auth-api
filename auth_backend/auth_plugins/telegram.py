@@ -29,7 +29,7 @@ class TelegramSettings(Settings):
     TELEGRAM_BOT_TOKEN: str | None = None
 
 
-class TelegramAuth(OauthMeta, LoginableMixin):
+class TelegramAuth(OauthMeta):
     prefix = '/telegram'
     tags = ['Telegram']
     settings = TelegramSettings()

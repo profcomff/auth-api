@@ -31,7 +31,7 @@ class YandexSettings(Settings):
     YANDEX_BLACKLIST_DOMAINS: list[str] | None = ['my.msu.ru']
 
 
-class YandexAuth(OauthMeta, LoginableMixin):
+class YandexAuth(OauthMeta):
     prefix = '/yandex'
     tags = ['Yandex']
     settings = YandexSettings()

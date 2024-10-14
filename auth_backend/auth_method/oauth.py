@@ -31,10 +31,6 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
         self.router.add_api_route("/auth_url", self._auth_url, methods=["GET"], response_model=self.UrlSchema)
         self.router.add_api_route("", self._unregister, methods=["DELETE"])
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls.loginable = issubclass(cls, LoginableMixin)
-
     @staticmethod
     @abstractmethod
     async def _redirect_url(*args, **kwargs) -> UrlSchema:
@@ -99,4 +95,5 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
         for method in auth_methods:
             method.is_deleted = True
         db_session.flush()
+        db_session.commit()
         return {m.param: m.value for m in auth_methods}

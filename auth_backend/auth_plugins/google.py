@@ -36,7 +36,7 @@ class GoogleSettings(Settings):
     GOOGLE_BLACKLIST_DOMAINS: list[str] | None = ['physics.msu.ru']
 
 
-class GoogleAuth(OauthMeta, LoginableMixin):
+class GoogleAuth(OauthMeta):
     """Вход в приложение по аккаунту гугл"""
 
     prefix = '/google'

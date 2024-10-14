@@ -44,7 +44,7 @@ class VkSettings(Settings):
     ]  # Другие данные https://dev.vk.com/ru/reference/objects/user
 
 
-class VkAuth(OauthMeta, LoginableMixin):
+class VkAuth(OauthMeta):
     prefix = '/vk'
     tags = ['vk']
     settings = VkSettings()

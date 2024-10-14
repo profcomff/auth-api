@@ -30,7 +30,7 @@ class LkmsuSettings(Settings):
     LKMSU_FACULTY_NAME: str = 'Физический факультет'
 
 
-class LkmsuAuth(OauthMeta, LoginableMixin):
+class LkmsuAuth(OauthMeta):
     """Вход в приложение по аккаунту гугл"""
 
     prefix = '/lk-msu'

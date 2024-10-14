@@ -29,7 +29,7 @@ class KeycloakSettings(Settings):
     KEYCLOAK_CLIENT_SECRET: str | None = None
 
 
-class KeycloakAuth(OauthMeta, LoginableMixin):
+class KeycloakAuth(OauthMeta):
     """Вход в приложение по аккаунту Keycloak"""
 
     prefix = '/keycloak'

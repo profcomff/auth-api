@@ -28,7 +28,7 @@ class GithubSettings(Settings):
     GITHUB_CLIENT_SECRET: str | None = None
 
 
-class GithubAuth(OauthMeta, LoginableMixin):
+class GithubAuth(OauthMeta):
     """Вход в приложение по аккаунту GitHub"""
 
     prefix = '/github'
