@@ -140,3 +140,22 @@ def test_user_exists(client_auth: TestClient, dbsession: Session):
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
     dbsession.commit()
+
+
+def test_double_email_registration(client_auth: TestClient, dbsession: Session, user):
+    user_id, body, response = user["user_id"], user["body"], user["login_json"]
+    time = datetime.datetime.utcnow()
+    body1 = {
+        "email": body["email"],
+        "password": "string",
+        "scopes": [],
+        "session_name": "name",
+    }
+    response = client_auth.post("/email/login", json=body1)
+    token_ = response.json()['token']
+    body2 = {"email": f"new{time}@email.com", "password": "random pwd"}
+    body3 = {"email": body["email"], "password": "string"}
+    response = client_auth.post(url, headers={"Authorization": token_}, json=body2)
+    assert response.status_code == status.HTTP_409_CONFLICT
+    response = client_auth.post(url, headers={"Authorization": token_}, json=body3)
+    assert response.status_code == status.HTTP_409_CONFLICT
