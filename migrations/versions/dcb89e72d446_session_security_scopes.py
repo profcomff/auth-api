@@ -9,7 +9,7 @@ Create Date: 2024-04-06 02:06:15.967235
 from alembic import op
 from sqlalchemy.orm import Session
 
-from auth_backend.models.db import DynamicOption, Group, Scope, User, UserSession
+from auth_backend.models.db import DynamicOption, Group, Scope, User, UserSession, UserSessionScope
 
 
 # revision identifiers, used by Alembic.
@@ -41,10 +41,10 @@ def upgrade():
     root_group.scopes.update([scope1, scope2])
     user_group.scopes.update([scope1, scope2])
     session.flush()
-    user_sessions = UserSession.query(session=session).all()
-    for user_session in user_sessions:
-        user_session.scopes.extend((scope1, scope2))
-    session.flush()
+    sessions_id = session.query(UserSession.id).all()
+    for session_id in sessions_id:
+        UserSessionScope.create(user_session_id=session_id.id, scope_id=scope1.id, is_deleted=False, session=session)
+        UserSessionScope.create(user_session_id=session_id.id, scope_id=scope2.id, is_deleted=False, session=session)
     session.commit()
 
 

@@ -4,13 +4,13 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from starlette import status
 
 from auth_backend.auth_plugins import YandexAuth
 from auth_backend.models import AuthMethod, User
-from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession, UserSessionScope
+from auth_backend.models.db import AuthMethod, Group, Scope, User, UserGroup, UserSession, UserSessionScope
 from auth_backend.routes.base import app
 from auth_backend.settings import get_settings
 from auth_backend.utils.string import random_string
@@ -78,7 +78,7 @@ def user_id(client_auth: TestClient, dbsession):
 def user(client_auth: TestClient, dbsession):
     url = "/email/login"
     time = datetime.datetime.utcnow()
-    body = {"email": f"user{time}@example.com", "password": "string", "scopes": []}
+    body = {"email": f"user{time}@example.com", "password": "string", "scopes": [], "is_unbounded": False}
     response = client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
@@ -103,6 +103,8 @@ def user(client_auth: TestClient, dbsession):
     for row in session:
         dbsession.delete(row)
     dbsession.commit()
+    for row in dbsession.query(UserGroup).filter(UserGroup.user_id == db_user.user_id).all():
+        dbsession.delete(row)
     for row in dbsession.query(AuthMethod).filter(AuthMethod.user_id == db_user.user_id).all():
         dbsession.delete(row)
     dbsession.delete(dbsession.query(User).filter(User.id == db_user.user_id).one())
@@ -115,7 +117,9 @@ def parent_id(client, dbsession):
     body = {"name": f"group{time}", "parent_id": None, "scopes": []}
     response = client.post(url="/group", json=body)
     yield response.json()["id"]
-    dbsession.query(Group).get(response.json()["id"])
+    group: Group = Group.get(response.json()["id"], session=dbsession)
+    group.users.clear()
+    group.delete(id=response.json()["id"], session=dbsession)
     dbsession.commit()
 
 
@@ -135,7 +139,7 @@ def group(dbsession, parent_id):
     for row in _ids:
         group: Group = Group.get(row, session=dbsession)
         group.users.clear()
-        group.delete(session=dbsession)
+        group.delete(id=row, session=dbsession)
     dbsession.commit()
 
 
@@ -153,26 +157,8 @@ def user_factory(dbsession):
 
     yield _user
 
-    for row in dbsession.query(UserGroup).all():
-        dbsession.delete(row)
-    dbsession.flush()
-
-    dbsession.query(GroupScope).delete()
-    dbsession.flush()
-
-    dbsession.query(Scope).delete()
-    dbsession.flush()
-
-    dbsession.query(Group).delete()
-    dbsession.flush()
-
-    dbsession.query(AuthMethod).delete()
-    dbsession.flush()
-
-    dbsession.query(UserSession).delete()
-    dbsession.flush()
-
-    dbsession.query(User).delete()
+    for user in _users:
+        dbsession.delete(user)
     dbsession.commit()
 
 
@@ -195,11 +181,15 @@ def user_scopes(dbsession, user):
         "auth.session.update",
     ]
     scopes = []
+    created_scopes = []
     for i in scopes_names:
-        dbsession.add(scope1 := Scope(name=i, creator_id=user_id))
+        scope1 = Scope.query(session=dbsession).filter(func.lower(Scope.name) == i.lower()).one_or_none()
+        if scope1 is None:
+            dbsession.add(scope1 := Scope(name=i, creator_id=user_id))
+            created_scopes.append(scope1)
         scopes.append(scope1)
     token_ = random_string()
-    dbsession.add(user_session := UserSession(user_id=user_id, token=token_))
+    dbsession.add(user_session := UserSession(user_id=user_id, token=token_, is_unbounded=False))
     dbsession.commit()
     user_scopes = []
     for i in scopes:
@@ -211,9 +201,9 @@ def user_scopes(dbsession, user):
     for i in user_scopes:
         dbsession.delete(i)
     dbsession.flush()
-    for i in scopes:
+    for i in created_scopes:
         dbsession.delete(i)
-    dbsession.delete(user_session)
+    dbsession.flush()
     dbsession.commit()
 
 
