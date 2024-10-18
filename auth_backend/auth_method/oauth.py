@@ -5,6 +5,7 @@ from fastapi import Depends
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session as DbSession
 
+from auth_backend.auth_method import AUTH_METHODS, LoginableMixin
 from auth_backend.base import Base
 from auth_backend.exceptions import LastAuthMethodDelete
 from auth_backend.models.db import AuthMethod, User, UserSession
@@ -78,11 +79,22 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
             )
             .all()
         )
-        all_auth_methods = AuthMethod.query(session=db_session).filter(AuthMethod.user_id == user.id).all()
-        if len(all_auth_methods) - len(auth_methods) == 0:
-            raise LastAuthMethodDelete()
+        if issubclass(cls, LoginableMixin):
+            loginable_auth_methods_count: int = (
+                AuthMethod.query(session=db_session)
+                .filter(
+                    AuthMethod.user_id == user.id,
+                    AuthMethod.auth_method.in_(
+                        [method.get_name() for method in AUTH_METHODS.values() if issubclass(method, LoginableMixin)]
+                    ),
+                )
+                .count()
+            )
+            if len(auth_methods) == loginable_auth_methods_count:
+                raise LastAuthMethodDelete
         logger.debug(auth_methods)
         for method in auth_methods:
             method.is_deleted = True
         db_session.flush()
+        db_session.commit()
         return {m.param: m.value for m in auth_methods}
