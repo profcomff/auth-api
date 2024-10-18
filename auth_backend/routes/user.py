@@ -148,10 +148,8 @@ async def delete_user(
     Scopes: `["auth.user.delete"]` or `["auth.user.selfdelete"]` for self delete
     """
     session_scopes = set([scope.name.lower() for scope in current_user.scopes])
-    if (
-        "auth.user.delete" in session_scopes
-        or "auth.user.selfdelete" in session_scopes
-        and user_id == current_user.user_id
+    if "auth.user.delete" in session_scopes or (
+        "auth.user.selfdelete" in session_scopes and user_id == current_user.user_id
     ):
         logger.debug(f'User id={current_user.id} triggered delete_user')
         old_user = {"user_id": current_user.id}
