@@ -70,6 +70,7 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
 
     @classmethod
     async def _delete_auth_methods(cls, user: User, *, db_session) -> list[AuthMethod]:
+        """Удаляет пользователю все AuthMethod конкретной авторизации"""
         auth_methods: list[AuthMethod] = (
             AuthMethod.query(session=db_session)
             .filter(
