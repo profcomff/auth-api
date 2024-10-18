@@ -12,7 +12,7 @@ from google.auth.transport import requests
 from google.oauth2.id_token import verify_oauth2_token
 from pydantic import BaseModel, Field, Json
 
-from auth_backend.auth_method import AuthPluginMeta, LoginableMixin, OauthMeta, Session
+from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed, OauthCredentialsIncorrect
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import User, UserSession
