@@ -78,13 +78,13 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
             )
             .all()
         )
-        if cls.loginable:
+        if issubclass(cls, LoginableMixin):
             loginable_auth_methods_count: int = (
                 AuthMethod.query(session=db_session)
                 .filter(
                     AuthMethod.user_id == user.id,
                     AuthMethod.auth_method.in_(
-                        [method.get_name() for method in AUTH_METHODS.values() if method.loginable]
+                        [method.get_name() for method in AUTH_METHODS.values() if issubclass(method, LoginableMixin)]
                     ),
                 )
                 .count()

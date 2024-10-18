@@ -36,7 +36,6 @@ class AuthPluginMeta(metaclass=ABCMeta):
         if cls.__name__.endswith('Meta') or cls.__name__.endswith('Mixin'):
             return
         logger.info(f'Init authmethod {cls.__name__}')
-        cls.loginable = False
         AUTH_METHODS[cls.__name__] = cls
 
     async def _get_user(
