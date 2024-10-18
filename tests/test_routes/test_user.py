@@ -41,8 +41,9 @@ def test_delete_user(client: TestClient, dbsession: Session, user_factory):
     assert resp.status_code == 200
     user = dbsession.query(User).filter(User.id == user1).one_or_none()
     assert user.is_deleted
-    dbsession.delete(email_user)
     dbsession.query(GroupScope).filter(GroupScope.group_id == group).delete()
-    dbsession.query(UserGroup).filter(UserGroup.group_id == group).delete()
+    for row in dbsession.query(UserGroup).filter(UserGroup.user_id == user1).all():
+        dbsession.delete(row)
     dbsession.query(Group).filter(Group.id == group).delete()
+    dbsession.delete(email_user)
     dbsession.commit()
