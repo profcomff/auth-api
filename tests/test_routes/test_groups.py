@@ -35,8 +35,8 @@ def test_create(client, dbsession):
     assert parent.parent_id == response_parent.json()["parent_id"]
     assert parent.name == response_parent.json()["name"]
 
-    Group.delete(response.json()["id"], session=dbsession)
-    Group.delete(response_parent.json()["id"], session=dbsession)
+    for row in dbsession.query(Group).get(group.id), dbsession.query(Group).get(parent.id):
+        dbsession.delete(row)
     dbsession.commit()
 
 

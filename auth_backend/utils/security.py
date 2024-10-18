@@ -53,7 +53,12 @@ class UnionAuth(SecurityBase):
 
         if user_session.expired:
             self._except()
-        session_scopes = set([scope.name.lower() for scope in user_session.scopes])
+        session_scopes = set(
+            [
+                scope.name.lower()
+                for scope in (user_session.user.scopes if user_session.is_unbounded else user_session.scopes)
+            ]
+        )
         if self._SESSION_UPDATE_SCOPE in session_scopes:
             user_session.expires = session_expires_date()
         db.session.commit()

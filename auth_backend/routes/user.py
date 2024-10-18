@@ -164,3 +164,4 @@ async def delete_user(
     db.session.commit()
     await AuthPluginMeta.user_updated(None, old_user)
     logger.info(f'{user=} deleted')
+    db.session.commit()

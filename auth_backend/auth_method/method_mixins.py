@@ -51,7 +51,14 @@ class LoginableMixin(AuthPluginMeta, metaclass=ABCMeta):
 
     @staticmethod
     async def _create_session(
-        user: User, scopes_list_names: list[TypeScope] | None, session_name: str | None = None, *, db_session: DbSession
+        user: User,
+        scopes_list_names: list[TypeScope] | None,
+        session_name: str | None = None,
+        is_unbounded: bool | None = None,
+        *,
+        db_session: DbSession,
     ) -> Session:
         """Создает сессию пользователя"""
-        return await create_session(user, scopes_list_names, db_session=db_session, session_name=session_name)
+        return await create_session(
+            user, scopes_list_names, db_session=db_session, session_name=session_name, is_unbounded=is_unbounded
+        )
