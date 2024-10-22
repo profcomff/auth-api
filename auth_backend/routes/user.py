@@ -156,6 +156,7 @@ async def delete_user(
         logger.debug(f'User id={current_user.id} triggered delete_user')
         old_user = {"user_id": current_user.id}
         user: User = User.get(user_id, session=db.session)
+        
         for method in user._auth_methods:
             if method.is_deleted:
                 continue
