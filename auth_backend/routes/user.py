@@ -168,9 +168,9 @@ async def delete_user(
             logger.info(f'{method=} for {user.id=} deleted')
         User.delete(user_id, session=db.session)
         # Удаляем сессии
-        db.session.query(UserSession).filter(UserSession.user_id == current_user.user_id).filter(
-            not_(UserSession.expired)
-        ).update({"expires": datetime.utcnow()})
+        db.session.query(UserSession).filter(UserSession.user_id == user_id).filter(not_(UserSession.expired)).update(
+            {"expires": datetime.utcnow()}
+        )
         db.session.commit()
         await AuthPluginMeta.user_updated(None, old_user)
         logger.info(f'{user=} deleted')
