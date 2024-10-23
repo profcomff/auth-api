@@ -180,12 +180,12 @@ class LkmsuAuth(OauthMeta):
     def get_student(cls, data: dict[str, Any]) -> list[dict[str | Any]]:
         student: dict[str, Any] = data.get("student", {})
         first_name, last_name, middle_name = '', '', ''
-        if 'first_name' in data.keys() and data['first_name'] is not None:
-            first_name = data['first_name']
-        if 'last_name' in data.keys() and data['last_name'] is not None:
-            last_name = data['last_name']
-        if 'middle_name' in data.keys() and data['middle_name'] is not None:
-            middle_name = data['middle_name']
+        if 'first_name' in student.keys() and student['first_name'] is not None:
+            first_name = student['first_name']
+        if 'last_name' in student.keys() and student['last_name'] is not None:
+            last_name = student['last_name']
+        if 'middle_name' in student.keys() and student['middle_name'] is not None:
+            middle_name = student['middle_name']
         full_name = concantenate_strings([first_name, last_name, middle_name])
         if not full_name:
             full_name = None
@@ -197,14 +197,8 @@ class LkmsuAuth(OauthMeta):
     @classmethod
     def get_entrants(cls, data: dict[str, Any]) -> list[dict[str, Any]]:
         student: dict[str, Any] = data.get("student", {})
-        faculties_names = []
-        for entrant in student.get('entrants'):
-            faculties_names.append(entrant.get('faculty', {}).get("name"))
-        for entrant in student.get('entrants'):
-            if (
-                cls.settings.LKMSU_FACULTY_NAME in faculties_names
-                and entrant.get('faculty', {}).get("name") != cls.settings.LKMSU_FACULTY_NAME
-            ):
+        for entrant in reversed(student.get('entrants', [])):
+            if entrant.get('faculty', {}).get("name") != cls.settings.LKMSU_FACULTY_NAME:
                 continue
             if not (group := entrant.get("groups")):
                 group = [{}]
@@ -231,8 +225,6 @@ class LkmsuAuth(OauthMeta):
                     "value": group[0].get("name"),
                 },
             ]
-            if cls.settings.LKMSU_FACULTY_NAME not in faculties_names:
-                break
             return items
 
     @classmethod
