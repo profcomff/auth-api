@@ -1,8 +1,10 @@
 import logging
+from datetime import datetime
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_sqlalchemy import db
+from sqlalchemy import not_
 from sqlalchemy.orm import Session
 from starlette.status import HTTP_403_FORBIDDEN
 
@@ -166,6 +168,10 @@ async def delete_user(
             AuthMethod.delete(method.id, session=db.session)
             logger.info(f'{method=} for {user.id=} deleted')
         User.delete(user_id, session=db.session)
+        # Удаляем сессии
+        db.session.query(UserSession).filter(UserSession.user_id == user_id).filter(not_(UserSession.expired)).update(
+            {"expires": datetime.utcnow()}
+        )
         db.session.commit()
         await AuthPluginMeta.user_updated(None, old_user)
         logger.info(f'{user=} deleted')
