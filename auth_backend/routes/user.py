@@ -1,9 +1,12 @@
 import logging
+from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_sqlalchemy import db
+from sqlalchemy import not_
 from sqlalchemy.orm import Session
+from starlette.status import HTTP_403_FORBIDDEN
 
 from auth_backend.auth_method import AuthPluginMeta
 from auth_backend.auth_plugins.email import Email
@@ -141,27 +144,35 @@ async def patch_user(
 @user.delete("/{user_id}", response_model=None)
 async def delete_user(
     user_id: int,
-    current_user: UserSession = Depends(UnionAuth(scopes=["auth.user.delete"], allow_none=False, auto_error=True)),
+    current_user: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
 ) -> None:
     """
-    Scopes: `["auth.user.delete"]`
+    Scopes: `["auth.user.delete"]` or `["auth.user.selfdelete"]` for self delete
     """
-    logger.debug(f'User id={current_user.id} triggered delete_user')
-    old_user = {"user_id": current_user.id}
-    user: User = User.get(user_id, session=db.session)
-
-    for method in user._auth_methods:
-        if method.is_deleted:
-            continue
-        # Сохраняем старое состояние пользователя
-        if method.auth_method not in old_user:
-            old_user[method.auth_method] = {}
-        old_user[method.auth_method][method.param] = method.value
-        # Удаляем AuthMethod
-        AuthMethod.delete(method.id, session=db.session)
-        logger.info(f'{method=} for {user.id=} deleted')
-    User.delete(user_id, session=db.session)
-    db.session.commit()
-    await AuthPluginMeta.user_updated(None, old_user)
-    logger.info(f'{user=} deleted')
-    db.session.commit()
+    session_scopes = set([scope.name.lower() for scope in current_user.scopes])
+    if "auth.user.delete" in session_scopes or (
+        "auth.user.selfdelete" in session_scopes and user_id == current_user.user_id
+    ):
+        logger.debug(f'User id={current_user.id} triggered delete_user')
+        old_user = {"user_id": current_user.id}
+        user: User = User.get(user_id, session=db.session)
+        for method in user._auth_methods:
+            if method.is_deleted:
+                continue
+            # Сохраняем старое состояние пользователя
+            if method.auth_method not in old_user:
+                old_user[method.auth_method] = {}
+            old_user[method.auth_method][method.param] = method.value
+            # Удаляем AuthMethod
+            AuthMethod.delete(method.id, session=db.session)
+            logger.info(f'{method=} for {user.id=} deleted')
+        User.delete(user_id, session=db.session)
+        # Удаляем сессии
+        db.session.query(UserSession).filter(UserSession.user_id == user_id).filter(not_(UserSession.expired)).update(
+            {"expires": datetime.utcnow()}
+        )
+        db.session.commit()
+        await AuthPluginMeta.user_updated(None, old_user)
+        logger.info(f'{user=} deleted')
+    else:
+        raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")

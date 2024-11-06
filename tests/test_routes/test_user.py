@@ -28,16 +28,18 @@ def test_user_email(client: TestClient, dbsession: Session, user_factory):
     dbsession.commit()
 
 
-def test_delete_user(client: TestClient, dbsession: Session, user_factory):
-    user1 = user_factory(client)
+def test_delete_user(client_auth: TestClient, dbsession: Session, user_factory, user_scopes):
+    token = user_scopes[0]
+    header = {"Authorization": token}
+    user1 = user_factory(client_auth)
     time1 = datetime.utcnow()
     email_user = AuthMethod(user_id=user1, param="email", auth_method="email", value="testemailx@x.xy")
     dbsession.add(email_user)
     dbsession.commit()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
-    group = client.post(url="/group", json=body).json()["id"]
-    client.patch(f"/user/{user1}", json={"groups": [group]})
-    resp = client.delete(f"user/{user1}")
+    group = client_auth.post(url="/group", json=body, headers=header).json()["id"]
+    client_auth.patch(f"/user/{user1}", json={"groups": [group]}, headers=header)
+    resp = client_auth.delete(f"user/{user1}", headers=header)
     assert resp.status_code == 200
     user = dbsession.query(User).filter(User.id == user1).one_or_none()
     assert user.is_deleted
