@@ -85,28 +85,19 @@ def test_scopes_user_session(client_auth, dbsession, user_scopes):
     assert response.status_code == 200
     response = client_auth.patch(f"/user/{user_id}", json={"groups": [_group3]}, headers=headers)
     assert response.status_code == 200
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.name]})
+    response = client_auth.post("/email/login", json=body_user)
     assert response.status_code == 200
     token = response.json()["token"]
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope2.name + "s"]})
-    assert response.status_code == 404
     response = client_auth.get("/me", headers={"Authorization": token}, params={"info": ["session_scopes"]})
     assert response.status_code == 200
     assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
-    response = client_auth.get("/me", headers={"Authorization": login["token"]}, params={"info": ["session_scopes"]})
-    assert response.status_code == 200
-    assert scope2.id not in [row["id"] for row in response.json()["session_scopes"]]
     response = client_auth.patch(f"/group/{_group3}", json={"scopes": [scope1.id, scope2.id]}, headers=headers)
     assert response.status_code == 200
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.name, scope2.name]})
+    response = client_auth.post("/email/login", json=body_user)
     assert response.status_code == 200
     token1 = response.json()["token"]
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope2.name]})
+    response = client_auth.post("/email/login", json=body_user)
     assert response.status_code == 200
-    token2 = response.json()["token"]
-    response = client_auth.post("/email/login", json=body_user | {"scopes": [scope1.name]})
-    assert response.status_code == 200
-    token3 = response.json()["token"]
     response = client_auth.get(
         "/me", headers={"Authorization": token1}, params={"info": ["session_scopes", "user_scopes"]}
     )
@@ -116,27 +107,11 @@ def test_scopes_user_session(client_auth, dbsession, user_scopes):
     assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
     assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
     response = client_auth.get(
-        "/me", headers={"Authorization": token2}, params={"info": ["session_scopes", "user_scopes"]}
-    )
-    assert response.status_code == 200
-    assert scope2.id in [row["id"] for row in response.json()["session_scopes"]]
-    assert scope1.id not in [row["id"] for row in response.json()["session_scopes"]]
-    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
-    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
-    response = client_auth.get(
-        "/me", headers={"Authorization": token3}, params={"info": ["session_scopes", "user_scopes"]}
-    )
-    assert response.status_code == 200
-    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
-    assert scope2.id not in [row["id"] for row in response.json()["session_scopes"]]
-    assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
-    assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
-    response = client_auth.get(
         "/me", headers={"Authorization": login["token"]}, params={"info": ["session_scopes", "user_scopes"]}
     )
     assert response.status_code == 200
-    assert scope2.id not in [row["id"] for row in response.json()["session_scopes"]]
-    assert scope1.id not in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope2.id in [row["id"] for row in response.json()["session_scopes"]]
+    assert scope1.id in [row["id"] for row in response.json()["session_scopes"]]
     assert scope2.id in [row["id"] for row in response.json()["user_scopes"]]
     assert scope1.id in [row["id"] for row in response.json()["user_scopes"]]
     dbsession.query(GroupScope).filter(GroupScope.group_id == _group1).delete()

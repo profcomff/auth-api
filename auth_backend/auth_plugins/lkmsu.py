@@ -42,7 +42,6 @@ class LkmsuAuth(OauthMeta):
         id_token: str | None = Field(default=None, help="LK MSU JWT token identifier")
         scopes: list[Scope] | None = None
         session_name: str | None = None
-        is_unbounded: bool | None = None
 
     @classmethod
     async def _register(
@@ -114,7 +113,6 @@ class LkmsuAuth(OauthMeta):
             user_inp.scopes,
             db_session=db.session,
             session_name=user_inp.session_name,
-            is_unbounded=user_inp.is_unbounded,
         )
 
     @classmethod
@@ -170,7 +168,6 @@ class LkmsuAuth(OauthMeta):
             user_inp.scopes,
             db_session=db.session,
             session_name=user_inp.session_name,
-            is_unbounded=user_inp.is_unbounded,
         )
 
     @classmethod

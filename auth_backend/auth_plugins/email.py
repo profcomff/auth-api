@@ -66,7 +66,6 @@ class EmailLogin(Base):
     password: Annotated[str, MinLen(1)]
     scopes: list[Scope] | None = None
     session_name: str | None = None
-    is_unbounded: bool | None = None
     email_validator = field_validator("email")(check_email)
 
 
@@ -171,7 +170,6 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             user_inp.scopes,
             db_session=db.session,
             session_name=user_inp.session_name,
-            is_unbounded=user_inp.is_unbounded,
         )
 
     @staticmethod

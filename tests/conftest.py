@@ -78,7 +78,7 @@ def user_id(client_auth: TestClient, dbsession):
 def user(client_auth: TestClient, dbsession):
     url = "/email/login"
     time = datetime.datetime.utcnow()
-    body = {"email": f"user{time}@example.com", "password": "string", "scopes": [], "is_unbounded": False}
+    body = {"email": f"user{time}@example.com", "password": "string", "scopes": []}
     response = client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
