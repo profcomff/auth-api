@@ -189,7 +189,9 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         if username:
             raise UserLinkingConflict(user_id)
         param = cls.create_auth_method_param("username", outer.username, user_id, db_session=db.session)
-        return GetOuterAccount(username=param.value)
+        result = GetOuterAccount(username=param.value)
+        db.session.commit()
+        return result
 
     @classmethod
     async def _unlink(
