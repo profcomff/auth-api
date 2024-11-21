@@ -1,6 +1,7 @@
 from auth_backend.auth_method import AUTH_METHODS, AuthPluginMeta
 
 from .airflow import AirflowOuterAuth
+from .authentic import AuthenticAuth
 from .coder import CoderOuterAuth
 from .email import Email
 from .github import GithubAuth
@@ -31,6 +32,7 @@ __all__ = [
     "VkAuth",
     "GithubAuth",
     "KeycloakAuth",
+    "AuthenticAuth",
     # Провайдеры синхронизации паролей
     "PostgresOuterAuth",
     "CoderOuterAuth",
