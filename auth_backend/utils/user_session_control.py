@@ -34,7 +34,7 @@ async def create_session(
         user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH), session_name=session_name
     )
     user_session.expires = expires or user_session.expires
-    user_session.is_unbounded = is_unbounded or user_session.is_unbounded
+    user_session.is_unbounded = user_session.is_unbounded if is_unbounded is None else is_unbounded
     db_session.add(user_session)
     db_session.flush()
     if not user_session.is_unbounded:
