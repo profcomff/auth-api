@@ -123,6 +123,12 @@ jobs:
             --env MAILU_AUTH_BASE_URL='${{ vars.MAILU_AUTH_BASE_URL }}' \
             --env MAILU_AUTH_API_KEY='${{ secrets.MAILU_AUTH_API_KEY }}' \
             --env POSTGRES_AUTH_DB_DSN='${{ secrets.POSTGRES_AUTH_DB_DSN }}' \
+            --env AUTHENTIC_ROOT_URL='${{ vars.AUTHENTIC_ROOT_URL }}' \
+            --env AUTHENTIC_OIDC_CONFIGURATION_URL='${{ vars.AUTHENTIC_OIDC_CONFIGURATION_URL }}' \
+            --env AUTHENTIC_REDIRECT_URL='${{ vars.AUTHENTIC_REDIRECT_URL }}' \
+            --env AUTHENTIC_CLIENT_ID='${{ secrets.AUTHENTIC_CLIENT_ID }}' \
+            --env AUTHENTIC_CLIENT_SECRET='${{ secrets.AUTHENTIC_CLIENT_SECRET }}' \
+            --env AUTHENTIC_TOKEN='${{ secrets.AUTHENTIC_TOKEN }}' \
             --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
             --env KAFKA_DSN='${{ secrets.KAFKA_DSN }}' \
             --env KAFKA_LOGIN='${{ secrets.KAFKA_LOGIN }}' \
@@ -207,6 +213,12 @@ jobs:
             --env MAILU_AUTH_BASE_URL='${{ vars.MAILU_AUTH_BASE_URL }}' \
             --env MAILU_AUTH_API_KEY='${{ secrets.MAILU_AUTH_API_KEY }}' \
             --env POSTGRES_AUTH_DB_DSN='${{ secrets.POSTGRES_AUTH_DB_DSN }}' \
+            --env AUTHENTIC_ROOT_URL='${{ vars.AUTHENTIC_ROOT_URL }}' \
+            --env AUTHENTIC_OIDC_CONFIGURATION_URL='${{ vars.AUTHENTIC_OIDC_CONFIGURATION_URL }}' \
+            --env AUTHENTIC_REDIRECT_URL='${{ vars.AUTHENTIC_REDIRECT_URL }}' \
+            --env AUTHENTIC_CLIENT_ID='${{ secrets.AUTHENTIC_CLIENT_ID }}' \
+            --env AUTHENTIC_CLIENT_SECRET='${{ secrets.AUTHENTIC_CLIENT_SECRET }}' \
+            --env AUTHENTIC_TOKEN='${{ secrets.AUTHENTIC_TOKEN }}' \
             --env ENCRYPTION_KEY='${{ secrets.ENCRYPTION_KEY }}' \
             --env KAFKA_DSN='${{ secrets.KAFKA_DSN }}' \
             --env KAFKA_LOGIN='${{ secrets.KAFKA_LOGIN }}' \
