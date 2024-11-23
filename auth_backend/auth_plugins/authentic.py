@@ -4,11 +4,12 @@ from urllib.parse import quote
 
 import aiohttp
 import jwt
+from aiocache import cached
 from event_schema.auth import UserLogin
 from fastapi import Depends
 from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
-from pydantic import BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field
 
 from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.auth_method.outer import ConnectionIssue, OuterAuthMeta
@@ -25,11 +26,11 @@ logger = logging.getLogger(__name__)
 
 
 class AuthenticSettings(Settings):
-    AUTHENTIC_ROOT_URL: str | None = None
-    AUTHENTIC_REDIRECT_URL: str | None = 'https://app.test.profcomff.com/auth/oauth-authorized/authentic'
+    AUTHENTIC_ROOT_URL: AnyHttpUrl | None = None
+    AUTHENTIC_OIDC_CONFIGURATION_URL: AnyHttpUrl | None = None
+    AUTHENTIC_REDIRECT_URL: AnyHttpUrl | None = 'https://app.test.profcomff.com/auth/oauth-authorized/authentic'
     AUTHENTIC_CLIENT_ID: str | None = None
     AUTHENTIC_CLIENT_SECRET: str | None = None
-    AUTHENTIC_CERT: str | None = None
     AUTHENTIC_TOKEN: str | None = None
 
 
@@ -47,10 +48,46 @@ class AuthenticAuth(OauthMeta, OuterAuthMeta):
         session_name: str | None = None
 
     @classmethod
+    @cached()
+    async def __get_configuration(cls):
+        if not cls.settings.AUTHENTIC_OIDC_CONFIGURATION_URL:
+            raise OauthAuthFailed(
+                'Error in OIDC configuration',
+                'Ошибка конфигурации OIDC',
+                500,
+            )
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                str(cls.settings.AUTHENTIC_OIDC_CONFIGURATION_URL),
+            ) as response:
+                res = await response.json()
+        logger.debug(res)
+        return res
+
+    @classmethod
+    @cached()
+    async def __get_jwks_options(cls) -> list[dict[str]]:
+        config = await cls.__get_configuration()
+        if 'jwks_uri' not in config:
+            logger.error('No OIDC JWKS config: %s', str(config))
+            raise OauthAuthFailed(
+                'Error in OIDC configuration',
+                'Ошибка конфигурации OIDC',
+                500,
+            )
+        jwks_uri = config['jwks_uri']
+        async with aiohttp.ClientSession() as session:
+            async with session.get(jwks_uri) as response:
+                res = await response.json()
+        logger.debug(res)
+        return res.get('keys', [])
+
+    @classmethod
     async def __get_token(cls, code: str) -> dict[str]:
+        token_url = (await cls.__get_configuration())['token_endpoint']
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                f'{cls.settings.AUTHENTIC_ROOT_URL}/application/o/token/',
+                token_url,
                 data={
                     "grant_type": "authorization_code",
                     "code": code,
@@ -66,18 +103,16 @@ class AuthenticAuth(OauthMeta, OuterAuthMeta):
 
     @classmethod
     async def __decode_token(cls, token: str):
+        jwks = jwt.PyJWKSet(await cls.__get_jwks_options())
+        algorithms = (await cls.__get_configuration()).get('id_token_signing_alg_values_supported', [])
         id_token_info = jwt.decode(
-            token,
-            str(cls.settings.AUTHENTIC_CERT),
-            ['RS256'],
-            {'verify_signature': True},
+            token, jwks, algorithms, {'verify_signature': True}
         )
         logger.debug(id_token_info)
         return id_token_info
 
     @classmethod
     def __check_response(cls, token_result: dict[str]):
-
         if 'access_token' not in token_result:
             raise OauthAuthFailed(
                 'Invalid credentials for authentic account',
@@ -228,8 +263,9 @@ class AuthenticAuth(OauthMeta, OuterAuthMeta):
     @classmethod
     async def _auth_url(cls):
         """URL на который происходит редирект из приложения для авторизации на стороне провайдера"""
+        authorize_url = (await cls.__get_configuration())['authorization_endpoint']
         return OauthMeta.UrlSchema(
-            url=f'{cls.settings.AUTHENTIC_ROOT_URL}/application/o/authorize/'
+            url=f'{authorize_url}'
             f'?client_id={cls.settings.AUTHENTIC_CLIENT_ID}'
             f'&redirect_uri={quote(cls.settings.AUTHENTIC_REDIRECT_URL)}'
             f'&scope=openid,tvoyff-manage-password'
