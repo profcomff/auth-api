@@ -34,7 +34,7 @@ class AuthenticSettings(Settings):
     AUTHENTIC_TOKEN: str | None = None
 
 
-class AuthenticAuth(OauthMeta, OuterAuthMeta):
+class AuthenticAuth(OauthMeta):
     """Вход в приложение по аккаунту Authentic"""
 
     prefix = '/authentic'
@@ -66,7 +66,7 @@ class AuthenticAuth(OauthMeta, OuterAuthMeta):
 
     @classmethod
     @cached()
-    async def __get_jwks_options(cls) -> list[dict[str]]:
+    async def __get_jwks_options(cls) -> dict[str, list[dict[str]]]:
         config = await cls.__get_configuration()
         if 'jwks_uri' not in config:
             logger.error('No OIDC JWKS config: %s', str(config))
@@ -80,7 +80,7 @@ class AuthenticAuth(OauthMeta, OuterAuthMeta):
             async with session.get(jwks_uri) as response:
                 res = await response.json()
         logger.debug(res)
-        return res.get('keys', [])
+        return res
 
     @classmethod
     async def __get_token(cls, code: str) -> dict[str]:
@@ -103,10 +103,10 @@ class AuthenticAuth(OauthMeta, OuterAuthMeta):
 
     @classmethod
     async def __decode_token(cls, token: str):
-        jwks = jwt.PyJWKSet(await cls.__get_jwks_options())
+        jwks = jwt.PyJWKSet.from_dict(await cls.__get_jwks_options())
         algorithms = (await cls.__get_configuration()).get('id_token_signing_alg_values_supported', [])
         id_token_info = jwt.decode(
-            token, jwks, algorithms, {'verify_signature': True}
+            token, jwks.keys[0], algorithms, {'verify_signature': True}, audience=cls.settings.AUTHENTIC_CLIENT_ID
         )
         logger.debug(id_token_info)
         return id_token_info
@@ -283,6 +283,41 @@ class AuthenticAuth(OauthMeta, OuterAuthMeta):
         }
         return cls.userdata_process_empty_strings(UserLogin.model_validate(result))
 
+    # Обновление пароля пользователя Authentic при обновлении пароля Auth API
+    @classmethod
+    async def on_user_update(cls, new_user: dict[str, Any], old_user: dict[str, Any] | None = None):
+        """Произвести действия на обновление пользователя, в т.ч. обновление в других провайдерах
+
+        Описания входных параметров соответствует параметрам `AuthMethodMeta.user_updated`.
+        """
+        # logger.debug("on_user_update class=%s started, new_user=%s, old_user=%s", cls.get_name(), new_user, old_user)
+        if not new_user or not old_user:
+            # Пользователь был только что создан или удален
+            # Тут не будет дополнительных методов
+            logger.debug("%s not new_user or not old_user, closing", cls.get_name())
+            return
+
+        user_id = new_user.get("user_id")
+        password = new_user.get("email", {}).get("password")
+        if not password:
+            # В этом событии пароль не обновлялся, ничего не делаем
+            logger.debug("%s not password, closing", cls.get_name())
+            return
+
+        username = await cls._get_username(user_id)
+        if not username:
+            # У пользователя нет имени во внешнем сервисе
+            logger.debug("%s not username, closing", cls.get_name())
+            return
+
+        if await cls._is_outer_user_exists(username.value):
+            logger.debug("%s user exists, changing password", cls.get_name())
+            await cls._update_outer_user_password(username.value, password)
+        else:
+            # Мы не нашли этого пользователя во внешнем сервисе
+            logger.error("Attention! Authentic user not exists")
+        logger.debug("on_user_update class=%s finished", cls.get_name())
+
     @classmethod
     async def _get_username(cls, user_id: int) -> AuthMethod:
         auth_params = cls.get_auth_method_params(user_id, session=db.session)
@@ -298,13 +333,14 @@ class AuthenticAuth(OauthMeta, OuterAuthMeta):
         logger.debug("_is_outer_user_exists class=%s started", cls.get_name())
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                str(cls.settings.AUTHENTIC_ROOT_URL).removesuffix('/') + f'/core/users/{id}/',
+                str(cls.settings.AUTHENTIC_ROOT_URL).removesuffix('/') + f'/api/v3/core/users/{id}/',
                 headers={'authorization': "Bearer " + cls.settings.AUTHENTIC_TOKEN, 'Accept': 'application/json'},
             ) as response:
                 if not response.ok:
                     raise ConnectionIssue(response.text)
                 res: dict[str] = await response.json()
-                return res.get('id') == id
+                logger.debug(res)
+                return str(res.get('pk')) == id
 
     @classmethod
     async def _update_outer_user_password(cls, id: str, password: str):
@@ -312,8 +348,8 @@ class AuthenticAuth(OauthMeta, OuterAuthMeta):
         logger.debug("_update_outer_user_password class=%s started", cls.get_name())
         res = False
         async with aiohttp.ClientSession() as session:
-            async with session.put(
-                str(cls.settings.AUTHENTIC_ROOT_URL).removesuffix('/') + f'/core/users/{id}/set_password/',
+            async with session.post(
+                str(cls.settings.AUTHENTIC_ROOT_URL).removesuffix('/') + f'/api/v3/core/users/{id}/set_password/',
                 headers={'authorization': "Bearer " + cls.settings.AUTHENTIC_TOKEN, 'Accept': 'application/json'},
                 json={'password': password},
             ) as response:
