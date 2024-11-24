@@ -105,7 +105,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         raise NotImplementedError()
 
     @classmethod
-    async def _get_username(cls, user_id: int) -> AuthMethod:
+    async def __get_username(cls, user_id: int) -> AuthMethod:
         auth_params = cls.get_auth_method_params(user_id, session=db.session)
         username = auth_params.get("username")
         if not username:
@@ -133,7 +133,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             logger.debug("%s not password, closing", cls.get_name())
             return
 
-        username = await cls._get_username(user_id)
+        username = await cls.__get_username(user_id)
         if not username:
             # У пользователя нет имени во внешнем сервисе
             logger.debug("%s not username, closing", cls.get_name())
@@ -167,7 +167,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         """
         if cls.get_scope() not in (s.name for s in request_user.scopes) and request_user.id != user_id:
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
-        username = await cls._get_username(user_id)
+        username = await cls.__get_username(user_id)
         if not username:
             raise UserNotLinked(user_id)
         return GetOuterAccount(username=username.value)
@@ -185,7 +185,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         """
         if cls.post_scope() not in (s.name for s in request_user.scopes):
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
-        username = await cls._get_username(user_id)
+        username = await cls.__get_username(user_id)
         if username:
             raise UserLinkingConflict(user_id)
         param = cls.create_auth_method_param("username", outer.username, user_id, db_session=db.session)
@@ -205,7 +205,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         """
         if cls.delete_scope() not in (s.name for s in request_user.scopes):
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
-        username = await cls._get_username(user_id)
+        username = await cls.__get_username(user_id)
         if not username:
             raise UserNotLinked(user_id)
         username.is_deleted = True
