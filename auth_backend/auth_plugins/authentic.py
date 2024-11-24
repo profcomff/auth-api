@@ -93,7 +93,7 @@ class AuthenticAuth(OauthMeta):
                     "code": code,
                     "client_id": cls.settings.AUTHENTIC_CLIENT_ID,
                     "client_secret": cls.settings.AUTHENTIC_CLIENT_SECRET,
-                    "redirect_uri": cls.settings.AUTHENTIC_REDIRECT_URL,
+                    "redirect_uri": str(cls.settings.AUTHENTIC_REDIRECT_URL),
                 },
                 headers={"Accept": "application/x-www-form-urlencoded"},
             ) as response:
@@ -256,7 +256,7 @@ class AuthenticAuth(OauthMeta):
     @classmethod
     async def _redirect_url(cls):
         """URL на который происходит редирект после завершения входа на стороне провайдера"""
-        return OauthMeta.UrlSchema(url=cls.settings.AUTHENTIC_REDIRECT_URL)
+        return OauthMeta.UrlSchema(url=str(cls.settings.AUTHENTIC_REDIRECT_URL))
 
     @classmethod
     async def _auth_url(cls):
@@ -265,7 +265,7 @@ class AuthenticAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f'{authorize_url}'
             f'?client_id={cls.settings.AUTHENTIC_CLIENT_ID}'
-            f'&redirect_uri={quote(cls.settings.AUTHENTIC_REDIRECT_URL)}'
+            f'&redirect_uri={quote(str(cls.settings.AUTHENTIC_REDIRECT_URL))}'
             f'&scope=openid,tvoyff-manage-password'
             f'&response_type=code'
         )
