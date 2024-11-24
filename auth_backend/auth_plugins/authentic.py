@@ -150,7 +150,6 @@ class AuthenticAuth(OauthMeta):
                 )
             token_result = await cls.__get_token(user_inp.code)
             cls.__check_response(token_result)
-            # acess_token_info = await cls.__decode_token(token_result['access_token'])
             id_token_info = await cls.__decode_token(token_result['id_token'])
         else:
             # id_token может быть передан непосредственно из ручки входа
@@ -170,7 +169,7 @@ class AuthenticAuth(OauthMeta):
 
         # Создаем нового пользователя или берем существующего, в зависимости от авторизации
         if user_session is None:
-            user = await cls._create_user(db_session=db.session) if user_session is None else user_session.user
+            user = await cls._create_user(db_session=db.session)
         else:
             user = user_session.user
         # Добавляем пользователю метод входа
@@ -214,7 +213,6 @@ class AuthenticAuth(OauthMeta):
                 )
             token_result = await cls.__get_token(user_inp.code)
             cls.__check_response(token_result)
-            # acess_token_info = await cls.__decode_token(token_result['access_token'])
             id_token = token_result['id_token']
             id_token_info = await cls.__decode_token(id_token)
         else:
@@ -290,7 +288,7 @@ class AuthenticAuth(OauthMeta):
 
         Описания входных параметров соответствует параметрам `AuthMethodMeta.user_updated`.
         """
-        # logger.debug("on_user_update class=%s started, new_user=%s, old_user=%s", cls.get_name(), new_user, old_user)
+        logger.debug("on_user_update class=%s started, new_user=%s, old_user=%s", cls.get_name(), new_user, old_user)
         if not new_user or not old_user:
             # Пользователь был только что создан или удален
             # Тут не будет дополнительных методов
@@ -353,7 +351,7 @@ class AuthenticAuth(OauthMeta):
                 headers={'authorization': "Bearer " + cls.settings.AUTHENTIC_TOKEN, 'Accept': 'application/json'},
                 json={'password': password},
             ) as response:
-                res: dict[str] = response.ok
+                res = response.ok
                 logger.debug("_update_outer_user_password class=%s response %s", cls.get_name(), str(response.status))
         if res:
             logger.info("User %s updated in %s", id, cls.get_name())
