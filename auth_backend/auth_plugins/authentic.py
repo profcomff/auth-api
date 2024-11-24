@@ -12,7 +12,7 @@ from fastapi_sqlalchemy import db
 from pydantic import AnyHttpUrl, BaseModel, Field
 
 from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
-from auth_backend.auth_method.outer import ConnectionIssue, OuterAuthMeta
+from auth_backend.auth_method.outer import ConnectionIssue
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
@@ -146,7 +146,7 @@ class AuthenticAuth(OauthMeta):
             if user_inp.code is None:
                 raise OauthAuthFailed(
                     'Nor code or id_token provided',
-                    'Не передано ни кода авторизации, ни токена идентификации'
+                    'Не передано ни кода авторизации, ни токена идентификации',
                 )
             token_result = await cls.__get_token(user_inp.code)
             cls.__check_response(token_result)
@@ -189,7 +189,7 @@ class AuthenticAuth(OauthMeta):
         # Формируем diff пользователя для обработки другими методами входа
         new_user = {
             'user_id': user.id,
-            cls.get_name(): {AUTH_METHOD_ID_PARAM_NAME: authentic_id.value}
+            cls.get_name(): {AUTH_METHOD_ID_PARAM_NAME: authentic_id.value},
         }
         old_user = cls.__get_old_user(user_session)
         await AuthPluginMeta.user_updated(new_user, old_user)
@@ -210,7 +210,7 @@ class AuthenticAuth(OauthMeta):
             if user_inp.code is None:
                 raise OauthAuthFailed(
                     'Nor code or id_token provided',
-                    'Не передано ни кода авторизации, ни токена идентификации'
+                    'Не передано ни кода авторизации, ни токена идентификации',
                 )
             token_result = await cls.__get_token(user_inp.code)
             cls.__check_response(token_result)
