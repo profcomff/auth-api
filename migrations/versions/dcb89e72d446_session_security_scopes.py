@@ -7,9 +7,7 @@ Create Date: 2024-04-06 02:06:15.967235
 """
 
 from alembic import op
-from sqlalchemy.orm import Session
-
-from auth_backend.models.db import DynamicOption, Group, Scope, User, UserSession, UserSessionScope
+from sqlalchemy.sql import text
 
 
 # revision identifiers, used by Alembic.
@@ -21,31 +19,46 @@ depends_on = None
 
 def upgrade():
     conn = op.get_bind()
-    session = Session(conn)
 
-    root_group_id: DynamicOption = session.query(DynamicOption).filter(DynamicOption.name == "root_group_id").one()
-    users_group_id: DynamicOption = session.query(DynamicOption).filter(DynamicOption.name == "users_group_id").one()
+    query: str = 'SELECT value_integer FROM dynamic_option WHERE name=:option_name'
+    root_group_id: int = conn.execute(text(query).bindparams(option_name="root_group_id")).scalar()
+    users_group_id: int = conn.execute(text(query).bindparams(option_name="users_group_id")).scalar()
 
-    root_group: Group = Group.get(root_group_id.value_integer, session=session)
-    user_group: Group = Group.get(users_group_id.value_integer, session=session)
-    try:
-        user = root_group.users[0]
-    except IndexError:
-        user = User.create(session=session)
-        user.groups.append(root_group)
+    query = 'SELECT user_id FROM user_group WHERE group_id=:group_id'
+    root_user_id = conn.execute(text(query).bindparams(group_id=root_group_id)).scalar()
+    if root_user_id is None:
+        query = (
+            'INSERT INTO "user" (is_deleted, create_ts, update_ts) VALUES (false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'
+        )
+        conn.execute(text(query))
 
-    scope1 = Scope(creator_id=user.id, name="auth.session.create", comment="Create user session")
-    scope2 = Scope(creator_id=user.id, name="auth.session.update", comment="Update user session")
-    session.add_all((scope1, scope2))
-    session.flush()
-    root_group.scopes.update([scope1, scope2])
-    user_group.scopes.update([scope1, scope2])
-    session.flush()
-    sessions_id = session.query(UserSession.id).all()
-    for session_id in sessions_id:
-        UserSessionScope.create(user_session_id=session_id.id, scope_id=scope1.id, is_deleted=False, session=session)
-        UserSessionScope.create(user_session_id=session_id.id, scope_id=scope2.id, is_deleted=False, session=session)
-    session.commit()
+        query = 'INSERT INTO "user_group" VALUES (:user_id, :group_id, false)'
+        root_user_id = conn.execute(text('SELECT id FROM "user" ORDER BY id DESC')).scalar()
+        conn.execute(text(query).bindparams(user_id=root_user_id, group_id=root_group_id))
+
+    query = 'INSERT INTO "scope" VALUES (:creator_id, :name, :comment, false)'
+    conn.execute(
+        text(query).bindparams(creator_id=root_user_id, name="auth.session.create", comment="Create user session")
+    )
+    conn.execute(
+        text(query).bindparams(creator_id=root_user_id, name="auth.session.update", comment="Update user session")
+    )
+
+    query = 'SELECT id FROM scope WHERE name=:name'
+    scope1_id = conn.execute(text(query).bindparams(name="auth.session.create")).scalar()
+    scope2_id = conn.execute(text(query).bindparams(name="auth.session.update")).scalar()
+
+    query = 'INSERT INTO "group_scope" VALUES (:group_id, :scope_id, false)'
+    conn.execute(text(query).bindparams(group_id=root_group_id, scope_id=scope1_id))
+    conn.execute(text(query).bindparams(group_id=root_group_id, scope_id=scope2_id))
+    conn.execute(text(query).bindparams(group_id=users_group_id, scope_id=scope1_id))
+    conn.execute(text(query).bindparams(group_id=users_group_id, scope_id=scope2_id))
+
+    session_ids = conn.execute(text('SELECT id FROM user_session')).all()
+    query = 'INSERT INTO "user_session_scope" VALUES (:user_session_id, :scope_id, false)'
+    for session_id in session_ids:
+        conn.execute(text(query).bindparams(user_session_id=session_id[0], scope_id=scope1_id))
+        conn.execute(text(query).bindparams(user_session_id=session_id[0], scope_id=scope2_id))
 
 
 def downgrade():
