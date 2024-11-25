@@ -500,7 +500,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             if auth_params["confirmed"].value.lower() == "false":
                 raise AuthFailed(
                     "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
-                    "Регистрация не была завершена. Паоробуйте зарегистрироваться снова и не забудьте подтвердить почту",
+                    "Регистрация не была завершена. Попробуйте зарегистрироваться снова и не забудьте подтвердить почту",
                 )
             if "reset_token" in auth_params:
                 old_user[Email.get_name()]["reset_token"] = auth_params["reset_token"].value
