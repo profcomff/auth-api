@@ -13,7 +13,8 @@ from starlette.background import BackgroundTasks
 from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
 from auth_backend.kafka.kafka import get_kafka_producer
-from auth_backend.models.db import User, UserSession
+from auth_backend.models.db import Group, User, UserGroup, UserSession
+from auth_backend.models.dynamic_settings import DynamicOption
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
@@ -99,6 +100,7 @@ class LkmsuAuth(OauthMeta):
             old_user = {'user_id': user.id}
         new_user["user_id"] = user.id
         lk_id = cls.create_auth_method_param('user_id', lk_user_id, user.id, db_session=db.session)
+        cls.assign_verified_user(user)
         new_user = {cls.get_name(): {"user_id": lk_id.value}}
         userdata = await LkmsuAuth._convert_data_to_userdata_format(userinfo)
         background_tasks.add_task(
@@ -153,6 +155,7 @@ class LkmsuAuth(OauthMeta):
             raise OauthAuthFailed(
                 'No users found for lk msu account', 'Не найдено пользователей с таким аккаунтом LK MSU', id_token
             )
+        cls.assign_verified_user(user)
         userdata = await LkmsuAuth._convert_data_to_userdata_format(userinfo)
         background_tasks.add_task(
             get_kafka_producer().produce,
@@ -165,6 +168,33 @@ class LkmsuAuth(OauthMeta):
         )
 
     @classmethod
+    async def _unregister(cls, user_session: UserSession = Depends(UnionAuth(scopes=[], auto_error=True))):
+        """Отключает для пользователя метод входа"""
+        user: User = user_session.user
+        verified_group_id = DynamicOption.get("verified_group_id", session=db.session).value
+        if verified_group_id:
+            verified_group = Group.query(with_deleted=True, session=db.session).get(verified_group_id)
+            if verified_group:
+                user_group: UserGroup = (
+                    UserGroup.query(session=db.session)
+                    .filter(UserGroup.user_id == user.id, UserGroup.group_id == verified_group.id)
+                    .one_or_none()
+                )
+                if user_group:
+                    UserGroup.delete(user_group.id, session=db.session)
+            else:
+                logger.error("Verified group not found")
+        else:
+            logger.error("Fail to obtain verified group id")
+
+        old_user = {"user_id": user_session.user.id}
+        new_user = {"user_id": user_session.user.id}
+        old_user_params = await cls._delete_auth_methods(user_session.user, db_session=db.session)
+        old_user[cls.get_name()] = old_user_params
+        await AuthPluginMeta.user_updated(new_user, old_user)
+        return None
+
+    @classmethod
     async def _redirect_url(cls):
         """URL на который происходит редирект после завершения входа на стороне провайдера"""
         return OauthMeta.UrlSchema(url=cls.settings.LKMSU_REDIRECT_URL)
@@ -175,6 +205,20 @@ class LkmsuAuth(OauthMeta):
         return OauthMeta.UrlSchema(
             url=f'https://lk.msu.ru/oauth/authorize?response_type=code&client_id={cls.settings.LKMSU_CLIENT_ID}&redirect_uri={quote(cls.settings.LKMSU_REDIRECT_URL)}&scope=scope.profile.view'
         )
+
+    @classmethod
+    def assign_verified_user(cls, user: User):
+        verified_group_id = DynamicOption.get("verified_group_id", session=db.session).value
+        if verified_group_id:
+            verified_group = Group.query(with_deleted=True, session=db.session).get(verified_group_id)
+            if verified_group:
+                if verified_group not in user.groups:
+                    user.groups.append(verified_group)
+            else:
+                logger.error("Verified group not found")
+        else:
+            logger.error("Fail to obtain verified group id")
+        return None
 
     @classmethod
     def get_student(cls, data: dict[str, Any]) -> list[dict[str | Any]]:
