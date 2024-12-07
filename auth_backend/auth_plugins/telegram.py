@@ -88,7 +88,10 @@ class TelegramAuth(OauthMeta):
         )
         await AuthPluginMeta.user_updated(new_user, old_user)
         return await cls._create_session(
-            user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+            user,
+            user_inp.scopes,
+            db_session=db.session,
+            session_name=user_inp.session_name,
         )
 
     @classmethod
@@ -118,7 +121,10 @@ class TelegramAuth(OauthMeta):
             userdata,
         )
         return await cls._create_session(
-            user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+            user,
+            user_inp.scopes,
+            db_session=db.session,
+            session_name=user_inp.session_name,
         )
 
     @classmethod

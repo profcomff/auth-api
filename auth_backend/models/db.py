@@ -158,6 +158,7 @@ class UserSession(BaseDbModel):
     user_id: Mapped[int] = mapped_column(Integer, sqlalchemy.ForeignKey("user.id"))
     expires: Mapped[datetime.datetime] = mapped_column(DateTime, default=session_expires_date)
     token: Mapped[str] = mapped_column(String, unique=True)
+    is_unbounded: Mapped[bool] = mapped_column(Boolean, default=False)
     last_activity: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     create_ts: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
     user: Mapped[User] = relationship(

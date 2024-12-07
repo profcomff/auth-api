@@ -20,6 +20,7 @@ async def create_session(
     scopes_list_names: list[TypeScope] | None,
     expires: datetime | None = None,
     session_name: str | None = None,
+    is_unbounded: bool = False,
     *,
     db_session: DbSession,
 ) -> Session:
@@ -33,10 +34,12 @@ async def create_session(
         user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH), session_name=session_name
     )
     user_session.expires = expires or user_session.expires
+    user_session.is_unbounded = is_unbounded
     db_session.add(user_session)
     db_session.flush()
-    for scope in scopes:
-        db_session.add(UserSessionScope(scope_id=scope.id, user_session_id=user_session.id))
+    if not user_session.is_unbounded:
+        for scope in scopes:
+            db_session.add(UserSessionScope(scope_id=scope.id, user_session_id=user_session.id))
     db_session.commit()
     return Session(
         session_name=session_name,
@@ -44,6 +47,7 @@ async def create_session(
         token=user_session.token,
         id=user_session.id,
         expires=user_session.expires,
+        is_unbounded=user_session.is_unbounded,
         session_scopes=[_scope.name for _scope in user_session.scopes],
         last_activity=user_session.last_activity,
     )

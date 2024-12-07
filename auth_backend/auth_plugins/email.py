@@ -166,7 +166,10 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             userdata,
         )
         return await cls._create_session(
-            query.user, user_inp.scopes, db_session=db.session, session_name=user_inp.session_name
+            query.user,
+            user_inp.scopes,
+            db_session=db.session,
+            session_name=user_inp.session_name,
         )
 
     @staticmethod

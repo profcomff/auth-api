@@ -19,7 +19,10 @@ def test_user_email(client: TestClient, dbsession: Session, user_factory):
     resp = client.patch(f"/user/{user1}", json={"groups": [group]})
     assert resp.status_code == 200
     assert "email" not in resp.json().keys()
+
     dbsession.delete(email_user)
+    for row in dbsession.query(UserGroup).filter(UserGroup.user_id == user1).all():
+        dbsession.delete(row)
     gr = Group.get(group, session=dbsession)
     dbsession.delete(gr)
     dbsession.commit()
@@ -40,8 +43,9 @@ def test_delete_user(client_auth: TestClient, dbsession: Session, user_factory, 
     assert resp.status_code == 200
     user = dbsession.query(User).filter(User.id == user1).one_or_none()
     assert user.is_deleted
-    dbsession.delete(email_user)
     dbsession.query(GroupScope).filter(GroupScope.group_id == group).delete()
-    dbsession.query(UserGroup).filter(UserGroup.group_id == group).delete()
+    for row in dbsession.query(UserGroup).filter(UserGroup.user_id == user1).all():
+        dbsession.delete(row)
     dbsession.query(Group).filter(Group.id == group).delete()
+    dbsession.delete(email_user)
     dbsession.commit()
