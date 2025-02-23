@@ -145,7 +145,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             .one_or_none()
         )
         if not query:
-            raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
+            raise AuthFailed("Email is not registered", "Такая почта еще не зарегистрирована")
         auth_params = Email.get_auth_method_params(query.user_id, session=db.session)
         if auth_params["confirmed"].value.lower() == "false":
             raise AuthFailed(
@@ -157,7 +157,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
             auth_params["hashed_password"].value,
             auth_params["salt"].value,
         ):
-            raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
+            raise AuthFailed("Incorrect password", "Неправильный пароль")
         userdata = await Email._convert_data_to_userdata_format({"email": auth_params["email"].value})
         background_tasks.add_task(
             get_kafka_producer().produce,
