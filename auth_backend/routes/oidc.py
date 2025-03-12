@@ -4,10 +4,10 @@ from typing import Annotated, Literal, Optional
 
 from fastapi import APIRouter, Form
 from fastapi_sqlalchemy import db
-from pydantic import BaseModel
 
 from auth_backend.exceptions import SessionExpired
 from auth_backend.models.db import Scope, UserSession
+from auth_backend.schemas.oidc import PostTokenResponse
 from auth_backend.settings import get_settings
 from auth_backend.utils.jwt import create_jwks
 from auth_backend.utils.user_session_control import SESSION_UPDATE_SCOPE, create_session
@@ -16,13 +16,6 @@ from auth_backend.utils.user_session_control import SESSION_UPDATE_SCOPE, create
 settings = get_settings()
 router = APIRouter(prefix="/openid", tags=["OpenID"])
 logger = logging.getLogger(__name__)
-
-
-class PostTokenResponse(BaseModel):
-    access_token: str
-    token_type: str
-    expires_in: int
-    refresh_token: str
 
 
 @router.get("/.well_known/openid_configuration")
