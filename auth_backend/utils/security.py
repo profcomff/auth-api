@@ -9,7 +9,8 @@ from starlette.status import HTTP_403_FORBIDDEN
 
 from auth_backend.models.db import UserSession
 from auth_backend.settings import get_settings
-from auth_backend.utils.user_session_control import SESSION_UPDATE_SCOPE, session_expires_date
+from auth_backend.utils.user_session_basics import session_expires_date
+from auth_backend.utils.user_session_control import SESSION_UPDATE_SCOPE
 
 
 settings = get_settings()

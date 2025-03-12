@@ -13,6 +13,7 @@ from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.base import BaseDbModel
 from auth_backend.models.dynamic_settings import DynamicOption
 from auth_backend.settings import get_settings
+from auth_backend.utils.user_session_basics import session_expires_date
 
 
 settings = get_settings()
@@ -156,7 +157,7 @@ class AuthMethod(BaseDbModel):
 class UserSession(BaseDbModel):
     session_name: Mapped[str] = mapped_column(String, nullable=True)
     user_id: Mapped[int] = mapped_column(Integer, sqlalchemy.ForeignKey("user.id"))
-    expires: Mapped[datetime.datetime] = mapped_column(DateTime)
+    expires: Mapped[datetime.datetime] = mapped_column(DateTime, default=session_expires_date)
     token: Mapped[str] = mapped_column(String, unique=True)
     is_unbounded: Mapped[bool] = mapped_column(Boolean, default=False)
     last_activity: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)

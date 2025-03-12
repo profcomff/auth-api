@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from fastapi import HTTPException
 from fastapi_sqlalchemy import db
@@ -11,15 +11,12 @@ from auth_backend.schemas.types.scopes import Scope as TypeScope
 from auth_backend.settings import get_settings
 from auth_backend.utils.jwt import generate_jwt
 from auth_backend.utils.string import random_string
+from auth_backend.utils.user_session_basics import session_expires_date
 
 
 SESSION_UPDATE_SCOPE = 'auth.session.update'
 
 settings = get_settings()
-
-
-def session_expires_date():
-    return datetime.utcnow() + timedelta(days=settings.SESSION_TIME_IN_DAYS)
 
 
 async def create_session(
