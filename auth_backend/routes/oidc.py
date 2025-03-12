@@ -1,17 +1,17 @@
 import logging
 from datetime import datetime
-from typing import Literal, Annotated, Optional
+from typing import Annotated, Literal, Optional
 
-from fastapi import APIRouter, Depends, Form
+from fastapi import APIRouter, Form
 from fastapi_sqlalchemy import db
-from pydantic import AnyHttpUrl, BaseModel
+from pydantic import BaseModel
 
 from auth_backend.exceptions import SessionExpired
 from auth_backend.models.db import Scope, UserSession
 from auth_backend.settings import get_settings
 from auth_backend.utils.jwt import create_jwks
-from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.user_session_control import SESSION_UPDATE_SCOPE, create_session
+
 
 settings = get_settings()
 router = APIRouter(prefix="/openid", tags=["OpenID"])
