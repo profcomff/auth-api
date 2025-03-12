@@ -65,6 +65,10 @@ class User(BaseDbModel):
         return _scopes
 
     @hybrid_property
+    def scope_names(self) -> set[str]:
+        return set(s.name.lower() for s in self.scopes)
+
+    @hybrid_property
     def indirect_groups(self) -> set[Group]:
         _groups = set()
         _groups.update(set(self.groups))
@@ -174,6 +178,10 @@ class UserSession(BaseDbModel):
     @hybrid_property
     def expired(self) -> bool:
         return self.expires <= datetime.datetime.utcnow()
+
+    @hybrid_property
+    def scope_names(self) -> set[str]:
+        return set(s.name.lower() for s in self.scopes)
 
 
 class Scope(BaseDbModel):

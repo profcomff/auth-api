@@ -33,8 +33,8 @@ class IncorrectUserAuthType(AuthAPIError):
 
 
 class SessionExpired(AuthAPIError):
-    def __init__(self, token: str):
-        super().__init__(f"Session that matches {token} expired", f"Срок действия токена {token} истёк")
+    def __init__(self, token: str = ""):
+        super().__init__(f"Session that matches expired or not exists", f"Срок действия токена истёк или токен не существует")
 
 
 class AuthFailed(AuthAPIError):

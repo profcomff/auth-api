@@ -9,7 +9,7 @@ from starlette.status import HTTP_403_FORBIDDEN
 
 from auth_backend.models.db import UserSession
 from auth_backend.settings import get_settings
-from auth_backend.utils.user_session_control import session_expires_date
+from auth_backend.utils.user_session_control import SESSION_UPDATE_SCOPE, session_expires_date
 
 
 settings = get_settings()
@@ -26,7 +26,6 @@ class UnionAuth(SecurityBase):
     auto_error: bool
     allow_none: bool
     _scopes: list[str] = []
-    _SESSION_UPDATE_SCOPE = 'auth.session.update'
 
     def __init__(self, scopes: list[str] = None, allow_none=False, auto_error=False) -> None:
         super().__init__()
@@ -58,13 +57,8 @@ class UnionAuth(SecurityBase):
 
         if user_session.expired:
             self._except()
-        session_scopes = set(
-            [
-                scope.name.lower()
-                for scope in (user_session.user.scopes if user_session.is_unbounded else user_session.scopes)
-            ]
-        )
-        if not settings.JWT_ENABLED and self._SESSION_UPDATE_SCOPE in session_scopes:
+        session_scopes = user_session.user.scope_names if user_session.is_unbounded else user_session.scope_names
+        if not settings.JWT_ENABLED and SESSION_UPDATE_SCOPE in session_scopes:
             user_session.expires = session_expires_date()
         db.session.commit()
         if len(set([_scope.lower() for _scope in self._scopes]) & session_scopes) != len(set(self._scopes)):
