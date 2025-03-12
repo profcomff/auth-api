@@ -149,14 +149,10 @@ class AuthMethod(BaseDbModel):
     )
 
 
-def session_expires_date():
-    return datetime.datetime.utcnow() + datetime.timedelta(days=settings.SESSION_TIME_IN_DAYS)
-
-
 class UserSession(BaseDbModel):
     session_name: Mapped[str] = mapped_column(String, nullable=True)
     user_id: Mapped[int] = mapped_column(Integer, sqlalchemy.ForeignKey("user.id"))
-    expires: Mapped[datetime.datetime] = mapped_column(DateTime, default=session_expires_date)
+    expires: Mapped[datetime.datetime] = mapped_column(DateTime)
     token: Mapped[str] = mapped_column(String, unique=True)
     is_unbounded: Mapped[bool] = mapped_column(Boolean, default=False)
     last_activity: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)

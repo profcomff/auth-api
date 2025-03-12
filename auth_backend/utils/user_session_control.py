@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 from fastapi_sqlalchemy import db
@@ -10,9 +10,14 @@ from auth_backend.schemas.models import Session
 from auth_backend.schemas.types.scopes import Scope as TypeScope
 from auth_backend.settings import get_settings
 from auth_backend.utils.string import random_string
+from auth_backend.utils.jwt import generate_jwt
 
 
 settings = get_settings()
+
+
+def session_expires_date():
+    return datetime.utcnow() + timedelta(days=settings.SESSION_TIME_IN_DAYS)
 
 
 async def create_session(
@@ -30,11 +35,18 @@ async def create_session(
     else:
         scopes = await create_scopes_set_by_names(scopes_list_names)
         await check_scopes(scopes, user)
+    create_ts = datetime.utcnow()
+    expire_ts = expires or session_expires_date()
+    token=random_string(length=settings.TOKEN_LENGTH)
+    if settings.JWT_ENABLED:
+        token = generate_jwt(user.id, create_ts, expire_ts)
     user_session = UserSession(
-        user_id=user.id, token=random_string(length=settings.TOKEN_LENGTH), session_name=session_name
+        user_id=user.id,
+        token=token,
+        session_name=session_name,
+        create_ts=create_ts,
+        expires=expire_ts,
     )
-    user_session.expires = expires or user_session.expires
-    user_session.is_unbounded = is_unbounded
     db_session.add(user_session)
     db_session.flush()
     if not user_session.is_unbounded:
