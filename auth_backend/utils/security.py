@@ -7,7 +7,12 @@ from fastapi_sqlalchemy import db
 from starlette.requests import Request
 from starlette.status import HTTP_403_FORBIDDEN
 
-from auth_backend.models.db import UserSession, session_expires_date
+from auth_backend.models.db import UserSession
+from auth_backend.settings import get_settings
+from auth_backend.utils.user_session_control import session_expires_date
+
+
+settings = get_settings()
 
 
 class UnionAuth(SecurityBase):
@@ -59,7 +64,7 @@ class UnionAuth(SecurityBase):
                 for scope in (user_session.user.scopes if user_session.is_unbounded else user_session.scopes)
             ]
         )
-        if self._SESSION_UPDATE_SCOPE in session_scopes:
+        if not settings.JWT_ENABLED and self._SESSION_UPDATE_SCOPE in session_scopes:
             user_session.expires = session_expires_date()
         db.session.commit()
         if len(set([_scope.lower() for _scope in self._scopes]) & session_scopes) != len(set(self._scopes)):
