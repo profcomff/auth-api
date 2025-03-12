@@ -3,6 +3,7 @@ import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
+from typing import Any
 
 import jwt
 from cryptography.hazmat.backends import default_backend
@@ -27,7 +28,7 @@ class JwtSettings:
 
 
 @lru_cache(1)
-def get_private_key():
+def get_private_key() -> rsa.RSAPrivateKey:
     # Если использование отключено – используем отсебятину
     if not settings.JWT_ENABLED:
         return rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
@@ -41,8 +42,8 @@ def get_private_key():
     return serialization.load_pem_private_key(key_bytes, password=None)
 
 
-# Функция для преобразования числа в Base64URL
-def to_base64url(value):
+def to_base64url(value: int) -> str:
+    """Функция для преобразования числа в Base64URL"""
     # Преобразуем число в байты
     byte_length = (value.bit_length() + 7) // 8
     byte_data = value.to_bytes(byte_length, byteorder='big')
@@ -79,7 +80,7 @@ def ensure_jwt_settings() -> JwtSettings:
 
 
 @lru_cache(1)
-def create_jwks():
+def create_jwks() -> dict[str, str]:
     jwt_settings = ensure_jwt_settings()
     return {
         "kty": "RSA",
@@ -91,7 +92,7 @@ def create_jwks():
     }
 
 
-def generate_jwt(user_id: int, create_ts: datetime, expire_ts: datetime):
+def generate_jwt(user_id: int, create_ts: datetime, expire_ts: datetime) -> str:
     jwt_settings = ensure_jwt_settings()
     return jwt.encode(
         {
@@ -105,7 +106,7 @@ def generate_jwt(user_id: int, create_ts: datetime, expire_ts: datetime):
     )
 
 
-def decode_jwt(token: str):
+def decode_jwt(token: str) -> dict[str, Any]:
     jwt_settings = ensure_jwt_settings()
     return jwt.decode(
         token,
