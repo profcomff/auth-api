@@ -31,11 +31,11 @@ def get_private_key():
     # Если использование отключено – используем отсебятину
     if not settings.JWT_ENABLED:
         return rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
-    if settings.JWT_PRIVATE_KEY_FILE:
+    if settings.JWT_PRIVATE_KEY:
+        key_bytes = settings.JWT_PRIVATE_KEY
+    elif settings.JWT_PRIVATE_KEY_FILE:
         with open(settings.JWT_PRIVATE_KEY_FILE, "rb") as key_file:
             key_bytes = key_file.read()
-    elif settings.JWT_PRIVATE_KEY:
-        key_bytes = settings.JWT_PRIVATE_KEY
     else:
         raise Exception("JWT private key not provided")
     return serialization.load_pem_private_key(key_bytes, password=None)

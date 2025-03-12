@@ -135,6 +135,8 @@ jobs:
             --env KAFKA_PASSWORD='${{ secrets.KAFKA_PASSWORD }}' \
             --env KAFKA_USER_LOGIN_TOPIC_NAME='${{ secrets.KAFKA_USER_LOGIN_TOPIC_NAME }}' \
             --env GUNICORN_CMD_ARGS='--log-config  logging_test.conf' \
+            --env JWT_ENABLED=true \
+            --env JWT_PRIVATE_KEY='${{ secrets.JWT_PRIVATE_KEY }}' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
           docker network connect web ${{ env.CONTAINER_NAME }}

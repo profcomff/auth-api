@@ -57,7 +57,6 @@ async def token(
     client_id: Annotated[Literal['app'], Form()],  # Тут должна быть любая строка, которую проверяем в БД
     client_secret: Annotated[Optional[str], Form()] = None,
     refresh_token: Annotated[Optional[str], Form()] = None,
-    old_session: UserSession = Depends(UnionAuth()),
 ) -> PostTokenResponse:
     """Ручка для получения токена доступа
 
