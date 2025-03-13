@@ -10,7 +10,7 @@ from auth_backend.models.db import Scope
 from auth_backend.schemas.oidc import PostTokenResponse
 from auth_backend.settings import get_settings
 from auth_backend.utils.jwt import create_jwks
-from auth_backend.utils.oidc_token import token_by_client_credentials, token_by_refresh_token
+from auth_backend.utils.oidc_token import OidcGrantType, token_by_client_credentials, token_by_refresh_token
 
 
 settings = get_settings()
@@ -89,13 +89,13 @@ async def token(
 
     if client_id != 'app':
         raise OidcGrantTypeClientNotSupported(grant_type, client_id)
-    if grant_type == 'authorization_code':
+    if grant_type == OidcGrantType.authorization_code:
         raise OidcGrantTypeNotImplementedError("authorization_code")
 
     # Разные методы обмена токенов
-    if grant_type == "refresh_token":
+    if grant_type == OidcGrantType.refresh_token:
         new_session = await token_by_refresh_token(refresh_token, scopes)
-    elif grant_type == "client_credentials":
+    elif grant_type == OidcGrantType.client_credentials:
         new_session = await token_by_client_credentials(username, password, scopes, user_agent, background_tasks)
     else:
         raise OidcGrantTypeClientNotSupported(grant_type, client_id)

@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 
 from fastapi import BackgroundTasks
 from fastapi_sqlalchemy import db
@@ -7,6 +8,12 @@ from auth_backend.exceptions import AuthFailed, SessionExpired
 from auth_backend.models.db import Scope, UserSession
 from auth_backend.schemas.models import Session as SessionSchema
 from auth_backend.utils.user_session_control import SESSION_UPDATE_SCOPE, create_session
+
+
+class OidcGrantType(str, Enum):
+    authorization_code = 'authorization_code'
+    refresh_token = 'refresh_token'
+    client_credentials = 'client_credentials'
 
 
 async def token_by_refresh_token(
