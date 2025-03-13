@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra='ignore')
 
     JWT_ENABLED: bool = False
-    JWT_PRIVATE_KEY_FILE: Annotated[Path, PathType('file')] | None = './tests/private-key.pem'
+    JWT_PRIVATE_KEY_FILE: Path | None = './tests/private-key.pem'
     JWT_PRIVATE_KEY: bytes | None = None
 
 
