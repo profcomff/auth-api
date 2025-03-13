@@ -45,6 +45,7 @@ async def create_session(
         session_name=session_name,
         create_ts=create_ts,
         expires=expire_ts,
+        is_unbounded=is_unbounded,
     )
     db_session.add(user_session)
     db_session.flush()
