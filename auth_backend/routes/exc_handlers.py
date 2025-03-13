@@ -10,6 +10,8 @@ from auth_backend.exceptions import (
     OauthAuthFailed,
     OauthCredentialsIncorrect,
     ObjectNotFound,
+    OidcGrantTypeClientNotSupported,
+    OidcGrantTypeNotImplementedError,
     SessionExpired,
     TooManyEmailRequests,
 )
@@ -97,6 +99,24 @@ async def last_auth_method_delete_handler(req: starlette.requests.Request, exc: 
             ru=exc.ru,
         ).model_dump(),
         status_code=403,
+    )
+
+
+@app.exception_handler(
+    OidcGrantTypeClientNotSupported,
+)
+async def oidc_grant_type_client_not_supported_handler(req: starlette.requests.Request, exc: Exception):
+    return JSONResponse(
+        StatusResponseModel(status="Error", message=exc.eng, ru=exc.ru).model_dump(),
+        status_code=400,
+    )
+
+
+@app.exception_handler(OidcGrantTypeNotImplementedError)
+async def oidc_grant_type_not_implemented_error_handler(req: starlette.requests.Request, exc: Exception):
+    return JSONResponse(
+        StatusResponseModel(status="Error", message=exc.eng, ru=exc.ru).model_dump(),
+        status_code=400,
     )
 
 

@@ -13,6 +13,7 @@ from auth_backend.exceptions import ObjectNotFound
 from auth_backend.models.base import BaseDbModel
 from auth_backend.models.dynamic_settings import DynamicOption
 from auth_backend.settings import get_settings
+from auth_backend.utils.user_session_basics import session_expires_date
 
 
 settings = get_settings()
@@ -63,6 +64,10 @@ class User(BaseDbModel):
         for group in self.groups:
             _scopes.update(group.indirect_scopes)
         return _scopes
+
+    @hybrid_property
+    def scope_names(self) -> set[str]:
+        return set(s.name.lower() for s in self.scopes)
 
     @hybrid_property
     def indirect_groups(self) -> set[Group]:
@@ -149,10 +154,6 @@ class AuthMethod(BaseDbModel):
     )
 
 
-def session_expires_date():
-    return datetime.datetime.utcnow() + datetime.timedelta(days=settings.SESSION_TIME_IN_DAYS)
-
-
 class UserSession(BaseDbModel):
     session_name: Mapped[str] = mapped_column(String, nullable=True)
     user_id: Mapped[int] = mapped_column(Integer, sqlalchemy.ForeignKey("user.id"))
@@ -178,6 +179,10 @@ class UserSession(BaseDbModel):
     @hybrid_property
     def expired(self) -> bool:
         return self.expires <= datetime.datetime.utcnow()
+
+    @hybrid_property
+    def scope_names(self) -> set[str]:
+        return set(s.name.lower() for s in self.scopes)
 
 
 class Scope(BaseDbModel):
@@ -217,13 +222,14 @@ class Scope(BaseDbModel):
 
     @classmethod
     def get_by_name(cls, name: str, *, with_deleted: bool = False, session: Session) -> Scope:
-        scope = (
-            cls.query(with_deleted=with_deleted, session=session)
-            .filter(func.lower(cls.name) == name.lower())
-            .one_or_none()
-        )
-        if not scope:
-            raise ObjectNotFound(cls, name)
+        return cls.get_by_names([name], with_deleted=with_deleted, session=session)[0]
+
+    @classmethod
+    def get_by_names(cls, names: list[str], *, with_deleted: bool = False, session: Session) -> list[Scope]:
+        names = [name.lower() for name in names]
+        scope = cls.query(with_deleted=with_deleted, session=session).filter(func.lower(cls.name).in_(names)).all()
+        if len(scope) < len(names):
+            raise ObjectNotFound(cls, names)
         return scope
 
 
