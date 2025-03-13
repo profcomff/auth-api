@@ -71,3 +71,16 @@ class TooManyEmailRequests(AuthAPIError):
 class LastAuthMethodDelete(AuthAPIError):
     def __init__(self):
         super().__init__('Unable to remove last authentication method', 'Нельзя удалить последний метод входа')
+
+
+class OidcGrantTypeNotImplementedError(AuthAPIError):
+    def __init__(self, method: str):
+        super().__init__(f'Grant type {method} not implemented', f'Метод {method} не реализован')
+
+
+class OidcGrantTypeClientNotSupported(AuthAPIError):
+    def __init__(self, method: str, client_id: str):
+        super().__init__(
+            f'Grant type {method} not supported by {client_id}',
+            f'Метод {method} не поддерживается приложением {client_id}',
+        )

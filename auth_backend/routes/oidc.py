@@ -5,7 +5,8 @@ from typing import Annotated, Literal, Optional
 from fastapi import APIRouter, BackgroundTasks, Form, Header
 from fastapi_sqlalchemy import db
 
-from auth_backend.models.db import Scope, UserSession
+from auth_backend.models.db import Scope
+from auth_backend.exceptions import OidcGrantTypeClientNotSupported, OidcGrantTypeNotImplementedError
 from auth_backend.schemas.oidc import PostTokenResponse
 from auth_backend.settings import get_settings
 from auth_backend.utils.jwt import create_jwks
@@ -50,11 +51,11 @@ def jwks():
 async def token(
     background_tasks: BackgroundTasks,
     # Общие OIDC параметры
-    user_agent: Annotated[str, Header()],
-    grant_type: Annotated[Literal['refresh_token', 'client_credentials'], Form()],
+    grant_type: Annotated[str, Form()],
     client_id: Annotated[str, Form()],  # Тут должна быть любая строка, которую проверяем в БД
     client_secret: Annotated[Optional[str], Form()] = None,
     scopes: Annotated[list[str] | None, Form()] = None,
+    user_agent: Annotated[str | None, Header()] = None,
     # grant_type=refresh_token
     refresh_token: Annotated[Optional[str], Form()] = None,
     # grant_type=client_credentials
@@ -87,15 +88,17 @@ async def token(
     scopes = scopes or []
 
     if client_id != 'app':
-        raise NotImplementedError("Only app client id supported")
+        raise OidcGrantTypeClientNotSupported(grant_type, client_id)
     if grant_type == 'authorization_code':
-        raise NotImplementedError("Authorization Code Flow not implemented yet")
+        raise OidcGrantTypeNotImplementedError("authorization_code")
 
     # Разные методы обмена токенов
     if grant_type == "refresh_token":
         new_session = await token_by_refresh_token(refresh_token, scopes)
-    if grant_type == "refresh_token":
+    elif grant_type == "client_credentials":
         new_session = await token_by_client_credentials(username, password, scopes, user_agent, background_tasks)
+    else:
+        raise OidcGrantTypeClientNotSupported(grant_type, client_id)
 
     return PostTokenResponse(
         access_token=new_session.token,

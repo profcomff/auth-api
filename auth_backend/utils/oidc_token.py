@@ -10,7 +10,6 @@ from auth_backend.schemas.models import Session as SessionSchema
 async def token_by_refresh_token(
     refresh_token: str | None,
     requested_scopes: list[str] | None,
-    _: BackgroundTasks,
 ) -> SessionSchema:
     # Все токены автоматически считаем refresh-токенами
     if not refresh_token:
@@ -29,8 +28,9 @@ async def token_by_refresh_token(
     if requested_scopes:
         requested_scopes = set(requested_scopes)
         if requested_scopes > session_scopes:
-            raise AuthFailed("Don't have enough permissions to get scopes: ", requested_scopes - session_scopes)
-        session_scopes = requested_scopes - session_scopes
+            not_found_scopes = ', '.join(session_scopes - requested_scopes)
+            raise AuthFailed("Can't get scopes: " + not_found_scopes, "Невозможно получить права: " + not_found_scopes)
+        session_scopes = requested_scopes
 
     # Продлить действие токена, если сессия это позволяет
     expire_ts = None
@@ -63,12 +63,12 @@ async def token_by_client_credentials(
     from auth_backend.auth_plugins.email import Email
 
     if not username or not password:
-        raise Exception
+        raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
 
     return await Email.login(
         username,
         password,
-        Scope.get_by_names(scopes),
+        Scope.get_by_names(scopes, session=db.session),
         session_name=user_agent,
         background_tasks=background_tasks,
     )
