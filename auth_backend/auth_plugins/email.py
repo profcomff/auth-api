@@ -134,6 +134,13 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         self.tags = ["Email"]
 
     @classmethod
+    async def login(cls, email: str, password: str, scopes: list[Scope], session_name: str | None, background_tasks: BackgroundTasks) -> Session:
+        return cls._login(
+            EmailLogin(email=email, password=password, scopes=scopes, session_name=session_name),
+            background_tasks,
+        )
+
+    @classmethod
     async def _login(cls, user_inp: EmailLogin, background_tasks: BackgroundTasks) -> Session:
         query = (
             AuthMethod.query(session=db.session)
