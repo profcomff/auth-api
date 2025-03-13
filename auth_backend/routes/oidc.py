@@ -27,17 +27,17 @@ def openid_configuration():
     """
     return {
         "issuer": f"{settings.APPLICATION_HOST}",
-        "token_endpoint": f"{settings.APPLICATION_HOST}/openid/token",
-        "userinfo_endpoint": f"{settings.APPLICATION_HOST}/me",
-        "jwks_uri": f"{settings.APPLICATION_HOST}/.well-known/jwks",
+        "token_endpoint": f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/openid/token",
+        "userinfo_endpoint": f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/me",
+        "jwks_uri": f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/.well-known/jwks",
         "scopes_supported": list(x[0] for x in db.session.query(Scope.name).all()),
         "response_types_supported": ["token"],
         "subject_types_supported": ["public"],
         "id_token_signing_alg_values_supported": ["RS256"],
         "claims_supported": ["sub", "iss", "exp", "iat"],
         "grant_types_supported": [
-            "refresh_token",
-            "client_credentials",
+            OidcGrantType.refresh_token,
+            OidcGrantType.client_credentials,
         ],
     }
 

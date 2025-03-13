@@ -237,7 +237,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                     "Подтверждение регистрации Твой ФФ!",
                     txn,
                     background_tasks,
-                    url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
+                    url=f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/register/success?token={confirmation_token}",
                 )
                 return StatusResponseModel(
                     status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
@@ -264,7 +264,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                 "Подтверждение регистрации Твой ФФ!",
                 txn,
                 background_tasks,
-                url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
+                url=f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/register/success?token={confirmation_token}",
             )
 
             old_user = None
@@ -374,7 +374,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                 subject="Смена почты Твой ФФ!",
                 dbsession=txn,
                 background_tasks=background_tasks,
-                url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
+                url=f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/reset/email?token={token}",
             )
             await AuthPluginMeta.user_updated(new_user, old_user)
             return StatusResponseModel(
@@ -537,7 +537,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                 subject="Смена пароля Твой ФФ!",
                 dbsession=txn,
                 background_tasks=background_tasks,
-                url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_params['reset_token'].value}",
+                url=f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/reset/password?token={auth_params['reset_token'].value}",
             )
             await AuthPluginMeta.user_updated(new_user, old_user)
             return StatusResponseModel(
