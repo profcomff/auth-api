@@ -5,6 +5,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, BackgroundTasks, Form, Header
 from fastapi_sqlalchemy import db
 
+from auth_backend.auth_plugins.email import Email
 from auth_backend.exceptions import OidcGrantTypeClientNotSupported, OidcGrantTypeNotImplementedError
 from auth_backend.models.db import Scope
 from auth_backend.schemas.oidc import PostTokenResponse
@@ -95,7 +96,7 @@ async def token(
     # Разные методы обмена токенов
     if grant_type == OidcGrantType.refresh_token:
         new_session = await token_by_refresh_token(refresh_token, scopes)
-    elif grant_type == OidcGrantType.client_credentials:
+    elif grant_type == OidcGrantType.client_credentials and Email.is_active():
         new_session = await token_by_client_credentials(username, password, scopes, user_agent, background_tasks)
     else:
         raise OidcGrantTypeClientNotSupported(grant_type, client_id)

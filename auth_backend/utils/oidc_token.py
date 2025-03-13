@@ -4,6 +4,7 @@ from enum import Enum
 from fastapi import BackgroundTasks
 from fastapi_sqlalchemy import db
 
+from auth_backend.auth_plugins.email import Email
 from auth_backend.exceptions import AuthFailed, SessionExpired
 from auth_backend.models.db import Scope, UserSession
 from auth_backend.schemas.models import Session as SessionSchema
@@ -69,8 +70,6 @@ async def token_by_client_credentials(
     user_agent: str,
     background_tasks: BackgroundTasks,
 ) -> SessionSchema:
-    from auth_backend.auth_plugins.email import Email
-
     if not username or not password:
         raise AuthFailed("Incorrect login or password", "Некорректный логин или пароль")
 
