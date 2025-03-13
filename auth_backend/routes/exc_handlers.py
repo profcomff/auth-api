@@ -10,10 +10,10 @@ from auth_backend.exceptions import (
     OauthAuthFailed,
     OauthCredentialsIncorrect,
     ObjectNotFound,
-    SessionExpired,
-    TooManyEmailRequests,
     OidcGrantTypeClientNotSupported,
     OidcGrantTypeNotImplementedError,
+    SessionExpired,
+    TooManyEmailRequests,
 )
 
 from .base import app

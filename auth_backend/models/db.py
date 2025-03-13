@@ -227,11 +227,7 @@ class Scope(BaseDbModel):
     @classmethod
     def get_by_names(cls, names: list[str], *, with_deleted: bool = False, session: Session) -> list[Scope]:
         names = [name.lower() for name in names]
-        scope = (
-            cls.query(with_deleted=with_deleted, session=session)
-            .filter(func.lower(cls.name).in_(names))
-            .all()
-        )
+        scope = cls.query(with_deleted=with_deleted, session=session).filter(func.lower(cls.name).in_(names)).all()
         if len(scope) < len(names):
             raise ObjectNotFound(cls, names)
         return scope

@@ -1,10 +1,12 @@
 from datetime import datetime
+
 from fastapi import BackgroundTasks
 from fastapi_sqlalchemy import db
-from auth_backend.models.db import UserSession, Scope
-from auth_backend.exceptions import SessionExpired, AuthFailed
-from auth_backend.utils.user_session_control import SESSION_UPDATE_SCOPE, create_session
+
+from auth_backend.exceptions import AuthFailed, SessionExpired
+from auth_backend.models.db import Scope, UserSession
 from auth_backend.schemas.models import Session as SessionSchema
+from auth_backend.utils.user_session_control import SESSION_UPDATE_SCOPE, create_session
 
 
 async def token_by_refresh_token(

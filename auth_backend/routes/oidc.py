@@ -1,16 +1,16 @@
 import logging
 from datetime import datetime
-from typing import Annotated, Literal, Optional
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Form, Header
 from fastapi_sqlalchemy import db
 
-from auth_backend.models.db import Scope
 from auth_backend.exceptions import OidcGrantTypeClientNotSupported, OidcGrantTypeNotImplementedError
+from auth_backend.models.db import Scope
 from auth_backend.schemas.oidc import PostTokenResponse
 from auth_backend.settings import get_settings
 from auth_backend.utils.jwt import create_jwks
-from auth_backend.utils.oidc_token import token_by_refresh_token, token_by_client_credentials
+from auth_backend.utils.oidc_token import token_by_client_credentials, token_by_refresh_token
 
 
 settings = get_settings()
