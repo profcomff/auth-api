@@ -50,6 +50,7 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
         new_user = {"user_id": user_session.user.id}
         old_user_params = await cls._delete_auth_methods(user_session.user, db_session=db.session)
         old_user[cls.get_name()] = old_user_params
+        await cls._delete_userdata(user=user_session.user, db_session=db.session)
         await AuthPluginMeta.user_updated(new_user, old_user)
         return None
 
