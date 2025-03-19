@@ -1,6 +1,39 @@
+[project]
+name = "auth_backend"
+description = "REST API backend for auth"
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = []
+license = {text = "Proprientary"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+]
+dynamic = ["dependencies", "optional-dependencies", "version"]
+
+[project.urls]
+Homepage = "https://git.dyakov.space/stories"
+Documentation = "https://git.dyakov.space/stories/.gitea/wiki"
+Repository = "https://git.dyakov.space/stories/backend"
+Issues = "https://git.dyakov.space/stories/backend/issues"
+Changelog = "https://git.dyakov.space/stories/backend/releases"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+optional-dependencies = {dev = { file = ["requirements.dev.txt"] }}
+version = {attr = "auth_backend.__version__"}
+
+[tool.setuptools]
+packages = ["auth_backend"]
+
 [tool.black]
 line-length = 120
-target-version = ['py310']
+target-version = ['py311']
 skip-string-normalization = true
 
 [tool.isort]

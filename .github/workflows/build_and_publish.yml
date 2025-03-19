@@ -43,6 +43,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
+          file: build/Dockerfile
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -65,17 +66,6 @@ jobs:
     steps:
       - name: Pull new version
         run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
-
-      - name: Migrate DB
-        run: |
-          docker run \
-            --rm \
-            --network=web \
-            --env DB_DSN=${{ secrets.DB_DSN }} \
-            --name ${{ env.CONTAINER_NAME }}_migration \
-            --workdir="/" \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test \
-            alembic upgrade head
 
       - name: Run new version
         id: run_test
@@ -158,19 +148,8 @@ jobs:
       - name: Pull new version
         run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Migrate DB
-        run: |
-          docker run \
-            --rm \
-            --network=web \
-            --env DB_DSN=${{ secrets.DB_DSN }} \
-            --name ${{ env.CONTAINER_NAME }}_migration \
-            --workdir="/" \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
-            alembic upgrade head
-
       - name: Run new version
-        id: run_test
+        id: run_prod
         run: |
           docker stop ${{ env.CONTAINER_NAME }} || true && docker rm ${{ env.CONTAINER_NAME }} || true
           docker run \
