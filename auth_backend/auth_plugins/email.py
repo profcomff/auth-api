@@ -134,6 +134,20 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
         self.tags = ["Email"]
 
     @classmethod
+    async def login(
+        cls,
+        email: str,
+        password: str,
+        scopes: list[Scope],
+        session_name: str | None,
+        background_tasks: BackgroundTasks,
+    ) -> Session:
+        return await cls._login(
+            EmailLogin(email=email, password=password, scopes=scopes, session_name=session_name),
+            background_tasks,
+        )
+
+    @classmethod
     async def _login(cls, user_inp: EmailLogin, background_tasks: BackgroundTasks) -> Session:
         query = (
             AuthMethod.query(session=db.session)
@@ -223,7 +237,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                     "Подтверждение регистрации Твой ФФ!",
                     txn,
                     background_tasks,
-                    url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
+                    url=f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/register/success?token={confirmation_token}",
                 )
                 return StatusResponseModel(
                     status="Success", message="Email confirmation link sent", ru="Ссылка отправлена на почту"
@@ -250,7 +264,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                 "Подтверждение регистрации Твой ФФ!",
                 txn,
                 background_tasks,
-                url=f"{settings.APPLICATION_HOST}/auth/register/success?token={confirmation_token}",
+                url=f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/register/success?token={confirmation_token}",
             )
 
             old_user = None
@@ -360,7 +374,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                 subject="Смена почты Твой ФФ!",
                 dbsession=txn,
                 background_tasks=background_tasks,
-                url=f"{settings.APPLICATION_HOST}/auth/reset/email?token={token}",
+                url=f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/reset/email?token={token}",
             )
             await AuthPluginMeta.user_updated(new_user, old_user)
             return StatusResponseModel(
@@ -523,7 +537,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                 subject="Смена пароля Твой ФФ!",
                 dbsession=txn,
                 background_tasks=background_tasks,
-                url=f"{settings.APPLICATION_HOST}/auth/reset/password?token={auth_params['reset_token'].value}",
+                url=f"{settings.APPLICATION_HOST}{settings.ROOT_PATH}/reset/password?token={auth_params['reset_token'].value}",
             )
             await AuthPluginMeta.user_updated(new_user, old_user)
             return StatusResponseModel(

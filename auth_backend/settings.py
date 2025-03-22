@@ -2,10 +2,12 @@ import os
 import random
 import string
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated
 
 from annotated_types import Gt
 from pydantic import PostgresDsn
+from pydantic.types import PathType
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,6 +50,10 @@ class Settings(BaseSettings):
     EMAIL_DELAY_TIME_IN_MINUTES: float = 1
     EMAIL_DELAY_COUNT: int = 3
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env", extra='ignore')
+
+    JWT_ENABLED: bool = False
+    JWT_PRIVATE_KEY_FILE: Path | None = './tests/private-key.pem'
+    JWT_PRIVATE_KEY: bytes | None = None
 
 
 @lru_cache

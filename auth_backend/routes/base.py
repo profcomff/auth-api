@@ -9,10 +9,11 @@ from auth_backend.auth_method import AuthPluginMeta
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.settings import get_settings
 
-from .groups import groups
-from .scopes import scopes
-from .user import user
-from .user_session import user_session
+from .groups import groups as groups_router
+from .oidc import router as openid_router
+from .scopes import scopes as scopes_router
+from .user import user as user_router
+from .user_session import user_session as user_session_router
 
 
 @asynccontextmanager
@@ -50,10 +51,11 @@ app.add_middleware(
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
 
-app.include_router(user_session)
-app.include_router(groups)
-app.include_router(scopes)
-app.include_router(user)
+app.include_router(groups_router)
+app.include_router(scopes_router)
+app.include_router(user_router)
+app.include_router(user_session_router)
+app.include_router(openid_router)
 
 for method in AuthPluginMeta.active_auth_methods():
     app.include_router(router=method().router, prefix=method.prefix, tags=[method.get_name()])

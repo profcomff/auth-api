@@ -15,6 +15,7 @@ pytest-asyncio
 confluent-kafka
 event-schema-profcomff
 aiocache
+python-multipart
 
 # Google Auth Method
 google-api-python-client
