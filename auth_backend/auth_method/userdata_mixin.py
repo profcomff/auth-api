@@ -38,14 +38,16 @@ class UserdataMixin(AuthPluginMeta, metaclass=ABCMeta):
             if item.value == '':
                 item.value = None
         return userdata
+
     @classmethod
+    @abstractmethod
     async def _delete_userdata(cls, user: User, *, db_session: DbSession) -> None:
         """Удаление  данных пользователя
-        
+
         Args:
             user (User): Объект пользователя
             db_session (DbSession): Сессия базы данных
-        Returns: 
-            Ничего? 
+        Returns:
+            Ничего?
         """
-        raise NotImplementedError() 
+        raise NotImplementedError()
