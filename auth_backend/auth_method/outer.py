@@ -9,7 +9,7 @@ from starlette.status import HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND, HTTP_409_CO
 
 from auth_backend.auth_method.base import AuthPluginMeta
 from auth_backend.base import Base
-from auth_backend.models.db import AuthMethod, UserSession
+from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.utils.security import UnionAuth
 
 
@@ -205,8 +205,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         """
         if cls.delete_scope() not in (s.name for s in request_user.scopes):
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
-        username = await cls.__get_username(user_id)
-        if not username:
+        user = User.get(user_id, session=db.session)
+        if not user:
             raise UserNotLinked(user_id)
-        username.is_deleted = True
-        db.session.commit()
+        await cls._delete_auth_methods(user, db_session=db.session)

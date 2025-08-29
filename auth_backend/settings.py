@@ -7,7 +7,6 @@ from typing import Annotated
 
 from annotated_types import Gt
 from pydantic import PostgresDsn
-from pydantic.types import PathType
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
