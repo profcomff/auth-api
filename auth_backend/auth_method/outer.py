@@ -2,7 +2,7 @@ import logging
 from abc import ABCMeta, abstractmethod
 from typing import Any
 
-from event_schema.auth import UserLoginKey
+from event_schema.auth import UserInfo, UserLogin, UserLoginKey
 from fastapi import Depends
 from fastapi.background import BackgroundTasks
 from fastapi.exceptions import HTTPException
@@ -217,6 +217,6 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
         background_tasks.add_task(
             get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
-            UserLoginKey(user_id=user_id, auth_method=cls.get_name()),
-            None,
+            UserLoginKey(user_id=user_id),
+            UserLogin(source=cls.get_name(), items=[UserInfo(category="", param="", value=None)]),
         )
