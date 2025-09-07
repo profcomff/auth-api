@@ -168,7 +168,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
 
         Получить данные может администратор или сам пользователь
         """
-        if cls.get_scope() not in (s.name for s in request_user.scopes) and request_user.id != user_id:
+        if cls.get_scope() not in (s.name for s in request_user.scopes) and request_user.user_id != user_id:
             raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
         username = await cls.__get_username(user_id)
         if not username:
@@ -218,5 +218,5 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             UserLoginKey(user_id=user_id),
-            UserLogin(source=cls.get_name(), items=[UserInfo(category="", param="", value=None)]),
+            UserLogin(source=cls.get_name(), items=[UserInfo(category=cls.get_name(), param="username", value=None)]),
         )
