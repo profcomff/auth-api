@@ -218,5 +218,7 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             UserLoginKey(user_id=user_id),
-            UserLogin(source=cls.get_name(), items=[UserInfo(category=cls.get_name(), param="username", value=None)]),
+            UserLogin(
+                source=cls.get_name(), items=[UserInfo(category=username.auth_method, param=username.param, value=None)]
+            ),
         )
