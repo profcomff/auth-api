@@ -1,13 +1,16 @@
 import logging
 from abc import abstractmethod
 
+from event_schema.auth import UserInfo, UserLogin, UserLoginKey
 from fastapi import Depends
+from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
 from sqlalchemy.orm import Session as DbSession
 
 from auth_backend.auth_method import AUTH_METHODS, LoginableMixin
 from auth_backend.base import Base
 from auth_backend.exceptions import LastAuthMethodDelete
+from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.utils.security import UnionAuth
 
@@ -44,13 +47,23 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
         raise NotImplementedError()
 
     @classmethod
-    async def _unregister(cls, user_session: UserSession = Depends(UnionAuth(scopes=[], auto_error=True))):
+    async def _unregister(
+        cls,
+        background_tasks: BackgroundTasks,
+        user_session: UserSession = Depends(UnionAuth(scopes=[], auto_error=True)),
+    ):
         """Отключает для пользователя метод входа"""
         old_user = {"user_id": user_session.user.id}
         new_user = {"user_id": user_session.user.id}
         old_user_params = await cls._delete_auth_methods(user_session.user, db_session=db.session)
         old_user[cls.get_name()] = old_user_params
         await AuthPluginMeta.user_updated(new_user, old_user)
+        background_tasks.add_task(
+            get_kafka_producer().produce,
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            UserLoginKey(user_id=user_session.user.id),
+            UserLogin(source=cls.get_name(), items=[UserInfo(category="Контакты", param="", value=None)]),
+        )
         return None
 
     @classmethod

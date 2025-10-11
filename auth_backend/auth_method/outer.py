@@ -2,16 +2,13 @@ import logging
 from abc import ABCMeta, abstractmethod
 from typing import Any
 
-from event_schema.auth import UserInfo, UserLogin, UserLoginKey
 from fastapi import Depends
-from fastapi.background import BackgroundTasks
 from fastapi.exceptions import HTTPException
 from fastapi_sqlalchemy import db
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT, HTTP_424_FAILED_DEPENDENCY
 
 from auth_backend.auth_method.base import AuthPluginMeta
 from auth_backend.base import Base
-from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, UserSession
 from auth_backend.utils.security import UnionAuth
 
@@ -200,7 +197,6 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
     async def _unlink(
         cls,
         user_id: int,
-        background_tasks: BackgroundTasks,
         request_user: UserSession = Depends(UnionAuth()),
     ):
         """Отвязать внешний аккаунт пользователю
@@ -214,11 +210,3 @@ class OuterAuthMeta(AuthPluginMeta, metaclass=ABCMeta):
             raise UserNotLinked(user_id)
         username.is_deleted = True
         db.session.commit()
-        background_tasks.add_task(
-            get_kafka_producer().produce,
-            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
-            UserLoginKey(user_id=user_id),
-            UserLogin(
-                source=cls.get_name(), items=[UserInfo(category=username.auth_method, param=username.param, value=None)]
-            ),
-        )
