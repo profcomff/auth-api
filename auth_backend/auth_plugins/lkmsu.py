@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 import aiohttp
 import jwt
-from event_schema.auth import UserLogin
+from event_schema.auth import UserInfo, UserLogin, UserLoginKey
 from fastapi import Depends
 from fastapi_sqlalchemy import db
 from pydantic import BaseModel, Field
@@ -174,7 +174,11 @@ class LkmsuAuth(OauthMeta):
         )
 
     @classmethod
-    async def _unregister(cls, user_session: UserSession = Depends(UnionAuth(scopes=[], auto_error=True))):
+    async def _unregister(
+        cls,
+        background_tasks: BackgroundTasks,
+        user_session: UserSession = Depends(UnionAuth(scopes=[], auto_error=True)),
+    ):
         """Отключает для пользователя метод входа"""
         user: User = user_session.user
         verified_group_id = DynamicOption.get("verified_group_id", session=db.session).value
@@ -198,6 +202,15 @@ class LkmsuAuth(OauthMeta):
         old_user_params = await cls._delete_auth_methods(user_session.user, db_session=db.session)
         old_user[cls.get_name()] = old_user_params
         await AuthPluginMeta.user_updated(new_user, old_user)
+        user_data = {}
+        userdata = await cls._convert_data_to_userdata_format(user_data)
+        items_login = [UserInfo(category=item.category, param=item.param, value=None) for item in userdata.items]
+        background_tasks.add_task(
+            get_kafka_producer().produce,
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            UserLoginKey(user_id=user_session.user.id),
+            UserLogin(source=cls.get_name(), items=items_login),
+        )
         return None
 
     @classmethod
