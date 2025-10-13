@@ -58,11 +58,14 @@ class OauthMeta(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta)
         old_user_params = await cls._delete_auth_methods(user_session.user, db_session=db.session)
         old_user[cls.get_name()] = old_user_params
         await AuthPluginMeta.user_updated(new_user, old_user)
+        user_data = {}
+        userdata = await cls._convert_data_to_userdata_format(user_data)
+        items_login = [UserInfo(category=item.category, param=item.param, value=None) for item in userdata.items]
         background_tasks.add_task(
             get_kafka_producer().produce,
             cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
             UserLoginKey(user_id=user_session.user.id),
-            UserLogin(source=cls.get_name(), items=[UserInfo(category="Контакты", param="", value=None)]),
+            UserLogin(source=cls.get_name(), items=items_login),
         )
         return None
 
