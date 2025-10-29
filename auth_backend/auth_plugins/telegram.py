@@ -185,3 +185,111 @@ class TelegramAuth(OauthMeta):
         ]
         result = {"items": items, "source": cls.get_name()}
         return cls.userdata_process_empty_strings(UserLogin.model_validate(result))
+
+
+class NewTelegramSettings(Settings):
+    TELEGRAM_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
+    TELEGRAM_BOT_TOKEN: str | None = None  # TODO: добавить сюда токен бота для тестов. В целом, брать его из .env.
+
+
+class NewTelegramAuth(OauthMeta):
+    """Вход в приложение 'Твой ФФ' через Telegram Login Widget."""
+    prefix = '/telegram'
+    tags = ['Telegram']
+    settings = NewTelegramSettings()
+
+    class TGAuthResponseSchema(BaseModel):
+        # id_token: str | None = Field(default=None, help="Telegram JWT token identifier")
+        id: str
+        first_name: str
+        last_name: str | None = None
+        username: str | None = None
+        photo_url: str | None = None
+        auth_date: str
+        hash: str
+        # scopes: list[Scope] | None = None
+        # session_name: str | None = None
+
+    @classmethod
+    async def _register(
+        cls,
+        user_inp: TGAuthResponseSchema,
+        background_tasks: BackgroundTasks,
+        user_session: UserSession = Depends(UnionAuth(auto_error=True, scopes=[], allow_none=True)),
+    ) -> Session:
+        old_user = None
+        new_user = {}
+
+        # Проверяем получение корректных данных
+        userinfo = await cls._check(user_inp)
+        tg_user_id = userinfo['id']
+
+        # if user_inp.id_token is None:
+        #     userinfo = await cls._check(user_inp)
+        #     telegram_user_id = user_inp.id
+        #     logger.debug(userinfo)
+        # else:
+        #     userinfo = jwt.decode(user_inp.id_token, cls.settings.ENCRYPTION_KEY, algorithms=["HS256"])
+        #     telegram_user_id = userinfo['id']
+        #     logger.debug(userinfo)
+
+        # Проверяем, что этот тг-аккаунт уже не привязан к существующему пользователю!  # TODO: уточнить, что это правда так работает...
+        user = await cls._get_user('user_id', tg_user_id, db_session=db.session)
+        if user is not None:
+            raise AlreadyExists(User, user.id)
+
+        if user_session is None:
+            user = await cls._create_user(db_session=db.session)  # if user_session is None else user_session.user
+        else:
+            user = user_session.user
+            old_user = {'user_id': user.id}
+        new_user["user_id"] = user.id
+        tg_auth = cls.create_auth_method_param('user_id', tg_user_id, user.id, db_session=db.session)
+        new_user[cls.get_name()] = {"user_id": tg_auth.value}
+        userdata = await TelegramAuth._convert_data_to_userdata_format(userinfo)
+        background_tasks.add_task(
+            get_kafka_producer().produce,
+            cls.settings.KAFKA_USER_LOGIN_TOPIC_NAME,
+            TelegramAuth.generate_kafka_key(user.id),
+            userdata,
+        )
+        await AuthPluginMeta.user_updated(new_user, old_user)
+        return await cls._create_session(
+            user,  # TODO: спросить, зачем (в google.py) отправляется новая сессия с user. user обновляется к этому моменту? Даже если меняется, то зачем именно здесь пользователю новая сессия?
+            user_inp.scopes,
+            db_session=db.session,
+            session_name=user_inp.session_name,
+        )
+
+    @classmethod
+    async def _redirect_url(cls):
+        """URL на который происходит редирект после завершения входа на стороне провайдера"""
+        return OauthMeta.UrlSchema(url=cls.settings.TELEGRAM_REDIRECT_URL)
+    
+    @classmethod
+    async def _check(cls, user_inp):  # TODO: перепроверить, что написанное реально поддерживает проверку по доке тг!
+        '''Проверка данных пользователя
+
+        https://core.telegram.org/widgets/login#checking-authorization
+        '''
+        data_check = {
+            'id': user_inp.id,
+            'first_name': user_inp.first_name,
+            'last_name': user_inp.last_name,
+            'username': user_inp.username,
+            'photo_url': user_inp.photo_url,
+            'auth_date': user_inp.auth_date,
+        }
+        check_hash = user_inp.hash
+        data_check_string = ''
+        for k, v in sorted(data_check.items()):
+            if v is None:
+                continue
+            data_check_string += f'{unquote(k)}={unquote(v)}\n'
+        data_check_string = data_check_string.rstrip('\n')
+        secret_key = hashlib.sha256(str.encode(cls.settings.TELEGRAM_BOT_TOKEN)).digest()
+        signing = hmac.new(secret_key, msg=str.encode(data_check_string), digestmod=hashlib.sha256).hexdigest()
+        if signing == check_hash:
+            return data_check
+        else:
+            raise OauthAuthFailed('Invalid user data from Telegram', 'Неправильные учетные данные')
