@@ -24,7 +24,7 @@ from auth_backend.utils.string import concantenate_strings
 logger = logging.getLogger(__name__)
 
 
-class TelegramSettings(Settings):  # TODO: переписать раздел про ТГ в README.md
+class TelegramSettings(Settings):
     TELEGRAM_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
     TELEGRAM_BOT_TOKEN: str
 
@@ -122,16 +122,20 @@ class TelegramAuth(OauthMeta):
         )
 
     @classmethod
-    async def _redirect_url(cls):  # А это вообще нужно, если мы используем виджет с атрибутом redirect_url (а не callback)?
-        """URL на который происходит редирект после завершения входа на стороне провайдера"""
+    async def _redirect_url(cls):
+        """URL на который происходит редирект после завершения входа на стороне провайдера.
+        
+        В данном случае не предполагается к использованию, т.к. данный URL вшит в виджет.
+        """
         return OauthMeta.UrlSchema(url=cls.settings.TELEGRAM_REDIRECT_URL)
     
     @classmethod
-    async def _auth_url(cls):  # А это вообще нужно, если в виджете ТГ уже прописан атрибут src и там скрипт?!
-        """URL на который происходит редирект из приложения, чтобы авторизоваться на стороне провайдера."""
-        return OauthMeta.UrlSchema(
-            url=f"https://oauth.telegram.org/auth?bot_id={cls.settings.TELEGRAM_BOT_TOKEN.split(':')[0]}&origin={quote(cls.settings.TELEGRAM_REDIRECT_URL)}&return_to={quote(cls.settings.TELEGRAM_REDIRECT_URL)}"
-        )
+    async def _auth_url(cls):
+        """URL на который происходит редирект из приложения, чтобы авторизоваться на стороне провайдера.
+        
+        В данном случае не предполагается, т.к. URL вшит в виджет. Отдается атрибут src виджета.
+        """
+        return OauthMeta.UrlSchema(url='https://telegram.org/js/telegram-widget.js?22')
     
     @classmethod
     async def _check(cls, user_inp):
