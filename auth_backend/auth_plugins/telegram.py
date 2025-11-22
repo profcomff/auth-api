@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class TelegramSettings(Settings):
     TELEGRAM_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
-    TELEGRAM_BOT_TOKEN: str = None
+    TELEGRAM_BOT_TOKEN: str = ''  # Сделал так для тестов, однако токен нужен для работы авторизации!
 
 
 class TelegramAuth(OauthMeta):
