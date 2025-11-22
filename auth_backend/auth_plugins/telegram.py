@@ -2,14 +2,14 @@ import hashlib
 import hmac
 import logging
 from typing import Any
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 import jwt
 from event_schema.auth import UserLogin
 from fastapi import Depends
 from fastapi.background import BackgroundTasks
 from fastapi_sqlalchemy import db
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from auth_backend.auth_method import AuthPluginMeta, OauthMeta, Session
 from auth_backend.exceptions import AlreadyExists, OauthAuthFailed
@@ -26,11 +26,12 @@ logger = logging.getLogger(__name__)
 
 class TelegramSettings(Settings):
     TELEGRAM_REDIRECT_URL: str = "https://app.test.profcomff.com/auth"
-    TELEGRAM_BOT_TOKEN: str
+    TELEGRAM_BOT_TOKEN: str = None
 
 
 class TelegramAuth(OauthMeta):
     """Вход в приложение 'Твой ФФ' через Telegram Login Widget."""
+
     prefix = '/telegram'
     tags = ['Telegram']
     settings = TelegramSettings()
@@ -87,7 +88,7 @@ class TelegramAuth(OauthMeta):
             db_session=db.session,
             session_name=user_inp.session_name,
         )
-    
+
     @classmethod
     async def _login(cls, user_inp: TGAuthResponseSchema, background_tasks: BackgroundTasks) -> Session:
         """Вход в пользователя с помощью аккаунта ТГ.
@@ -124,19 +125,19 @@ class TelegramAuth(OauthMeta):
     @classmethod
     async def _redirect_url(cls):
         """URL на который происходит редирект после завершения входа на стороне провайдера.
-        
+
         В данном случае не предполагается к использованию, т.к. данный URL вшит в виджет.
         """
         return OauthMeta.UrlSchema(url=cls.settings.TELEGRAM_REDIRECT_URL)
-    
+
     @classmethod
     async def _auth_url(cls):
         """URL на который происходит редирект из приложения, чтобы авторизоваться на стороне провайдера.
-        
+
         В данном случае не предполагается, т.к. URL вшит в виджет. Отдается атрибут src виджета.
         """
         return OauthMeta.UrlSchema(url='https://telegram.org/js/telegram-widget.js?22')
-    
+
     @classmethod
     async def _check(cls, user_inp):
         """Проверка данных пользователя.
@@ -164,7 +165,7 @@ class TelegramAuth(OauthMeta):
             return data_check
         else:
             raise OauthAuthFailed('Invalid user data from Telegram', 'Неправильные учетные данные')
-    
+
     @classmethod
     async def _convert_data_to_userdata_format(cls, data: dict[str, Any]) -> UserLogin:
         """Конвертация данных в формат для userdata-api."""
