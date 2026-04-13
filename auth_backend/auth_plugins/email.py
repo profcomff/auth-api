@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import re 
 from typing import Annotated, Self
 
 from annotated_types import MinLen
@@ -27,37 +28,12 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 
-def check_email(v):
-    restricted: set[str] = {
-        '"',
-        '#',
-        '&',
-        "'",
-        '(',
-        ')',
-        '*',
-        ',',
-        '/',
-        ';',
-        '<',
-        '>',
-        '?',
-        '[',
-        '\\',
-        ']',
-        '^',
-        '`',
-        '{',
-        '|',
-        '}',
-        '~',
-        '\n',
-        '\r',
-    }
-    if "@" not in v:
-        raise ValueError()
-    if set(v) & restricted:
-        raise ValueError()
+EMAIL_CONST_REGEX = re.compile(
+    r'^[a-zA-Z0-9_.+\\-%]+@[a-zA-Z0-9\\-]+\\.[a-zA-Z0-9\\-.]+$')
+
+def email_check(v):
+    if not EMAIL_CONST_REGEX.match(v):
+        raise ValueError("Неверный формат email")
     return v
 
 
