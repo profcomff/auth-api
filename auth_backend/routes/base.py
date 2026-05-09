@@ -2,13 +2,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi_sqlalchemy import DBSessionMiddleware
-from starlette.middleware.cors import CORSMiddleware
-
 from sqladmin import Admin
 from sqlalchemy import create_engine
-from auth_backend.admin.admin import ScopeAdmin, GroupAdmin, UserAdmin
+from starlette.middleware.cors import CORSMiddleware
 
 from auth_backend import __version__
+from auth_backend.admin.admin import GroupAdmin, ScopeAdmin, UserAdmin
 from auth_backend.auth_method import AuthPluginMeta
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.settings import get_settings
@@ -44,7 +43,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-admin=Admin(app, engine=engine, title='Admin panel')
+admin = Admin(app, engine=engine, title='Admin panel')
 
 app.add_middleware(
     DBSessionMiddleware,

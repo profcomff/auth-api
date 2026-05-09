@@ -10,7 +10,6 @@ from auth_backend.models.db import GroupScope, Scope, UserSession
 from auth_backend.schemas.models import Group, GroupGet, GroupPatch, GroupPost, GroupsGet
 from auth_backend.utils.security import UnionAuth
 
-
 groups = APIRouter(prefix="/group", tags=["Groups"])
 
 

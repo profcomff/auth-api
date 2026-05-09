@@ -6,7 +6,6 @@ from starlette import status
 
 from auth_backend.models.db import AuthMethod, Group, GroupScope, Scope, User, UserGroup, UserSession
 
-
 url = "/email/login"
 
 
