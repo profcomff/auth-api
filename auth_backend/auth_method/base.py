@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session as DbSession
 from auth_backend.models.db import AuthMethod, User, UserSession
 from auth_backend.settings import get_settings
 
+
 logger = logging.getLogger(__name__)
 settings = get_settings()
 

@@ -5,6 +5,7 @@ from .outer import OuterAuthMeta
 from .session import Session
 from .userdata_mixin import UserdataMixin
 
+
 __all__ = [
     "Session",
     "AUTH_METHODS",

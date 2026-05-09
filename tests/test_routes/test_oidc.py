@@ -7,6 +7,7 @@ from starlette import status
 from auth_backend.models.db import AuthMethod
 from auth_backend.settings import get_settings
 
+
 settings = get_settings()
 
 

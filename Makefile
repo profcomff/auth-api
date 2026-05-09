@@ -4,7 +4,7 @@ run:
 	source ./venv/bin/activate && uvicorn --reload --log-config logging_dev.conf auth_backend.routes.base:app
 
 configure: venv
-	source ./venv/bin/activate && pip install -r requirements.dev.txt -r requirements.txt
+	source ./venv/bin/activate && pip install --force-reinstall -r requirements.dev.txt -r requirements.txt
 
 venv:
 	python3.11 -m venv venv

@@ -11,6 +11,7 @@ from .scope import create_scope
 from .user import create_user
 from .user_group import create_user_group
 
+
 settings = get_settings()
 engine = create_engine(str(settings.DB_DSN))
 Session = sessionmaker(bind=engine)

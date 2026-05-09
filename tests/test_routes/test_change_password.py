@@ -5,6 +5,7 @@ from starlette import status
 from auth_backend.auth_plugins.email import Email
 from auth_backend.models.db import AuthMethod
 
+
 url = "/email/reset/password"
 
 

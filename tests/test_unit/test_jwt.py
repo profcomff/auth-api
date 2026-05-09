@@ -5,6 +5,7 @@ import jwt
 from auth_backend.settings import get_settings
 from auth_backend.utils.jwt import create_jwks, decode_jwt, generate_jwt
 
+
 settings = get_settings()
 
 

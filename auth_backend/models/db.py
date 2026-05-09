@@ -15,6 +15,7 @@ from auth_backend.models.dynamic_settings import DynamicOption
 from auth_backend.settings import get_settings
 from auth_backend.utils.user_session_basics import session_expires_date
 
+
 settings = get_settings()
 logger = logging.getLogger(__name__)
 

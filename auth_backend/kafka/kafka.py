@@ -9,6 +9,7 @@ from auth_backend import __version__
 from auth_backend.kafka.kafkameta import KafkaMeta
 from auth_backend.settings import get_settings
 
+
 log = logging.getLogger(__name__)
 
 

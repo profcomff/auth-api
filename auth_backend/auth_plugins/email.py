@@ -22,6 +22,7 @@ from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.smtp import SendEmailMessage
 from auth_backend.utils.string import random_string
 
+
 settings = get_settings()
 logger = logging.getLogger(__name__)
 

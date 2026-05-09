@@ -13,6 +13,7 @@ from auth_backend.utils.jwt import generate_jwt
 from auth_backend.utils.string import random_string
 from auth_backend.utils.user_session_basics import session_expires_date
 
+
 SESSION_UPDATE_SCOPE = 'auth.session.update'
 
 settings = get_settings()

@@ -6,6 +6,7 @@ from starlette import status
 
 from auth_backend.models.db import AuthMethod, User, UserSession
 
+
 url = "/logout"
 
 

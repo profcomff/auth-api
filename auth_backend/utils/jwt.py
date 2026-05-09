@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 from auth_backend.settings import get_settings
 
+
 settings = get_settings()
 
 

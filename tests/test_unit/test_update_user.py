@@ -5,6 +5,7 @@ import pytest
 
 from auth_backend.auth_method import AUTH_METHODS, AuthPluginMeta
 
+
 if TYPE_CHECKING:
     from unittest.mock import _patch_default_new as patch_type
 

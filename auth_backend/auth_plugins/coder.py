@@ -6,6 +6,7 @@ from pydantic import AnyUrl
 from auth_backend.auth_method.outer import ConnectionIssue, OuterAuthMeta
 from auth_backend.settings import Settings
 
+
 logger = logging.getLogger(__name__)
 
 

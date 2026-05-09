@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from auth_backend.models.db import Group, Scope, User
 
+
 # revision identifiers, used by Alembic.
 revision = '7c1cd7ceacd8'
 down_revision = 'bda218c91211'

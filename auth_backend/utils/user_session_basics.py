@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from auth_backend.settings import get_settings
 
+
 settings = get_settings()
 
 

@@ -13,6 +13,7 @@ from auth_backend.settings import get_settings
 from auth_backend.utils.jwt import create_jwks
 from auth_backend.utils.oidc_token import OidcGrantType, token_by_client_credentials, token_by_refresh_token
 
+
 settings = get_settings()
 router = APIRouter(prefix="/openid", tags=["OpenID"])
 logger = logging.getLogger(__name__)
