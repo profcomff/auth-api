@@ -3,10 +3,11 @@ from sqlalchemy import func, select
 from sqlalchemy.sql.expression import Select
 from starlette.requests import Request
 
+from auth_backend.admin.filter import FilteredModelConverter
 from auth_backend.models.db import Group, Scope, User
-from auth_backend.routes.groups import create_group_logic, delete_group_id
+from auth_backend.routes.groups import create_group_logic, delete_group_id, patch_group_logic
 from auth_backend.routes.user import patch_user_groups
-from auth_backend.schemas.models import GroupPost
+from auth_backend.schemas.models import GroupPatch, GroupPost
 
 
 class ScopeAdmin(ModelView, model=Scope):
@@ -27,6 +28,7 @@ class ScopeAdmin(ModelView, model=Scope):
     column_default_sort = [("id", False)]
     form_excluded_columns = ["create_ts", "update_ts", "groups", "user_sessions", "is_deleted"]
     can_create = False  # I don't know how to use UnionAuth there to get user_id that is required
+    form_converter = FilteredModelConverter
 
     def list_query(self, request: Request) -> Select:
         return select(Scope).where(Scope.is_deleted == False)
@@ -65,6 +67,7 @@ class GroupAdmin(ModelView, model=Group):
     column_sortable_list = ["id", "name", "parent_id", "is_deleted"]
     column_default_sort = [("id", False)]
     form_excluded_columns = ["create_ts", "update_ts", "is_deleted"]
+    form_converter = FilteredModelConverter
 
     def list_query(self, request: Request) -> Select:
         return select(Group).where(Group.is_deleted == False)
@@ -72,7 +75,6 @@ class GroupAdmin(ModelView, model=Group):
     def count_query(self, request: Request) -> Select:
         return select(func.count(Group.id)).where(Group.is_deleted == False)
 
-    # add logic with deleted scopes showed
     async def insert_model(self, request, data):
         scope_ids = [int(s) for s in (data.pop("scopes", None) or [])]
         parent_id = int(data["parent_id"]) if data.get("parent_id") else None
@@ -81,7 +83,17 @@ class GroupAdmin(ModelView, model=Group):
             result = create_group_logic(group_inp, session)
             return Group.get(result["id"], session=session)
 
-    # add update group
+    async def update_model(self, request, pk, data):
+        scope_ids = [int(s) for s in (data.pop("scopes", None) or [])]
+        parent_id = int(data["parent_id"]) if data.get("parent_id") else None
+        group_inp = GroupPatch(
+            name=data.get("name"),
+            parent_id=parent_id,
+            scopes=scope_ids,
+        )
+        with self.session_maker(expire_on_commit=False) as session:
+            return patch_group_logic(int(pk), group_inp, session)
+
     async def delete_model(self, request, pk):
         with self.session_maker(expire_on_commit=False) as session:
             delete_group_id(int(pk), session)
@@ -104,6 +116,7 @@ class UserAdmin(ModelView, model=User):
     column_formatters_detail = {
         "scopes": lambda m, a: ", ".join(s.name for s in (m.scopes or set())),
     }
+    form_converter = FilteredModelConverter
 
     def list_query(self, request: Request) -> Select:
         return select(User).where(User.is_deleted == False)

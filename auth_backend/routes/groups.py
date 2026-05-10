@@ -73,6 +73,31 @@ async def create_group(
     return Group(**result).model_dump(exclude_unset=True)
 
 
+def patch_group_logic(id: int, group_inp: GroupPatch, session) -> DbGroup:
+    if (
+        exists_check := DbGroup.query(session=session)
+        .filter(DbGroup.name == group_inp.name, DbGroup.id != id)
+        .one_or_none()
+    ):
+        raise AlreadyExists(Group, exists_check.id)
+    group = DbGroup.get(id, session=session)
+    if group_inp.parent_id in (row.id for row in group.child):
+        raise HTTPException(
+            status_code=400,
+            detail=StatusResponseModel(status="Error", message="Cycle detected", ru="Найден цикл").model_dump(),
+        )
+    result = Group.model_validate(
+        DbGroup.update(id, session=session, **group_inp.model_dump(exclude_unset=True, exclude={"scopes"}))
+    ).model_dump(exclude_unset=True)
+    scopes = set()
+    if group_inp.scopes is not None:
+        for _scope_id in group_inp.scopes:
+            scopes.add(Scope.get(session=session, id=_scope_id))
+        group.scopes = scopes
+    session.commit()
+    return group
+
+
 @groups.patch("/{id}", response_model=Group)
 async def patch_group(
     id: int,
@@ -82,38 +107,18 @@ async def patch_group(
     """
     Scopes: `["auth.group.update"]`
     """
-    if (
-        exists_check := DbGroup.query(session=db.session)
-        .filter(DbGroup.name == group_inp.name, DbGroup.id != id)
-        .one_or_none()
-    ):
-        raise AlreadyExists(Group, exists_check.id)
-    group = DbGroup.get(id, session=db.session)
-    if group_inp.parent_id in (row.id for row in group.child):
-        raise HTTPException(
-            status_code=400,
-            detail=StatusResponseModel(status="Error", message="Cycle detected", ru="Найден цикл").model_dump(),
-        )
-    result = Group.model_validate(
-        DbGroup.update(id, session=db.session, **group_inp.model_dump(exclude_unset=True, exclude={"scopes"}))
-    ).model_dump(exclude_unset=True)
-    scopes = set()
-    if group_inp.scopes is not None:
-        for _scope_id in group_inp.scopes:
-            scopes.add(Scope.get(session=db.session, id=_scope_id))
-        group.scopes = scopes
-    db.session.commit()
+    group = patch_group_logic(id, group_inp, db.session)
     return Group.model_validate(group)
 
 
 def delete_group_id(id: int, session) -> None:
-    group: DbGroup = DbGroup.get(id, session=db.session)
+    group: DbGroup = DbGroup.get(id, session=session)
     if child := group.child:
         for children in child:
             children.parent_id = group.parent_id
-        db.session.flush()
-    DbGroup.delete(id, session=db.session)
-    db.session.commit()
+        session.flush()
+    DbGroup.delete(id, session=session)
+    session.commit()
 
 
 @groups.delete("/{id}", response_model=None)
