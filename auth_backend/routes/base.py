@@ -8,6 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from auth_backend import __version__
 from auth_backend.admin.admin import GroupAdmin, ScopeAdmin, UserAdmin
+from auth_backend.admin.auth import AdminAuth
 from auth_backend.auth_method import AuthPluginMeta
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.settings import get_settings
@@ -43,7 +44,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-admin = Admin(app, engine=engine, title='Admin panel')
+admin = Admin(
+    app, engine=engine, title='Admin panel', authentication_backend=AdminAuth(secret_key=settings.ADMIN_SECRET_KEY)
+)
 
 app.add_middleware(
     DBSessionMiddleware,
