@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 
 settings = get_settings()
 
-engine = create_engine(str(settings.DB_DSN))
+engine = create_engine(str(settings.DB_DSN), pool_pre_ping=True)
 
 app = FastAPI(
     title='Сервис аутентификации и авторизации',
@@ -45,7 +45,7 @@ app = FastAPI(
 )
 
 admin = Admin(
-    app, engine=engine, title='Admin panel', authentication_backend=AdminAuth(secret_key=settings.ADMIN_SECRET_KEY)
+    app, engine=engine, title='Auth admin panel', authentication_backend=AdminAuth(secret_key=settings.ADMIN_SECRET_KEY)
 )
 
 app.add_middleware(
