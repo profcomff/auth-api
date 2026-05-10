@@ -4,7 +4,9 @@ from sqlalchemy.sql.expression import Select
 from starlette.requests import Request
 
 from auth_backend.models.db import Group, Scope, User
+from auth_backend.routes.groups import create_group_logic, delete_group_id
 from auth_backend.routes.user import patch_user_groups
+from auth_backend.schemas.models import GroupPost
 
 
 class ScopeAdmin(ModelView, model=Scope):
@@ -69,6 +71,20 @@ class GroupAdmin(ModelView, model=Group):
 
     def count_query(self, request: Request) -> Select:
         return select(func.count(Group.id)).where(Group.is_deleted == False)
+
+    # add logic with deleted scopes showed
+    async def insert_model(self, request, data):
+        scope_ids = [int(s) for s in (data.pop("scopes", None) or [])]
+        parent_id = int(data["parent_id"]) if data.get("parent_id") else None
+        group_inp = GroupPost(name=data["name"], parent_id=parent_id, scopes=scope_ids)
+        with self.session_maker(expire_on_commit=False) as session:
+            result = create_group_logic(group_inp, session)
+            return Group.get(result["id"], session=session)
+
+    # add update group
+    async def delete_model(self, request, pk):
+        with self.session_maker(expire_on_commit=False) as session:
+            delete_group_id(int(pk), session)
 
 
 class UserAdmin(ModelView, model=User):
