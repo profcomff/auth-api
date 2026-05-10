@@ -18,9 +18,7 @@ class ScopeAdmin(ModelView, model=Scope):
         "id",
         "name",
         "comment",
-        "group",
-        "create_ts",
-        "update_ts",
+        "creator_id",
         "is_deleted",
     ]
     column_searchable_list = ["id", "name"]
@@ -66,7 +64,7 @@ class GroupAdmin(ModelView, model=Group):
     column_searchable_list = ["name"]
     column_sortable_list = ["id", "name", "parent_id", "is_deleted"]
     column_default_sort = [("id", False)]
-    form_excluded_columns = ["create_ts", "update_ts", "is_deleted"]
+    form_excluded_columns = ["child", "users", "create_ts", "update_ts", "is_deleted"]
     form_converter = FilteredModelConverter
 
     def list_query(self, request: Request) -> Select:
