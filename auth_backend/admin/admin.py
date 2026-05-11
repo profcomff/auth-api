@@ -6,8 +6,9 @@ from starlette.requests import Request
 from auth_backend.admin.filter import FilteredModelConverter
 from auth_backend.models.db import Group, Scope, User
 from auth_backend.routes.groups import create_group_logic, delete_group_id, patch_group_logic
+from auth_backend.routes.scopes import create_scope_logic
 from auth_backend.routes.user import patch_user_groups
-from auth_backend.schemas.models import GroupPatch, GroupPost
+from auth_backend.schemas.models import GroupPatch, GroupPost, ScopePost
 
 
 class ScopeAdmin(ModelView, model=Scope):
@@ -25,7 +26,6 @@ class ScopeAdmin(ModelView, model=Scope):
     column_sortable_list = ["id", "name"]
     column_default_sort = [("id", False)]
     form_excluded_columns = ["create_ts", "update_ts", "groups", "user_sessions", "is_deleted"]
-    can_create = False  # I don't know how to use UnionAuth there to get user_id that is required
     form_converter = FilteredModelConverter
 
     def list_query(self, request: Request) -> Select:
@@ -33,6 +33,13 @@ class ScopeAdmin(ModelView, model=Scope):
 
     def count_query(self, request: Request) -> Select:
         return select(func.count(Scope.id)).where(Scope.is_deleted == False)
+    
+    async def insert_model(self, request: Request, data: dict):
+        user_id = request.session.get("user_id")
+        scope_inp = ScopePost(**data)
+        with self.session_maker(expire_on_commit=False) as session:
+            obj = create_scope_logic(scope_inp, session, user_id)
+            return Scope.get(obj.id, session=session)
 
     async def update_model(self, request, pk, data):
         with self.session_maker(expire_on_commit=False) as session:

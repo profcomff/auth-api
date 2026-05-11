@@ -1,9 +1,10 @@
+from auth_lib.methods import AuthLib
 from fastapi import Request
 from sqladmin.authentication import AuthenticationBackend
 
 from auth_backend.settings import get_settings
-from auth_backend.utils.security import UnionAuth
-from auth_lib.methods import AuthLib
+from typing import Any
+
 
 settings = get_settings()
 
@@ -16,34 +17,35 @@ class AdminAuth(AuthenticationBackend):
         if username != settings.ADMIN_LOGIN:
             return False
         valid = await self._is_valid_token(token)
-        if valid:
-            request.session["token"] = token
-            return True
-        else:
+        if valid is None:
             return False
+        request.session["token"] = token
+        request.session["user_id"] = valid.get("id")
+        return True
 
     async def authenticate(self, request: Request) -> bool:
         token = request.session.get("token")
         if not token:
             return False
-        return await self._is_valid_token(token)
+        userdata = await self._is_valid_token(token)
+        return userdata is not None
 
     async def logout(self, request: Request) -> bool:
         request.session.clear()
         return True
 
     @staticmethod
-    async def _is_valid_token(token: str) -> bool:
+    async def _is_valid_token(token: str) -> dict[str, Any] | None:
         try:
             result = AuthLib(auth_url=settings.AUTH_URL).check_token(token)
             if not result:
-                return False
+                return None
             session_scopes = {
                 scope["name"].lower() for scope in result.get("session_scopes", [])
             }
             required_scopes = "auth.sqladmin.admin"
             if required_scopes not in session_scopes:
-                return False
-            return True
+                return None
+            return result
         except Exception:
-            return False
+            return None
