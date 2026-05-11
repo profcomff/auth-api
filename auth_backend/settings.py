@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     KAFKA_TIMEOUT: int = 2
     KAFKA_LOGIN: str | None = None
     KAFKA_PASSWORD: str | None = None
-    ADMIN_SECRET_KEY: str | None = None
+    ADMIN_SECRET_KEY: str = "default"
     ADMIN_LOGIN: str = "admin"
     ADMIN_PASSWORD: str = "admin"
 

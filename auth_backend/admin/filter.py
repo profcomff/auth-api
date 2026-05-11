@@ -5,6 +5,10 @@ from sqlalchemy import select
 
 
 class FilteredModelConverter(ModelConverter):
+    """
+    A custom ModelConverter that filters out deleted objects from select options in form with create/update.
+    """
+
     async def _prepare_select_options(self, prop, session_maker):
         target_model = prop.mapper.class_
         stmt = select(target_model)
