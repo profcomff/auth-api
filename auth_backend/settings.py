@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     ADMIN_SECRET_KEY: str = "default"
     ADMIN_LOGIN: str = "admin"
     ADMIN_PASSWORD: str = "admin"
+    AUTH_URL: str = "https://api.test.profcomff.com/auth/"
 
     ROOT_PATH: str = '/' + os.getenv('APP_NAME', '')
 
