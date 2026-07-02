@@ -3,6 +3,6 @@ pytest-cov
 requests
 httpx
 flake8
-black
+black==23.11.0
 autoflake
 isort
