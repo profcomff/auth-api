@@ -11,7 +11,6 @@ settings = get_settings()
 
 
 class AdminAuth(AuthenticationBackend):
-
     async def login(self, request: Request) -> bool:
         form = await request.form()
         username = form.get("username")
