@@ -2,9 +2,13 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi_sqlalchemy import DBSessionMiddleware
+from sqladmin import Admin
+from sqlalchemy import create_engine
 from starlette.middleware.cors import CORSMiddleware
 
 from auth_backend import __version__
+from auth_backend.admin.admin import GroupAdmin, ScopeAdmin, UserAdmin
+from auth_backend.admin.auth import AdminAuth
 from auth_backend.auth_method import AuthPluginMeta
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.settings import get_settings
@@ -23,6 +27,9 @@ async def lifespan(app: FastAPI):
 
 
 settings = get_settings()
+
+engine = create_engine(str(settings.DB_DSN), pool_pre_ping=True)
+
 app = FastAPI(
     title='Сервис аутентификации и авторизации',
     description=(
@@ -35,6 +42,10 @@ app = FastAPI(
     docs_url=None if __version__ != 'dev' else '/docs',
     redoc_url=None,
     lifespan=lifespan,
+)
+
+admin = Admin(
+    app, engine=engine, title='Auth admin panel', authentication_backend=AdminAuth(secret_key=settings.ADMIN_SECRET_KEY)
 )
 
 app.add_middleware(
@@ -50,6 +61,10 @@ app.add_middleware(
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )
+
+admin.add_view(GroupAdmin)
+admin.add_view(ScopeAdmin)
+admin.add_view(UserAdmin)
 
 app.include_router(groups_router)
 app.include_router(scopes_router)

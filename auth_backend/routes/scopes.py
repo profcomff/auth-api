@@ -12,6 +12,18 @@ from auth_backend.utils.security import UnionAuth
 scopes = APIRouter(prefix="/scope", tags=["Scopes"])
 
 
+def create_scope_logic(scope: ScopePost, session, creator_id) -> dict:
+    if Scope.query(session=session).filter(func.lower(Scope.name) == scope.name.lower()).all():
+        raise HTTPException(
+            status_code=409,
+            detail=StatusResponseModel(status="Error", message="Already exists", ru="Уже существует").model_dump(),
+        )
+    scope.name = scope.name.lower()
+    retval = ScopeGet.model_validate(Scope.create(**scope.model_dump(), creator_id=creator_id, session=session))
+    session.commit()
+    return retval
+
+
 @scopes.post("", response_model=ScopeGet)
 async def create_scope(
     scope: ScopePost,
@@ -20,17 +32,8 @@ async def create_scope(
     """
     Scopes: `["auth.scope.create"]`
     """
-    if Scope.query(session=db.session).filter(func.lower(Scope.name) == scope.name.lower()).all():
-        raise HTTPException(
-            status_code=409,
-            detail=StatusResponseModel(status="Error", message="Already exists", ru="Уже существует").model_dump(),
-        )
-    scope.name = scope.name.lower()
-    retval = ScopeGet.model_validate(
-        Scope.create(**scope.model_dump(), creator_id=user_session.user_id, session=db.session)
-    )
-    db.session.commit()
-    return retval
+    retval = create_scope_logic(scope, db.session, user_session.user_id)
+    return ScopeGet.model_validate(retval)
 
 
 @scopes.get("/{id}", response_model=ScopeGet)

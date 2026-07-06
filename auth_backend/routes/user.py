@@ -110,6 +110,25 @@ async def get_users(
     return UsersGet(**result).model_dump(exclude_unset=True)
 
 
+def patch_user_groups(user_id: int, group_ids: list[int], session) -> None:
+    user = User.get(user_id, session=session)
+    groups = set()
+    for group_id in group_ids:
+        group = Group.get(group_id, session=session)
+        groups.add(group)
+    user_groups = set(user.groups)
+    new_groups = groups - user_groups
+    to_delete_groups = user_groups - groups
+    for group in new_groups:
+        UserGroup.create(session=session, user_id=user_id, group_id=group.id)
+    for group in to_delete_groups:
+        user_group: UserGroup = (
+            UserGroup.query(session=session).filter(UserGroup.user_id == user_id, UserGroup.group_id == group.id).one()
+        )
+        UserGroup.delete(user_group.id, session=session)
+    session.commit()
+
+
 @user.patch("/{user_id}", response_model=UserModel)
 async def patch_user(
     user_id: int,
@@ -119,25 +138,8 @@ async def patch_user(
     """
     Scopes: `["auth.user.update"]`
     """
-    user = User.get(user_id, session=db.session)
-    groups = set()
-    for group_id in user_inp.groups:
-        group = Group.get(group_id, session=db.session)
-        groups.add(group)
-    user_groups = set(user.groups)
-    new_groups = groups - user_groups
-    to_delete_groups = user_groups - groups
-    for group in new_groups:
-        UserGroup.create(session=db.session, user_id=user_id, group_id=group.id)
-    for group in to_delete_groups:
-        user_group: UserGroup = (
-            UserGroup.query(session=db.session)
-            .filter(UserGroup.user_id == user_id, UserGroup.group_id == group.id)
-            .one()
-        )
-        UserGroup.delete(user_group.id, session=db.session)
-    db.session.commit()
-    return UserModel.model_validate(user)
+    patch_user_groups(user_id, user_inp.groups, db.session)
+    return UserModel.model_validate(User.get(user_id, session=db.session))
 
 
 @user.delete("/{user_id}", response_model=None)
