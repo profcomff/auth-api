@@ -11,6 +11,7 @@ from auth_backend.utils.security import UnionAuth
 
 scopes = APIRouter(prefix="/scope", tags=["Scopes"])
 
+
 def create_scope_logic(scope: ScopePost, session, creator_id) -> dict:
     if Scope.query(session=session).filter(func.lower(Scope.name) == scope.name.lower()).all():
         raise HTTPException(
@@ -18,11 +19,10 @@ def create_scope_logic(scope: ScopePost, session, creator_id) -> dict:
             detail=StatusResponseModel(status="Error", message="Already exists", ru="Уже существует").model_dump(),
         )
     scope.name = scope.name.lower()
-    retval = ScopeGet.model_validate(
-        Scope.create(**scope.model_dump(), creator_id=creator_id, session=session)
-    )
+    retval = ScopeGet.model_validate(Scope.create(**scope.model_dump(), creator_id=creator_id, session=session))
     session.commit()
     return retval
+
 
 @scopes.post("", response_model=ScopeGet)
 async def create_scope(

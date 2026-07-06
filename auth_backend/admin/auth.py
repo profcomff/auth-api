@@ -1,12 +1,14 @@
+from typing import Any
+
 from auth_lib.methods import AuthLib
 from fastapi import Request
 from sqladmin.authentication import AuthenticationBackend
 
 from auth_backend.settings import get_settings
-from typing import Any
 
 
 settings = get_settings()
+
 
 class AdminAuth(AuthenticationBackend):
 
@@ -40,9 +42,7 @@ class AdminAuth(AuthenticationBackend):
             result = AuthLib(auth_url=settings.AUTH_URL).check_token(token)
             if not result:
                 return None
-            session_scopes = {
-                scope["name"].lower() for scope in result.get("session_scopes", [])
-            }
+            session_scopes = {scope["name"].lower() for scope in result.get("session_scopes", [])}
             required_scopes = "auth.sqladmin.admin"
             if required_scopes not in session_scopes:
                 return None

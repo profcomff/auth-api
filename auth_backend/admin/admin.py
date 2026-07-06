@@ -33,7 +33,7 @@ class ScopeAdmin(ModelView, model=Scope):
 
     def count_query(self, request: Request) -> Select:
         return select(func.count(Scope.id)).where(Scope.is_deleted == False)
-    
+
     async def insert_model(self, request: Request, data: dict):
         user_id = request.session.get("user_id")
         scope_inp = ScopePost(**data)
