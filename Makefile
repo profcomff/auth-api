@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 run:
-	source ./venv/bin/activate && uvicorn --reload --log-config logging_dev.conf auth_backend.routes.base:app
+	source ./venv/bin/activate && uvicorn --reload --log-config deploy/logging_dev.conf auth_backend.routes.base:app
 
 configure: venv
 	source ./venv/bin/activate && pip install -r requirements.dev.txt -r requirements.txt
@@ -23,6 +23,9 @@ format:
 db:
 	docker run -d -p 5432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust --name db-auth_api postgres:15
 
+db-cleanup:
+	alembic downgrade head-"$(alembic heads | wc -l | sed 's/ //g')"
+	alembic upgrade head
 
 migrate:
 	source ./venv/bin/activate && alembic upgrade head
