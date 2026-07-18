@@ -20,7 +20,6 @@ from auth_backend.utils.string import concantenate_strings
 
 from ..schemas.types.scopes import Scope
 
-
 logger = logging.getLogger(__name__)
 
 

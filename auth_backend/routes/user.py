@@ -23,7 +23,6 @@ from auth_backend.schemas.models import (
 )
 from auth_backend.utils.security import UnionAuth
 
-
 logger = logging.getLogger(__name__)
 user = APIRouter(prefix="/user", tags=["User"])
 

@@ -92,9 +92,11 @@ jobs:
             --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
+            --env SMTP_PASS='${{ secrets.SMTP_PASS }}' \
             --env ENABLED_AUTH_METHODS='${{ vars.ENABLED_AUTH_METHODS }}' \
-            --env SMTP_HOST='mail.profcomff.com' \
-            --env SMTP_PORT='465' \
+            --env SMTP_HOST='${{ vars.SMTP_HOST }}' \
+            --env SMTP_PORT='${{ vars.SMTP_PORT }}' \
+            --env SMTP_LOGIN='${{ secrets.SMTP_LOGIN }}' \
             --env APPLICATION_HOST='${{ vars.HOST }}' \
             --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
             --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
@@ -190,9 +192,11 @@ jobs:
             --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
+            --env SMTP_PASS='${{ secrets.SMTP_PASS }}' \
             --env ENABLED_AUTH_METHODS='${{ vars.ENABLED_AUTH_METHODS }}' \
-            --env SMTP_HOST='mail.profcomff.com' \
-            --env SMTP_PORT='465' \
+            --env SMTP_HOST='${{ vars.SMTP_HOST }}' \
+            --env SMTP_PORT='${{ vars.SMTP_PORT }}' \
+            --env SMTP_LOGIN='${{ secrets.SMTP_LOGIN }}' \
             --env APPLICATION_HOST='${{ vars.HOST }}' \
             --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
             --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \

@@ -5,7 +5,6 @@ from starlette import status
 from auth_backend.models.db import AuthMethod, User
 from auth_backend.settings import get_settings
 
-
 settings = get_settings()
 
 

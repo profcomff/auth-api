@@ -8,7 +8,6 @@ from auth_backend.models.db import Scope, UserSession
 from auth_backend.schemas.models import ScopeGet, ScopePatch, ScopePost
 from auth_backend.utils.security import UnionAuth
 
-
 scopes = APIRouter(prefix="/scope", tags=["Scopes"])
 
 

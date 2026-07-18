@@ -7,7 +7,6 @@ from starlette.testclient import TestClient
 
 from auth_backend.models.db import Group, GroupScope, Scope, UserGroup, UserSession, UserSessionScope
 
-
 logger = logging.getLogger(__name__)
 
 

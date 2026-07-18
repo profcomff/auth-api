@@ -20,7 +20,6 @@ from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 
-
 AUTH_METHOD_ID_PARAM_NAME = 'user_id'
 logger = logging.getLogger(__name__)
 
