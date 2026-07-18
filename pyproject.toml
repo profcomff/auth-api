@@ -7,7 +7,6 @@ skip-string-normalization = true
 line_length = 120
 multi_line_output = 3
 profile = "black"
-lines_after_imports = 2
 include_trailing_comma = true
 
 [tool.pytest.ini_options]
