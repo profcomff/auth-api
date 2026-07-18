@@ -95,7 +95,7 @@ jobs:
             --env SMTP_PASS='${{ secrets.SMTP_PASS }}' \
             --env ENABLED_AUTH_METHODS='${{ vars.ENABLED_AUTH_METHODS }}' \
             --env SMTP_HOST='${{ vars.SMTP_HOST }}' \
-            --env SMTP_PORT='587' \
+            --env SMTP_PORT='${{ vars.SMTP_PORT }}' \
             --env SMTP_LOGIN='${{ secrets.SMTP_LOGIN }}' \
             --env APPLICATION_HOST='${{ vars.HOST }}' \
             --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
@@ -195,7 +195,7 @@ jobs:
             --env SMTP_PASS='${{ secrets.SMTP_PASS }}' \
             --env ENABLED_AUTH_METHODS='${{ vars.ENABLED_AUTH_METHODS }}' \
             --env SMTP_HOST='${{ vars.SMTP_HOST }}' \
-            --env SMTP_PORT='587' \
+            --env SMTP_PORT='${{ vars.SMTP_PORT }}' \
             --env SMTP_LOGIN='${{ secrets.SMTP_LOGIN }}' \
             --env APPLICATION_HOST='${{ vars.HOST }}' \
             --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
