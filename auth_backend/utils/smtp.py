@@ -115,8 +115,9 @@ class SendEmailMessage:
         text = MIMEText(tmp, "html")
         msgAlternative.attach(text)
 
-        with smtplib.SMTP_SSL(cls.settings.SMTP_HOST, 465) as smtp:
-            smtp.login(cls.settings.EMAIL, cls.settings.EMAIL_PASS)
+        with smtplib.SMTP(cls.settings.SMTP_HOST, cls.settings.SMTP_PORT) as smtp:
+            smtp.starttls()
+            smtp.login(cls.settings.SMTP_LOGIN, cls.settings.SMTP_PASS)
             smtp.sendmail(cls.settings.EMAIL, to_email, message.as_string())
 
     @classmethod
