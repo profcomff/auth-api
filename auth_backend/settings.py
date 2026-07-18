@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     SMTP_PASS: str | None = None
     SMTP_HOST: str = 'smtp.gmail.com'
     SMTP_PORT: int = 587
-    SMTP_LOGIN: str = '0'
+    SMTP_LOGIN: str | None = None
     ENABLED_AUTH_METHODS: list[str] | None = None
     TOKEN_LENGTH: Annotated[int, Gt(8)] = 64
     SESSION_TIME_IN_DAYS: int = 30
