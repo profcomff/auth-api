@@ -12,7 +12,6 @@ from auth_backend.exceptions import TooManyEmailRequests
 from auth_backend.models.db import UserMessageDelay
 from auth_backend.settings import Settings, get_settings
 
-
 logger = logging.getLogger(__name__)
 
 
