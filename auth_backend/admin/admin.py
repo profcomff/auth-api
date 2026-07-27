@@ -73,6 +73,13 @@ class GroupAdmin(ModelView, model=Group):
     column_default_sort = [("id", False)]
     form_excluded_columns = ["child", "users", "create_ts", "update_ts", "is_deleted"]
     form_converter = FilteredModelConverter
+    form_ajax_refs = {
+        "scopes": {
+            "fields": ["name"],
+            "order_by": "name",
+            "page_size": 20,
+        },
+    }
 
     def list_query(self, request: Request) -> Select:
         return select(Group).where(Group.is_deleted == False)
@@ -122,6 +129,14 @@ class UserAdmin(ModelView, model=User):
         "scopes": lambda m, a: ", ".join(s.name for s in (m.scopes or set())),
     }
     form_converter = FilteredModelConverter
+
+    form_ajax_refs = {
+        "groups": {
+            "fields": ["name"],
+            "order_by": "name",
+            "page_size": 20,
+        },
+    }
 
     def list_query(self, request: Request) -> Select:
         return select(User).where(User.is_deleted == False)
