@@ -22,7 +22,7 @@ class ScopeAdmin(ModelView, model=Scope):
         "creator_id",
         "is_deleted",
     ]
-    column_searchable_list = ["id", "name"]
+    column_searchable_list = ["id", "name", "comment"]
     column_sortable_list = ["id", "name"]
     column_default_sort = [("id", False)]
     form_excluded_columns = ["create_ts", "update_ts", "groups", "user_sessions", "is_deleted"]
@@ -57,7 +57,7 @@ class ScopeAdmin(ModelView, model=Scope):
 class GroupAdmin(ModelView, model=Group):
     name = "Group"
     name_plural = "Groups"
-    column_list = ["id", "name", "scopes", "users", "parent_id"]
+    column_list = ["id", "name", "scopes"]
     column_details_list = [
         "id",
         "name",
@@ -69,7 +69,7 @@ class GroupAdmin(ModelView, model=Group):
         "is_deleted",
     ]
     column_searchable_list = ["name"]
-    column_sortable_list = ["id", "name", "parent_id", "is_deleted"]
+    column_sortable_list = ["id", "name"]
     column_default_sort = [("id", False)]
     form_excluded_columns = ["child", "users", "create_ts", "update_ts", "is_deleted"]
     form_converter = FilteredModelConverter
@@ -114,7 +114,7 @@ class GroupAdmin(ModelView, model=Group):
 class UserAdmin(ModelView, model=User):
     name = "User"
     name_plural = "Users"
-    column_list = ["id", "scopes", "groups"]
+    column_list = ["id", "groups"]
     column_details_list = ["id", "groups", "scopes", "is_deleted"]
     column_searchable_list = ["id"]
     column_sortable_list = ["id", "is_deleted"]
