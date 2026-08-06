@@ -57,7 +57,7 @@ class ScopeAdmin(ModelView, model=Scope):
 class GroupAdmin(ModelView, model=Group):
     name = "Group"
     name_plural = "Groups"
-    column_list = ["id", "name", "scopes"]
+    column_list = ["id", "name"]
     column_details_list = [
         "id",
         "name",
