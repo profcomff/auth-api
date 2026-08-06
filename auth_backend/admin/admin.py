@@ -10,6 +10,9 @@ from auth_backend.routes.scopes import create_scope_logic
 from auth_backend.routes.user import patch_user_groups
 from auth_backend.schemas.models import GroupPatch, GroupPost, ScopePost
 
+def _pk(value) -> int | None:
+    """id of the object or the value itself if it is not an object with an id attribute"""
+    return int(getattr(value, "id", value)) if value else None
 
 class ScopeAdmin(ModelView, model=Scope):
     name = "Scope"
@@ -88,16 +91,16 @@ class GroupAdmin(ModelView, model=Group):
         return select(func.count(Group.id)).where(Group.is_deleted == False)
 
     async def insert_model(self, request, data):
-        scope_ids = [int(s) for s in (data.pop("scopes", None) or [])]
-        parent_id = int(data["parent_id"]) if data.get("parent_id") else None
+        scope_ids = [_pk(s) for s in (data.pop("scopes", None) or [])]
+        parent_id = _pk(data.get("parent"))
         group_inp = GroupPost(name=data["name"], parent_id=parent_id, scopes=scope_ids)
         with self.session_maker(expire_on_commit=False) as session:
             result = create_group_logic(group_inp, session)
             return Group.get(result["id"], session=session)
 
     async def update_model(self, request, pk, data):
-        scope_ids = [int(s) for s in (data.pop("scopes", None) or [])]
-        parent_id = int(data["parent_id"]) if data.get("parent_id") else None
+        scope_ids = [_pk(s) for s in (data.pop("scopes", None) or [])]
+        parent_id = _pk(data.get("parent"))
         group_inp = GroupPatch(
             name=data.get("name"),
             parent_id=parent_id,
