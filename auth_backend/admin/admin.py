@@ -1,3 +1,4 @@
+from markupsafe import Markup
 from sqladmin import ModelView
 from sqlalchemy import func, select
 from sqlalchemy.sql.expression import Select
@@ -10,9 +11,11 @@ from auth_backend.routes.scopes import create_scope_logic
 from auth_backend.routes.user import patch_user_groups
 from auth_backend.schemas.models import GroupPatch, GroupPost, ScopePost
 
+
 def _pk(value) -> int | None:
     """id of the object or the value itself if it is not an object with an id attribute"""
     return int(getattr(value, "id", value)) if value else None
+
 
 class ScopeAdmin(ModelView, model=Scope):
     name = "Scope"
@@ -71,7 +74,7 @@ class GroupAdmin(ModelView, model=Group):
         "update_ts",
         "is_deleted",
     ]
-    column_searchable_list = ["name"]
+    column_searchable_list = ["id", "name"]
     column_sortable_list = ["id", "name"]
     column_default_sort = [("id", False)]
     form_excluded_columns = ["child", "users", "create_ts", "update_ts", "is_deleted"]
@@ -125,11 +128,10 @@ class UserAdmin(ModelView, model=User):
     form_columns = ["groups"]
     can_create = False
     can_delete = False
-    column_formatters = {
-        "scopes": lambda m, a: ", ".join(s.name for s in m.scopes),
-    }
     column_formatters_detail = {
-        "scopes": lambda m, a: ", ".join(s.name for s in (m.scopes or set())),
+        "scopes": lambda m, a: Markup(
+            '<div style="white-space:pre-wrap">' + "\n".join(sorted(s.name for s in (m.scopes or set()))) + "</div>"
+        ),
     }
     form_converter = FilteredModelConverter
 
@@ -148,7 +150,7 @@ class UserAdmin(ModelView, model=User):
         return select(func.count(User.id)).where(User.is_deleted == False)
 
     async def update_model(self, request, pk, data):
-        group_ids = [int(group) for group in (data.pop("groups") or [])]
+        group_ids = [_pk(group) for group in (data.pop("groups", None) or [])]
         with self.session_maker(expire_on_commit=False) as session:
             patch_user_groups(int(pk), group_ids, session)
             return User.get(int(pk), session=session)
