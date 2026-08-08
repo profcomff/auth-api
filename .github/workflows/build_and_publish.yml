@@ -144,7 +144,7 @@ jobs:
             --env JWT_PRIVATE_KEY='${{ secrets.JWT_PRIVATE_KEY }}' \
             --env ADMIN_SECRET_KEY='${{ secrets.ADMIN_SECRET_KEY }}' \
             --env ADMIN_LOGIN='${{ secrets.ADMIN_LOGIN }}' \
-            --env AUTH_URL='${{ vars.AUTH_URL }}' \
+            --env SQLADMIN_AUTH_URL='${{ vars.SQLADMIN_AUTH_URL }}' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
           docker network connect web ${{ env.CONTAINER_NAME }}
@@ -242,7 +242,7 @@ jobs:
             --env GUNICORN_CMD_ARGS='--log-config  logging_prod.conf --forwarded-allow-ips="172.16.0.0/12"' \
             --env ADMIN_SECRET_KEY='${{ secrets.ADMIN_SECRET_KEY }}' \
             --env ADMIN_LOGIN='${{ secrets.ADMIN_LOGIN }}' \
-            --env AUTH_URL='${{ vars.AUTH_URL }}' \
+            --env SQLADMIN_AUTH_URL='${{ vars.SQLADMIN_AUTH_URL }}' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           docker network connect web ${{ env.CONTAINER_NAME }}

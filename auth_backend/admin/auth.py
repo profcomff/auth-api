@@ -37,7 +37,7 @@ class AdminAuth(AuthenticationBackend):
     @staticmethod
     async def _is_valid_token(token: str) -> dict[str, Any] | None:
         try:
-            result = AuthLib(auth_url=settings.AUTH_URL).check_token(token)
+            result = AuthLib(auth_url=settings.SQLADMIN_AUTH_URL).check_token(token)
             if not result:
                 return None
             session_scopes = {scope["name"].lower() for scope in result.get("session_scopes", [])}
