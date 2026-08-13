@@ -31,10 +31,10 @@ test:
 	source ./venv/bin/activate && python3 -m pytest --verbosity=2 --showlocals --log-level=DEBUG
 
 create-user:
-	python -m auth_backend user create --email test-user@profcomff.com --password string
+	python -m auth_backend user create --email test-user@profcomff.com --password string12
 
 create-admin:
-	source ./venv/bin/activate && python -m auth_backend user create --email test-admin@profcomff.com --password string
+	source ./venv/bin/activate && python -m auth_backend user create --email test-admin@profcomff.com --password string12
 	source ./venv/bin/activate && python -m auth_backend scope create --name auth.group.create                     --comment auth.group.create                     --creator_email test-admin@profcomff.com
 	source ./venv/bin/activate && python -m auth_backend scope create --name auth.group.delete                     --comment auth.group.delete                     --creator_email test-admin@profcomff.com
 	source ./venv/bin/activate && python -m auth_backend scope create --name auth.group.read                       --comment auth.group.read                       --creator_email test-admin@profcomff.com
@@ -61,7 +61,7 @@ create-admin:
 	source ./venv/bin/activate && python -m auth_backend user_group create --email test-admin@profcomff.com
 
 login-user:
-	curl -X 'POST' 'http://localhost:8000/email/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"email": "test-user@profcomff.com", "password": "string"}'
+	curl -X 'POST' 'http://localhost:8000/email/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"email": "test-user@profcomff.com", "password": "string12"}'
 
 login-admin:
-	curl -X 'POST' 'http://localhost:8000/email/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"email": "test-admin@profcomff.com", "password": "string"}'
+	curl -X 'POST' 'http://localhost:8000/email/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"email": "test-admin@profcomff.com", "password": "string12"}'

@@ -39,7 +39,7 @@ def test_jwks(client_auth: TestClient):
 
 def test_token_from_token_ok(client_auth: TestClient, dbsession: Session):
     # Подготовка к тесту
-    body = {"email": f"user{datetime.utcnow()}@example.com", "password": "string", "scopes": []}
+    body = {"email": f"user{datetime.utcnow()}@example.com", "password": "string12", "scopes": []}
     user_response = client_auth.post("/email/registration", json=body)
     query = (
         dbsession.query(AuthMethod)
@@ -108,7 +108,7 @@ def test_token_from_creds_ok(client_auth: TestClient, user):
             "grant_type": "client_credentials",
             "client_id": "app",
             "username": user["body"]["email"],
-            "password": "string",
+            "password": "string12",
         },
     )
     assert response.status_code == status.HTTP_200_OK

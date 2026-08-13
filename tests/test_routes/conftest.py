@@ -58,7 +58,7 @@ def dbsession():
 @pytest.fixture()
 def user_id(client_auth: TestClient, dbsession):
     time = datetime.datetime.utcnow()
-    body = {"email": f"user{time}@example.com", "password": "string"}
+    body = {"email": f"user{time}@example.com", "password": "string12"}
     client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
@@ -78,7 +78,7 @@ def user_id(client_auth: TestClient, dbsession):
 def user(client_auth: TestClient, dbsession):
     url = "/email/login"
     time = datetime.datetime.utcnow()
-    body = {"email": f"user{time}@example.com", "password": "string", "scopes": []}
+    body = {"email": f"user{time}@example.com", "password": "string12", "scopes": []}
     response = client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
         dbsession.query(AuthMethod).filter(AuthMethod.value == body['email'], AuthMethod.param == 'email').one()
