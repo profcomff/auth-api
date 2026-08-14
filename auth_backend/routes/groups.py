@@ -13,6 +13,17 @@ from auth_backend.utils.security import UnionAuth
 groups = APIRouter(prefix="/group", tags=["Groups"])
 
 
+def _get_all_descendants(group: DbGroup) -> set[int]:
+    """
+    Рекурсивно получить IDs всех потомков группы (детей, внуков и т.д.)
+    """
+    descendants = set()
+    for child in group.child:
+        descendants.add(child.id)
+        descendants.update(_get_all_descendants(child))
+    return descendants
+
+
 @groups.get("/{id}", response_model=GroupGet, response_model_exclude_unset=True)
 async def get_group(
     id: int,
@@ -80,11 +91,15 @@ def patch_group_logic(id: int, group_inp: GroupPatch, session) -> DbGroup:
     ):
         raise AlreadyExists(Group, exists_check.id)
     group = DbGroup.get(id, session=session)
-    if group_inp.parent_id in (row.id for row in group.child):
-        raise HTTPException(
-            status_code=400,
-            detail=StatusResponseModel(status="Error", message="Cycle detected", ru="Найден цикл").model_dump(),
-        )
+
+    if group_inp.parent_id:
+        all_descendants = _get_all_descendants(group)
+        if group_inp.parent_id in all_descendants:
+            raise HTTPException(
+                status_code=400,
+                detail=StatusResponseModel(status="Error", message="Cycle detected", ru="Найден цикл").model_dump(),
+            )
+
     result = Group.model_validate(
         DbGroup.update(id, session=session, **group_inp.model_dump(exclude_unset=True, exclude={"scopes"}))
     ).model_dump(exclude_unset=True)
