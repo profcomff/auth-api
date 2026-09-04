@@ -5,22 +5,23 @@ from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
 
-PASSWORD_MIN_LENGTH = 8
-PASSWORD_MAX_LENGTH = 32
+from auth_backend.settings import get_settings
+
+settings = get_settings()
+
 PASSWORD_ALLOWED_CHARACTERS = string.ascii_letters + string.digits + string.punctuation
-PASSWORD_PATTERN = r"^[\x21-\x7E]+$"
 PASSWORD_REQUIREMENTS = (
-    f"Password must be {PASSWORD_MIN_LENGTH}-{PASSWORD_MAX_LENGTH} characters long and contain only "
+    f"Password must be {settings.PASSWORD_MIN_LENGTH}-{settings.PASSWORD_MAX_LENGTH} characters long and contain only "
     "ASCII letters, digits and punctuation. Spaces and non-ASCII characters are not allowed."
 )
 
 
 def validate_password(value: str) -> str:
     """Validate a newly created password according to the Auth API password policy."""
-    if len(value) < PASSWORD_MIN_LENGTH:
-        raise ValueError(f"Password must be at least {PASSWORD_MIN_LENGTH} characters long")
-    if len(value) > PASSWORD_MAX_LENGTH:
-        raise ValueError(f"Password must be at most {PASSWORD_MAX_LENGTH} characters long")
+    if len(value) < settings.PASSWORD_MIN_LENGTH:
+        raise ValueError(f"Password must be at least {settings.PASSWORD_MIN_LENGTH} characters long")
+    elif len(value) > settings.PASSWORD_MAX_LENGTH:
+        raise ValueError(f"Password must be at most {settings.PASSWORD_MAX_LENGTH} characters long")
     if any(character not in PASSWORD_ALLOWED_CHARACTERS for character in value):
         raise ValueError(
             "Password may contain only ASCII letters, digits and punctuation; "
@@ -45,12 +46,15 @@ class Password:
         cls, core_schema_: core_schema.CoreSchema, handler: GetJsonSchemaHandler
     ) -> JsonSchemaValue:
         field_schema = handler(core_schema_)
+        allowed_character_class = "".join(
+            f"\\{character}" if character in "\\-]^" else character for character in PASSWORD_ALLOWED_CHARACTERS
+        )
         field_schema.update(
             type="string",
             format="password",
-            minLength=PASSWORD_MIN_LENGTH,
-            maxLength=PASSWORD_MAX_LENGTH,
-            pattern=PASSWORD_PATTERN,
+            minLength=settings.PASSWORD_MIN_LENGTH,
+            maxLength=settings.PASSWORD_MAX_LENGTH,
+            pattern=f"^[{allowed_character_class}]+$",
             description=PASSWORD_REQUIREMENTS,
         )
         return field_schema

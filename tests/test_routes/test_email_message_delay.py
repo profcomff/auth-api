@@ -16,11 +16,11 @@ def test_message_delay(client_auth_email_delay: TestClient, dbsession: Session):
     settings_.EMAIL_DELAY_TIME_IN_MINUTES = 1
     for i in range(settings.IP_DELAY_COUNT):
         response = client_auth_email_delay.post(
-            "/email/registration", json={"email": f"test-user@profcomff.com", "password": "string12"}
+            "/email/registration", json={"email": f"test-user@profcomff.com", "password": "test-password"}
         )
         assert response.status_code == status.HTTP_200_OK
     delay_response = client_auth_email_delay.post(
-        "/email/registration", json={"email": f"test-user@profcomff.com", "password": "string12"}
+        "/email/registration", json={"email": f"test-user@profcomff.com", "password": "test-password"}
     )
     assert delay_response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
     settings_.IP_DELAY_TIME_IN_MINUTES = ip_delay

@@ -9,7 +9,12 @@ from auth_backend.utils.string import random_string
 
 
 def create_user(email: str, password: str, session: Session) -> None:
-    password = validate_password(password)
+    try:
+        validate_password(password)
+    except ValueError as exc:
+        print(f"Invalid password: {exc}")
+        exit(errno.EINVAL)
+
     if (
         AuthMethod.query(session=session)
         .filter(AuthMethod.value == email, AuthMethod.auth_method == "email")
