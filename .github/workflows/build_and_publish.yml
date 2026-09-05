@@ -145,8 +145,8 @@ jobs:
             --env ADMIN_SECRET_KEY='${{ secrets.ADMIN_SECRET_KEY }}' \
             --env ADMIN_LOGIN='${{ secrets.ADMIN_LOGIN }}' \
             --env SQLADMIN_AUTH_URL='${{ vars.SQLADMIN_AUTH_URL }}' \
-            --env PASSWORD_MIN_LENGTH='${{ vars.PASSWORD_MIN_LENGTH || '8' }}' \
-            --env PASSWORD_MAX_LENGTH='${{ vars.PASSWORD_MAX_LENGTH || '32' }}' \
+            --env PASSWORD_MIN_LENGTH='${{ vars.PASSWORD_MIN_LENGTH }}' \
+            --env PASSWORD_MAX_LENGTH='${{ vars.PASSWORD_MAX_LENGTH }}' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
           docker network connect web ${{ env.CONTAINER_NAME }}
