@@ -7,38 +7,32 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.settings import get_settings
 
 url = "/email/registration"
+settings = get_settings()
 
 
 def test_invalid_email(client_auth: TestClient, dbsession: Session):
-    body1 = {"email": f"notEmailForSure", "password": "string"}
-    body2 = {"email": f"EmailForSure{datetime.datetime.utcnow()}@mail.gtg", "password": ""}
-    body3 = {
-        "email": f"EmailForSure{datetime.datetime.utcnow()}@mail.gtg",
-        "password": "&%@#$@322îïíīįì3@##EFWed}efvef{}{}{}[èéêëēėę'",
+    body1 = {"email": "notEmailForSure", "password": "test-password"}
+    body2 = {"email": f"EmailFor+ _Sur{datetime.datetime.utcnow()}e@mail.gtg", "password": "string2222"}
+    body3 = {"email": f"Email For Sure {datetime.datetime.utcnow()} @ mail. gtg", "password": "test-password"}
+    body4 = {
+        "email": "roman@dyakov.space\nContent-Type: text/html; charset=utf-8;\n\nАхаха,лох<!---",
+        "password": "test-password",
     }
-    body4 = {"email": f"EmailFor+ _Sur{datetime.datetime.utcnow()}e@mail.gtg", "password": "string2222"}
-    body5 = {"email": f"Email For Sure {datetime.datetime.utcnow()} @ mail. gtg", "password": "string"}
-    body6 = {
-        "email": f"roman@dyakov.space\nContent-Type: text/html; charset=utf-8;\n\nАхаха,лох<!---",
-        "password": "string",
-    }
+
     response = client_auth.post(url, json=body1)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     response = client_auth.post(url, json=body2)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_200_OK
     response = client_auth.post(url, json=body3)
     assert response.status_code == status.HTTP_200_OK
     response = client_auth.post(url, json=body4)
-    assert response.status_code == status.HTTP_200_OK
-    response = client_auth.post(url, json=body5)
-    assert response.status_code == status.HTTP_200_OK
-    response = client_auth.post(url, json=body6)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     ids = []
-    for email in [body3["email"], body4["email"], body5["email"]]:
+    for email in [body2["email"], body3["email"]]:
         ids.append(
             dbsession.query(AuthMethod).filter(AuthMethod.param == "email", AuthMethod.value == email).one().user_id
         )
@@ -49,12 +43,30 @@ def test_invalid_email(client_auth: TestClient, dbsession: Session):
     dbsession.commit()
 
 
+def test_invalid_password(client_auth: TestClient):
+    invalid_passwords = [
+        "a" * (settings.PASSWORD_MIN_LENGTH - 1),
+        "a" * (settings.PASSWORD_MAX_LENGTH + 1),
+        "пароль123",
+        "password with space",
+        "password\n",
+        "password\t",
+    ]
+
+    for index, password in enumerate(invalid_passwords):
+        response = client_auth.post(
+            url,
+            json={"email": f"invalid-password-{index}@example.com", "password": password},
+        )
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
 def test_main_scenario(client_auth: TestClient, dbsession: Session):
     time = datetime.datetime.utcnow()
-    body1 = {"email": f"user{time}@example.com", "password": "string"}
+    body1 = {"email": f"user{time}@example.com", "password": "test-password"}
     response = client_auth.post(url, json=body1)
     assert response.status_code == status.HTTP_200_OK
-    body2 = {"email": f"UsEr{time}@example.com", "password": "string"}
+    body2 = {"email": f"UsEr{time}@example.com", "password": "test-password"}
     response = client_auth.post(url, json=body2)
     assert response.status_code == status.HTTP_200_OK
     db_user: AuthMethod = (
@@ -79,7 +91,7 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session):
 
 
 def test_repeated_registration_case(client_auth: TestClient, dbsession: Session):
-    body = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string"}
+    body = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "test-password"}
     response = client_auth.post(url, json=body)
     assert response.status_code == status.HTTP_200_OK
     db_user: AuthMethod = (
@@ -128,7 +140,7 @@ def test_user_exists(client_auth: TestClient, dbsession: Session):
     time = datetime.datetime.utcnow()
     email = f"user{time}@example.com"
     response = client_auth.post(
-        url, headers={"Authorization": _token}, json={"user_id": user.id, "email": email, "password": "string"}
+        url, headers={"Authorization": _token}, json={"user_id": user.id, "email": email, "password": "test-password"}
     )
     assert response.status_code == status.HTTP_200_OK
     db_user: AuthMethod = (
@@ -157,14 +169,14 @@ def test_double_email_registration(client_auth: TestClient, dbsession: Session, 
     time = datetime.datetime.utcnow()
     body1 = {
         "email": body["email"],
-        "password": "string",
+        "password": "test-password",
         "scopes": [],
         "session_name": "name",
     }
     response = client_auth.post("/email/login", json=body1)
     token_ = response.json()['token']
-    body2 = {"email": f"new{time}@email.com", "password": "random pwd"}
-    body3 = {"email": body["email"], "password": "string"}
+    body2 = {"email": f"new{time}@email.com", "password": "random-pwd"}
+    body3 = {"email": body["email"], "password": "test-password"}
     response = client_auth.post(url, headers={"Authorization": token_}, json=body2)
     assert response.status_code == status.HTTP_409_CONFLICT
     response = client_auth.post(url, headers={"Authorization": token_}, json=body3)

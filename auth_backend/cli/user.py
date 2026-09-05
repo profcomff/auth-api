@@ -4,10 +4,17 @@ from sqlalchemy.orm import Session
 
 from auth_backend.auth_plugins import Email
 from auth_backend.models import AuthMethod, User
+from auth_backend.schemas.types.password import validate_password
 from auth_backend.utils.string import random_string
 
 
 def create_user(email: str, password: str, session: Session) -> None:
+    try:
+        validate_password(password)
+    except ValueError as exc:
+        print(f"Invalid password: {exc}")
+        exit(errno.EINVAL)
+
     if (
         AuthMethod.query(session=session)
         .filter(AuthMethod.value == email, AuthMethod.auth_method == "email")

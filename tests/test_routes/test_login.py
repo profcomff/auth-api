@@ -10,7 +10,7 @@ url = "/email/login"
 
 
 def test_invalid_email(client: TestClient):
-    body = {"email": "some_string", "password": "string"}
+    body = {"email": "some_string", "password": "test-password"}
     response = client.post(url, json=body)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -19,7 +19,7 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
     body_with_uppercase = {
         "email": body["email"].replace("u", "U"),
-        "password": "string",
+        "password": "test-password",
         "scopes": [],
         "session_name": "name",
     }
@@ -28,8 +28,8 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
 
 
 def test_incorrect_data(client_auth: TestClient, dbsession: Session):
-    body1 = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string", "scopes": []}
-    body2 = {"email": "wrong@example.com", "password": "string", "scopes": []}
+    body1 = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "test-password", "scopes": []}
+    body2 = {"email": "wrong@example.com", "password": "test-password", "scopes": []}
     body3 = {"email": "some@example.com", "password": "strong", "scopes": []}
     body4 = {"email": "wrong@example.com", "password": "strong", "scopes": []}
     client_auth.post("/email/registration", json=body1)
