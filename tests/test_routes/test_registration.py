@@ -25,21 +25,21 @@ def test_invalid_email(client_auth: TestClient, dbsession: Session):
         "email": f"roman@dyakov.space\nContent-Type: text/html; charset=utf-8;\n\nАхаха,лох<!---",
         "password": "string",
     }
-    response = client_auth.post(url, json=body1)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    response = client_auth.post(url, json=body2)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    body7 = {"email": "@gmail.com", "password": "string"}
+    body8 = {"email": "user@", "password": "string"}
+    body9 = {"email": "@", "password": "string"}
+    body10 = {"email": "user name@example.com", "password": "string"}
+    body11 = {"email": "пользователь@example.com", "password": "string"}
+    invalid_payloads = [body1, body2, body4, body5, body6, body7, body8, body9, body10, body11]
+    for body in invalid_payloads:
+        response = client_auth.post(url, json=body)
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
     response = client_auth.post(url, json=body3)
     assert response.status_code == status.HTTP_200_OK
-    response = client_auth.post(url, json=body4)
-    assert response.status_code == status.HTTP_200_OK
-    response = client_auth.post(url, json=body5)
-    assert response.status_code == status.HTTP_200_OK
-    response = client_auth.post(url, json=body6)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     ids = []
-    for email in [body3["email"], body4["email"], body5["email"]]:
+    for email in [body3["email"]]:
         ids.append(
             dbsession.query(AuthMethod).filter(AuthMethod.param == "email", AuthMethod.value == email).one().user_id
         )

@@ -1,8 +1,10 @@
 import hashlib
 import logging
+import re
 from typing import Annotated, Self
 
 from annotated_types import MinLen
+from email_validator import EmailNotValidError, validate_email
 from event_schema.auth import UserLogin
 from fastapi import Depends, Header, HTTPException, Request
 from fastapi.background import BackgroundTasks
@@ -28,37 +30,37 @@ logger = logging.getLogger(__name__)
 
 
 def check_email(v):
-    restricted: set[str] = {
-        '"',
-        '#',
-        '&',
-        "'",
-        '(',
-        ')',
-        '*',
-        ',',
-        '/',
-        ';',
-        '<',
-        '>',
-        '?',
-        '[',
-        '\\',
-        ']',
-        '^',
-        '`',
-        '{',
-        '|',
-        '}',
-        '~',
-        '\n',
-        '\r',
-    }
-    if "@" not in v:
-        raise ValueError()
-    if set(v) & restricted:
-        raise ValueError()
-    return v
+    if not isinstance(v, str):
+        raise ValueError("Email must be a string")
+    if not v or v != v.strip() or any(char.isspace() for char in v):
+        raise ValueError("Email must not contain leading, trailing, or internal spaces")
+
+    if not v.isascii() or v.count("@") != 1:
+        raise ValueError("Invalid email address")
+
+    local_part, domain_part = v.split("@", 1)
+    if not local_part or not domain_part:
+        raise ValueError("Invalid email address")
+    if local_part.startswith(".") or local_part.endswith(".") or ".." in local_part:
+        raise ValueError("Invalid email address")
+    if domain_part.startswith(".") or domain_part.endswith(".") or "." not in domain_part:
+        raise ValueError("Invalid email address")
+    if any(part == "" for part in domain_part.split(".")):
+        raise ValueError("Invalid email address")
+
+    if not re.fullmatch(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+", local_part):
+        raise ValueError("Invalid email address")
+    if not re.fullmatch(r"[A-Za-z0-9.-]+", domain_part.split(".")[0]) or not re.fullmatch(
+        r"[A-Za-z]{2,}", domain_part.split(".")[-1]
+    ):
+        raise ValueError("Invalid email address")
+
+    try:
+        validated = validate_email(v, check_deliverability=False, allow_smtputf8=False)
+    except EmailNotValidError as exc:
+        raise ValueError("Invalid email address") from exc
+
+    return validated.normalized
 
 
 class EmailLogin(Base):
