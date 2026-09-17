@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from auth_backend.auth_method import OuterAuthMeta
 from auth_backend.settings import Settings
 
-
 logger = logging.getLogger(__name__)
 
 

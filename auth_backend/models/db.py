@@ -15,7 +15,6 @@ from auth_backend.models.dynamic_settings import DynamicOption
 from auth_backend.settings import get_settings
 from auth_backend.utils.user_session_basics import session_expires_date
 
-
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
@@ -42,6 +41,9 @@ class User(BaseDbModel):
         primaryjoin="and_(User.id==UserGroup.user_id, not_(UserGroup.is_deleted))",
         secondaryjoin="and_(Group.id==UserGroup.group_id, not_(Group.is_deleted))",
     )
+
+    def __str__(self):
+        return str(self.id)
 
     @classmethod
     def create(cls, *, session: Session, **kwargs) -> User:
@@ -113,6 +115,9 @@ class Group(BaseDbModel):
         primaryjoin="and_(Group.id==GroupScope.group_id, not_(GroupScope.is_deleted))",
         secondaryjoin="and_(Scope.id==GroupScope.scope_id, not_(Scope.is_deleted))",
     )
+
+    def __str__(self):
+        return self.name
 
     @hybrid_property
     def indirect_scopes(self) -> set[Scope]:
@@ -204,6 +209,9 @@ class Scope(BaseDbModel):
         primaryjoin="and_(Scope.id==UserSessionScope.scope_id, not_(UserSessionScope.is_deleted))",
         secondaryjoin="(UserSession.id==UserSessionScope.user_session_id)",
     )
+
+    def __str__(self):
+        return self.name
 
     @classmethod
     def create(cls, *, session: Session, **kwargs) -> Scope:

@@ -20,14 +20,19 @@ class Settings(BaseSettings):
     KAFKA_TIMEOUT: int = 2
     KAFKA_LOGIN: str | None = None
     KAFKA_PASSWORD: str | None = None
+    ADMIN_SECRET_KEY: str = "default"
+    ADMIN_LOGIN: str = "admin"
+    SQLADMIN_AUTH_URL: str = "https://api.test.profcomff.com/auth/"
 
     ROOT_PATH: str = '/' + os.getenv('APP_NAME', '')
 
     EMAIL: str | None = None
     APPLICATION_HOST: str = "localhost"
     EMAIL_PASS: str | None = None
+    SMTP_PASS: str | None = None
     SMTP_HOST: str = 'smtp.gmail.com'
     SMTP_PORT: int = 587
+    SMTP_LOGIN: str | None = None
     ENABLED_AUTH_METHODS: list[str] | None = None
     TOKEN_LENGTH: Annotated[int, Gt(8)] = 64
     SESSION_TIME_IN_DAYS: int = 30

@@ -92,9 +92,11 @@ jobs:
             --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
+            --env SMTP_PASS='${{ secrets.SMTP_PASS }}' \
             --env ENABLED_AUTH_METHODS='${{ vars.ENABLED_AUTH_METHODS }}' \
-            --env SMTP_HOST='mail.profcomff.com' \
-            --env SMTP_PORT='465' \
+            --env SMTP_HOST='${{ vars.SMTP_HOST }}' \
+            --env SMTP_PORT='${{ vars.SMTP_PORT }}' \
+            --env SMTP_LOGIN='${{ secrets.SMTP_LOGIN }}' \
             --env APPLICATION_HOST='${{ vars.HOST }}' \
             --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
             --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
@@ -137,9 +139,12 @@ jobs:
             --env KAFKA_LOGIN='${{ secrets.KAFKA_LOGIN }}' \
             --env KAFKA_PASSWORD='${{ secrets.KAFKA_PASSWORD }}' \
             --env KAFKA_USER_LOGIN_TOPIC_NAME='${{ secrets.KAFKA_USER_LOGIN_TOPIC_NAME }}' \
-            --env GUNICORN_CMD_ARGS='--log-config  logging_test.conf' \
+            --env GUNICORN_CMD_ARGS='--log-config  logging_test.conf --forwarded-allow-ips="172.16.0.0/12"' \
             --env JWT_ENABLED=true \
             --env JWT_PRIVATE_KEY='${{ secrets.JWT_PRIVATE_KEY }}' \
+            --env ADMIN_SECRET_KEY='${{ secrets.ADMIN_SECRET_KEY }}' \
+            --env ADMIN_LOGIN='${{ secrets.ADMIN_LOGIN }}' \
+            --env SQLADMIN_AUTH_URL='${{ vars.SQLADMIN_AUTH_URL }}' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:test
           docker network connect web ${{ env.CONTAINER_NAME }}
@@ -187,9 +192,11 @@ jobs:
             --env ROOT_PATH='/auth' \
             --env EMAIL='${{ secrets.EMAIL }}' \
             --env EMAIL_PASS='${{ secrets.EMAIL_PASS }}' \
+            --env SMTP_PASS='${{ secrets.SMTP_PASS }}' \
             --env ENABLED_AUTH_METHODS='${{ vars.ENABLED_AUTH_METHODS }}' \
-            --env SMTP_HOST='mail.profcomff.com' \
-            --env SMTP_PORT='465' \
+            --env SMTP_HOST='${{ vars.SMTP_HOST }}' \
+            --env SMTP_PORT='${{ vars.SMTP_PORT }}' \
+            --env SMTP_LOGIN='${{ secrets.SMTP_LOGIN }}' \
             --env APPLICATION_HOST='${{ vars.HOST }}' \
             --env GOOGLE_REDIRECT_URL='${{ vars.GOOGLE_REDIRECT_URL }}' \
             --env GOOGLE_CREDENTIALS='${{ secrets.GOOGLE_CREDENTIALS }}' \
@@ -232,7 +239,10 @@ jobs:
             --env KAFKA_LOGIN='${{ secrets.KAFKA_LOGIN }}' \
             --env KAFKA_PASSWORD='${{ secrets.KAFKA_PASSWORD }}' \
             --env KAFKA_USER_LOGIN_TOPIC_NAME='${{ secrets.KAFKA_USER_LOGIN_TOPIC_NAME }}' \
-            --env GUNICORN_CMD_ARGS='--log-config  logging_prod.conf' \
+            --env GUNICORN_CMD_ARGS='--log-config  logging_prod.conf --forwarded-allow-ips="172.16.0.0/12"' \
+            --env ADMIN_SECRET_KEY='${{ secrets.ADMIN_SECRET_KEY }}' \
+            --env ADMIN_LOGIN='${{ secrets.ADMIN_LOGIN }}' \
+            --env SQLADMIN_AUTH_URL='${{ vars.SQLADMIN_AUTH_URL }}' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           docker network connect web ${{ env.CONTAINER_NAME }}

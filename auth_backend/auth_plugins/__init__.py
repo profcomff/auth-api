@@ -16,7 +16,6 @@ from .telegram import TelegramAuth
 from .vk import VkAuth
 from .yandex import YandexAuth
 
-
 __all__ = [
     "AUTH_METHODS",
     "AuthPluginMeta",

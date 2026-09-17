@@ -154,6 +154,28 @@ def test_cycle_patch(client, dbsession):
     dbsession.commit()
 
 
+def test_cycle_patch_indirect(client, dbsession):
+    time1 = datetime.datetime.utcnow()
+    body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
+    group_a = client.post(url="/group", json=body).json()["id"]
+    time2 = datetime.datetime.utcnow()
+    body = {"name": f"group{time2}", "parent_id": group_a, "scopes": []}
+    group_b = client.post(url="/group", json=body).json()["id"]
+    time3 = datetime.datetime.utcnow()
+    body = {"name": f"group{time3}", "parent_id": group_b, "scopes": []}
+    group_c = client.post(url="/group", json=body).json()["id"]
+    response = client.patch(f"/group/{group_a}", json={"parent_id": group_c})
+    assert response.status_code == 400
+
+    dbsession.query(UserGroup).filter(UserGroup.group_id == group_a).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == group_b).delete()
+    dbsession.query(UserGroup).filter(UserGroup.group_id == group_c).delete()
+    dbsession.query(Group).filter(Group.id == group_c).delete()
+    dbsession.query(Group).filter(Group.id == group_b).delete()
+    dbsession.query(Group).filter(Group.id == group_a).delete()
+    dbsession.commit()
+
+
 def test_delete(client, dbsession):
     time1 = datetime.datetime.utcnow()
     body = {"name": f"group{time1}", "parent_id": None, "scopes": []}
