@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -11,7 +11,8 @@ url = "/logout"
 
 
 def test_main_scenario(client_auth: TestClient, dbsession: Session):
-    body = {"email": f"user{datetime.utcnow()}@example.com", "password": "string", "scopes": []}
+    time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
+    body = {"email": f"user{time}@example.com", "password": "string", "scopes": []}
     user_response = client_auth.post("/email/registration", json=body)
     query = (
         dbsession.query(AuthMethod)
