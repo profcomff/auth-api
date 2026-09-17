@@ -13,14 +13,15 @@ url = "/email/registration"
 
 
 def test_invalid_email(client_auth: TestClient, dbsession: Session):
-    body1 = {"email": f"notEmailForSure", "password": "string"}
-    body2 = {"email": f"EmailForSure{datetime.datetime.utcnow()}@mail.gtg", "password": ""}
+    valid_suffix = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
+    body1 = {"email": "notEmailForSure", "password": "string"}
+    body2 = {"email": f"EmailForSure{valid_suffix}@mail.gtg", "password": ""}
     body3 = {
-        "email": f"EmailForSure{datetime.datetime.utcnow()}@mail.gtg",
+        "email": f"EmailForSure{valid_suffix}@mail.gtg",
         "password": "&%@#$@322îïíīįì3@##EFWed}efvef{}{}{}[èéêëēėę'",
     }
-    body4 = {"email": f"EmailFor+ _Sur{datetime.datetime.utcnow()}e@mail.gtg", "password": "string2222"}
-    body5 = {"email": f"Email For Sure {datetime.datetime.utcnow()} @ mail. gtg", "password": "string"}
+    body4 = {"email": f"EmailFor+ _Sur{valid_suffix}e@mail.gtg", "password": "string2222"}
+    body5 = {"email": f"Email For Sure {valid_suffix} @ mail. gtg", "password": "string"}
     body6 = {
         "email": f"roman@dyakov.space\nContent-Type: text/html; charset=utf-8;\n\nАхаха,лох<!---",
         "password": "string",
@@ -51,7 +52,7 @@ def test_invalid_email(client_auth: TestClient, dbsession: Session):
 
 
 def test_main_scenario(client_auth: TestClient, dbsession: Session):
-    time = datetime.datetime.utcnow()
+    time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
     body1 = {"email": f"user{time}@example.com", "password": "string"}
     response = client_auth.post(url, json=body1)
     assert response.status_code == status.HTTP_200_OK
@@ -80,7 +81,8 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session):
 
 
 def test_repeated_registration_case(client_auth: TestClient, dbsession: Session):
-    body = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string"}
+    time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
+    body = {"email": f"user{time}@example.com", "password": "string"}
     response = client_auth.post(url, json=body)
     assert response.status_code == status.HTTP_200_OK
     db_user: AuthMethod = (
@@ -126,7 +128,7 @@ def test_user_exists(client_auth: TestClient, dbsession: Session):
     _token = "".join([random.choice(string.ascii_letters) for _ in range(12)])
     session = UserSession.create(session=dbsession, user_id=user.id, token=_token)
     dbsession.commit()
-    time = datetime.datetime.utcnow()
+    time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
     email = f"user{time}@example.com"
     response = client_auth.post(
         url, headers={"Authorization": _token}, json={"user_id": user.id, "email": email, "password": "string"}
@@ -155,7 +157,7 @@ def test_user_exists(client_auth: TestClient, dbsession: Session):
 
 def test_double_email_registration(client_auth: TestClient, dbsession: Session, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
-    time = datetime.datetime.utcnow()
+    time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
     body1 = {
         "email": body["email"],
         "password": "string",
