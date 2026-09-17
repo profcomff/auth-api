@@ -28,7 +28,8 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
 
 
 def test_incorrect_data(client_auth: TestClient, dbsession: Session):
-    body1 = {"email": f"user{datetime.datetime.utcnow()}@example.com", "password": "string", "scopes": []}
+    time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
+    body1 = {"email": f"user{time}@example.com", "password": "string", "scopes": []}
     body2 = {"email": "wrong@example.com", "password": "string", "scopes": []}
     body3 = {"email": "some@example.com", "password": "strong", "scopes": []}
     body4 = {"email": "wrong@example.com", "password": "strong", "scopes": []}

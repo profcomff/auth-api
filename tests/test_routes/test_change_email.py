@@ -17,7 +17,7 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
         .one()
         .value
     )
-    tmp_email = f"changed{datetime.datetime.utcnow()}@mail.com"
+    tmp_email = f"changed{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d%H%M%S%f')}@mail.com"
     response = client_auth.post(f"{url}/request", json={"email": tmp_email}, headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
