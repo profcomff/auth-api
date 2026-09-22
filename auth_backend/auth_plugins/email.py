@@ -29,7 +29,10 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 
-def check_email(v):
+def check_email(v, validate: bool):
+    if not validate:
+        return v
+
     if not isinstance(v, str):
         raise ValueError("Email must be a string")
     if not v or v != v.strip() or any(char.isspace() for char in v):
@@ -68,19 +71,19 @@ class EmailLogin(Base):
     password: Annotated[str, MinLen(1)]
     scopes: list[Scope] | None = None
     session_name: str | None = None
-    email_validator = field_validator("email")(check_email)
+    email_validator = field_validator("email")(lambda v: check_email(v, validate=False))
 
 
 class EmailRegister(Base):
     email: Annotated[str, MinLen(1)]
     password: Annotated[str, MinLen(1)]
-    email_validator = field_validator("email")(check_email)
+    email_validator = field_validator("email")(lambda v: check_email(v, validate=True))
 
 
 class EmailChange(Base):
     email: Annotated[str, MinLen(1)]
 
-    email_validator = field_validator("email")(check_email)
+    email_validator = field_validator("email")(lambda v: check_email(v, validate=True))
 
 
 class ResetPassword(Base):
@@ -98,7 +101,7 @@ class ResetPassword(Base):
 class RequestResetForgottenPassword(Base):
     email: Annotated[str, MinLen(1)]
 
-    email_validator = field_validator("email")(check_email)
+    email_validator = field_validator("email")(lambda v: check_email(v, validate=True))
 
 
 class ResetForgottenPassword(Base):
