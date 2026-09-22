@@ -26,7 +26,6 @@ from auth_backend.schemas.models import (
 from auth_backend.utils import user_session_control
 from auth_backend.utils.security import UnionAuth
 
-
 user_session = APIRouter(prefix="", tags=["User session"])
 logger = logging.getLogger(__name__)
 

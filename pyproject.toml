@@ -1,12 +1,12 @@
 [tool.black]
 line-length = 120
-target-version = ['py310']
+target-version = ['py311']
 skip-string-normalization = true
 
 [tool.isort]
 line_length = 120
 multi_line_output = 3
-lines_after_imports = 2
+profile = "black"
 include_trailing_comma = true
 
 [tool.pytest.ini_options]

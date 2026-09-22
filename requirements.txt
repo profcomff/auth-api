@@ -16,6 +16,8 @@ confluent-kafka
 event-schema-profcomff
 aiocache
 python-multipart
+sqladmin[full]
+auth-lib-profcomff[fastapi]
 
 # Google Auth Method
 google-api-python-client

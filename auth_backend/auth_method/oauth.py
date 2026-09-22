@@ -15,7 +15,6 @@ from .base import AuthPluginMeta
 from .method_mixins import LoginableMixin, RegistrableMixin
 from .userdata_mixin import UserdataMixin
 
-
 logger = logging.getLogger(__name__)
 
 
