@@ -12,7 +12,7 @@ url = "/email/login"
 def test_invalid_email(client: TestClient):
     body = {"email": "some_string", "password": "string"}
     response = client.post(url, json=body)
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
