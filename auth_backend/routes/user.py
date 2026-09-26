@@ -2,11 +2,10 @@ import logging
 from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi_sqlalchemy import db
 from sqlalchemy import not_
 from sqlalchemy.orm import Session
-from starlette.status import HTTP_403_FORBIDDEN
 
 from auth_backend.auth_method import AuthPluginMeta
 from auth_backend.auth_plugins.email import Email
@@ -23,7 +22,6 @@ from auth_backend.schemas.models import (
     UsersGet,
 )
 from auth_backend.utils.security import UnionAuth
-
 
 logger = logging.getLogger(__name__)
 user = APIRouter(prefix="/user", tags=["User"])
@@ -111,6 +109,25 @@ async def get_users(
     return UsersGet(**result).model_dump(exclude_unset=True)
 
 
+def patch_user_groups(user_id: int, group_ids: list[int], session) -> None:
+    user = User.get(user_id, session=session)
+    groups = set()
+    for group_id in group_ids:
+        group = Group.get(group_id, session=session)
+        groups.add(group)
+    user_groups = set(user.groups)
+    new_groups = groups - user_groups
+    to_delete_groups = user_groups - groups
+    for group in new_groups:
+        UserGroup.create(session=session, user_id=user_id, group_id=group.id)
+    for group in to_delete_groups:
+        user_group: UserGroup = (
+            UserGroup.query(session=session).filter(UserGroup.user_id == user_id, UserGroup.group_id == group.id).one()
+        )
+        UserGroup.delete(user_group.id, session=session)
+    session.commit()
+
+
 @user.patch("/{user_id}", response_model=UserModel)
 async def patch_user(
     user_id: int,
@@ -120,60 +137,51 @@ async def patch_user(
     """
     Scopes: `["auth.user.update"]`
     """
-    user = User.get(user_id, session=db.session)
-    groups = set()
-    for group_id in user_inp.groups:
-        group = Group.get(group_id, session=db.session)
-        groups.add(group)
-    user_groups = set(user.groups)
-    new_groups = groups - user_groups
-    to_delete_groups = user_groups - groups
-    for group in new_groups:
-        UserGroup.create(session=db.session, user_id=user_id, group_id=group.id)
-    for group in to_delete_groups:
-        user_group: UserGroup = (
-            UserGroup.query(session=db.session)
-            .filter(UserGroup.user_id == user_id, UserGroup.group_id == group.id)
-            .one()
-        )
-        UserGroup.delete(user_group.id, session=db.session)
-    db.session.commit()
-    return UserModel.model_validate(user)
+    patch_user_groups(user_id, user_inp.groups, db.session)
+    return UserModel.model_validate(User.get(user_id, session=db.session))
 
 
 @user.delete("/{user_id}", response_model=None)
 async def delete_user(
     user_id: int,
-    current_user: UserSession = Depends(UnionAuth(scopes=[], allow_none=False, auto_error=True)),
+    current_user: UserSession = Depends(UnionAuth(scopes=["auth.user.delete"], allow_none=False, auto_error=True)),
 ) -> None:
     """
-    Scopes: `["auth.user.delete"]` or `["auth.user.selfdelete"]` for self delete
+    Scopes: `["auth.user.delete"]`
     """
-    session_scopes = set([scope.name.lower() for scope in current_user.scopes])
-    if "auth.user.delete" in session_scopes or (
-        "auth.user.selfdelete" in session_scopes and user_id == current_user.user_id
-    ):
-        logger.debug(f'User id={current_user.id} triggered delete_user')
-        old_user = {"user_id": current_user.id}
-        user: User = User.get(user_id, session=db.session)
+    await delete_user_common(user_triggered_id=current_user.user_id, user_delete_id=user_id)
 
-        for method in user._auth_methods:
-            if method.is_deleted:
-                continue
-            # Сохраняем старое состояние пользователя
-            if method.auth_method not in old_user:
-                old_user[method.auth_method] = {}
-            old_user[method.auth_method][method.param] = method.value
-            # Удаляем AuthMethod
-            AuthMethod.delete(method.id, session=db.session)
-            logger.info(f'{method=} for {user.id=} deleted')
-        User.delete(user_id, session=db.session)
-        # Удаляем сессии
-        db.session.query(UserSession).filter(UserSession.user_id == user_id).filter(not_(UserSession.expired)).update(
-            {"expires": datetime.utcnow()}
-        )
-        db.session.commit()
-        await AuthPluginMeta.user_updated(None, old_user)
-        logger.info(f'{user=} deleted')
-    else:
-        raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail="Not authorized")
+
+@user.delete("", response_model=None)
+async def delete_self_user(
+    current_user: UserSession = Depends(UnionAuth(scopes=["auth.user.selfdelete"], allow_none=False, auto_error=True))
+) -> None:
+    """
+    Scopes: `["auth.user.selfdelete"]`
+    """
+    await delete_user_common(user_triggered_id=current_user.user_id, user_delete_id=current_user.user_id)
+
+
+async def delete_user_common(user_triggered_id: int, user_delete_id: int):
+    logger.debug(f'User id={user_triggered_id} triggered delete_user')
+    old_user = {"user_id": user_triggered_id}
+    user: User = User.get(user_delete_id, session=db.session)
+
+    for method in user._auth_methods:
+        if method.is_deleted:
+            continue
+        # Сохраняем старое состояние пользователя
+        if method.auth_method not in old_user:
+            old_user[method.auth_method] = {}
+        old_user[method.auth_method][method.param] = method.value
+        # Удаляем AuthMethod
+        AuthMethod.delete(method.id, session=db.session)
+        logger.info(f'{method=} for {user.id=} deleted')
+    User.delete(user_delete_id, session=db.session)
+    # Удаляем сессии
+    db.session.query(UserSession).filter(UserSession.user_id == user_delete_id).filter(
+        not_(UserSession.expired)
+    ).update({"expires": datetime.utcnow()})
+    db.session.commit()
+    await AuthPluginMeta.user_updated(None, old_user)
+    logger.info(f'{user=} deleted')

@@ -19,7 +19,6 @@ from auth_backend.settings import Settings
 from auth_backend.utils.security import UnionAuth
 from auth_backend.utils.string import concantenate_strings
 
-
 logger = logging.getLogger(__name__)
 
 

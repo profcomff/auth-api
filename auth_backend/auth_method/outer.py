@@ -12,7 +12,6 @@ from auth_backend.base import Base
 from auth_backend.models.db import AuthMethod, UserSession
 from auth_backend.utils.security import UnionAuth
 
-
 logger = logging.getLogger(__name__)
 
 
