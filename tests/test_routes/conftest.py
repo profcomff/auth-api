@@ -57,7 +57,7 @@ def dbsession():
 
 @pytest.fixture()
 def user_id(client_auth: TestClient, dbsession):
-    time = datetime.datetime.utcnow()
+    time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
     body = {"email": f"user{time}@example.com", "password": "string"}
     client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
@@ -77,7 +77,7 @@ def user_id(client_auth: TestClient, dbsession):
 @pytest.fixture()
 def user(client_auth: TestClient, dbsession):
     url = "/email/login"
-    time = datetime.datetime.utcnow()
+    time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
     body = {"email": f"user{time}@example.com", "password": "string", "scopes": []}
     response = client_auth.post("/email/registration", json=body)
     db_user: AuthMethod = (
@@ -128,7 +128,7 @@ def group(dbsession, parent_id):
     _ids: list[int] = []
 
     def _group(client: TestClient):
-        time = datetime.datetime.utcnow()
+        time = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M%S%f")
         body = {"name": f"group{time}", "parent_id": parent_id, "scopes": []}
         response = client.post(url="/group", json=body)
         nonlocal _ids

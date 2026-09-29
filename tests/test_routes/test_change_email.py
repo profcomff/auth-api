@@ -17,7 +17,7 @@ def test_main_scenario(client_auth: TestClient, dbsession: Session, user):
         .one()
         .value
     )
-    tmp_email = f"changed{datetime.datetime.utcnow()}@mail.com"
+    tmp_email = f"changed{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d%H%M%S%f')}@mail.com"
     response = client_auth.post(f"{url}/request", json={"email": tmp_email}, headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_200_OK
 
@@ -68,6 +68,26 @@ def test_invalid_jsons(client_auth: TestClient, dbsession: Session, user):
 
     response = client_auth.post(f"{url}/request", json={"email": ""}, headers={"Authorization": ""})
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_legacy_email_is_accepted(client_auth: TestClient, user):
+    login = user["login_json"]
+    response = client_auth.post(
+        f"{url}/request",
+        json={"email": "legacy@localhost"},
+        headers={"Authorization": login["token"]},
+    )
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_email_comparison_ignores_case(client_auth: TestClient, user):
+    body, login = user["body"], user["login_json"]
+    response = client_auth.post(
+        f"{url}/request",
+        json={"email": body["email"].upper()},
+        headers={"Authorization": login["token"]},
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 def test_expired_token(client_auth: TestClient, dbsession: Session, user):

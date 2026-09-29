@@ -140,6 +140,25 @@ def test_no_token(client_auth: TestClient, dbsession: Session, user_id: int):
     assert response.status_code == status.HTTP_200_OK
 
 
+def test_legacy_email_case_insensitive_lookup(client_auth: TestClient, dbsession: Session, user_id: int):
+    token = (
+        dbsession.query(AuthMethod)
+        .filter(
+            AuthMethod.user_id == user_id, AuthMethod.param == "confirmation_token", AuthMethod.auth_method == "email"
+        )
+        .one()
+    )
+    response = client_auth.get(f"/email/approve?token={token.value}")
+    assert response.status_code == status.HTTP_200_OK
+
+    auth_params = Email.get_auth_method_params(user_id, session=dbsession)
+    auth_params["email"].value = "legacy@localhost"
+    dbsession.flush()
+
+    response = client_auth.post(f"{url}/restore", json={"email": "LEGACY@LOCALHOST"})
+    assert response.status_code == status.HTTP_200_OK
+
+
 def test_with_token(client_auth: TestClient, dbsession: Session, user):
     user_id, body, response = user["user_id"], user["body"], user["login_json"]
     auth_token = response["token"]
@@ -221,3 +240,22 @@ def test_no_token_two_requests(client_auth: TestClient, dbsession: Session, user
     )
     assert reset_token_2
     assert reset_token_1 != reset_token_2
+
+
+def test_legacy_email_case_insensitive_lookup(client_auth: TestClient, dbsession: Session, user_id: int):
+    token = (
+        dbsession.query(AuthMethod)
+        .filter(
+            AuthMethod.user_id == user_id, AuthMethod.param == "confirmation_token", AuthMethod.auth_method == "email"
+        )
+        .one()
+    )
+    response = client_auth.get(f"/email/approve?token={token.value}")
+    assert response.status_code == status.HTTP_200_OK
+
+    auth_params = Email.get_auth_method_params(user_id, session=dbsession)
+    auth_params["email"].value = "legacy@localhost"
+    dbsession.flush()
+
+    response = client_auth.post(f"{url}/restore", json={"email": "LEGACY@LOCALHOST"})
+    assert response.status_code == status.HTTP_200_OK
