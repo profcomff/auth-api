@@ -70,7 +70,6 @@ class EmailLogin(Base):
     password: Annotated[str, MinLen(1)]
     scopes: list[Scope] | None = None
     session_name: str | None = None
-    email_validator = field_validator("email")(lambda v: check_email(v, validate=False))
 
 
 class EmailRegister(Base):
@@ -81,8 +80,6 @@ class EmailRegister(Base):
 
 class EmailChange(Base):
     email: Annotated[str, MinLen(1)]
-
-    email_validator = field_validator("email")(lambda v: check_email(v, validate=True))
 
 
 class ResetPassword(Base):
@@ -99,8 +96,6 @@ class ResetPassword(Base):
 
 class RequestResetForgottenPassword(Base):
     email: Annotated[str, MinLen(1)]
-
-    email_validator = field_validator("email")(lambda v: check_email(v, validate=True))
 
 
 class ResetForgottenPassword(Base):
@@ -340,7 +335,17 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                     "Registration wasn't completed. Try to registrate again and do not forget to approve your email",
                     "Регистрация не была завершена. Попробуйте зарегистрироваться снова и не забудьте подтвердить почту",
                 )
-            if auth_params["email"].value == scheme.email:
+            same_email: AuthMethod | None = (
+                AuthMethod.query(session=txn)
+                .filter(
+                    AuthMethod.user_id == user_session.user_id,
+                    AuthMethod.auth_method == cls.get_name(),
+                    AuthMethod.param == "email",
+                    func.lower(AuthMethod.value) == scheme.email.lower(),
+                )
+                .one_or_none()
+            )
+            if same_email:
                 raise HTTPException(
                     status_code=401,
                     detail=StatusResponseModel(
@@ -492,7 +497,7 @@ class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):
                 .filter(
                     AuthMethod.auth_method == Email.get_name(),
                     AuthMethod.param == "email",
-                    AuthMethod.value == schema.email,
+                    func.lower(AuthMethod.value) == schema.email.lower(),
                 )
                 .one_or_none()
             )
