@@ -66,6 +66,19 @@ async def update_scope(
     Scopes: `["auth.scope.update"]`
     """
     scope = Scope.get(id, session=db.session)
+    if scope.name == scope_inp.name and scope.comment == scope_inp.comment:
+        raise HTTPException(
+            status_code=409,
+            detail=StatusResponseModel(status="Error", message="Already exists", ru="Уже существует").model_dump(),
+        )
+    if Scope.query(session=db.session).filter(func.lower(Scope.name) == scope_inp.name.lower()).all():
+        if scope.name != scope_inp.name:
+            raise HTTPException(
+                status_code=409,
+                detail=StatusResponseModel(status="Error", message="Already exists", ru="Уже существует").model_dump(),
+            )
+    scope_inp.name = scope_inp.name.lower()
+
     retval = ScopeGet.model_validate(
         Scope.update(scope.id, **scope_inp.model_dump(exclude_unset=True), session=db.session)
     )
