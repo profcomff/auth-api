@@ -16,6 +16,7 @@ from auth_backend.base import Base, StatusResponseModel
 from auth_backend.exceptions import AlreadyExists, AuthFailed, IncorrectUserAuthType, SessionExpired
 from auth_backend.kafka.kafka import get_kafka_producer
 from auth_backend.models.db import AuthMethod, User, UserSession
+from auth_backend.schemas.types.password import Password
 from auth_backend.schemas.types.scopes import Scope
 from auth_backend.settings import get_settings
 from auth_backend.utils.security import UnionAuth
@@ -70,7 +71,7 @@ class EmailLogin(Base):
 
 class EmailRegister(Base):
     email: Annotated[str, MinLen(1)]
-    password: Annotated[str, MinLen(1)]
+    password: Password
     email_validator = field_validator("email")(check_email)
 
 
@@ -82,7 +83,7 @@ class EmailChange(Base):
 
 class ResetPassword(Base):
     password: Annotated[str, MinLen(1)]
-    new_password: Annotated[str, MinLen(1)]
+    new_password: Password
 
     @model_validator(mode="after")
     def check_passwords_dont_match(self) -> Self:
@@ -99,7 +100,7 @@ class RequestResetForgottenPassword(Base):
 
 
 class ResetForgottenPassword(Base):
-    new_password: Annotated[str, MinLen(1)]
+    new_password: Password
 
 
 class Email(UserdataMixin, LoginableMixin, RegistrableMixin, AuthPluginMeta):

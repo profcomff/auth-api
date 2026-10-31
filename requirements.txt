@@ -1,10 +1,10 @@
 fastapi
 fastapi-sqlalchemy
-psycopg2-binary
+psycopg[binary]
 pydantic
 uvicorn
 alembic
-SQLAlchemy
+SQLAlchemy[asyncio]
 gunicorn
 email-validator
 retrying

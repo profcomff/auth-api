@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     TOKEN_LENGTH: Annotated[int, Gt(8)] = 64
     SESSION_TIME_IN_DAYS: int = 30
 
+    PASSWORD_MIN_LENGTH: int = 8
+    PASSWORD_MAX_LENGTH: int = 32
+
     MAX_RETRIES: int = 10
     STOP_MAX_DELAY: int = 10000
     WAIT_MIN: int = 1000
