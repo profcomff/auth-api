@@ -66,18 +66,23 @@ def test_invalid_jsons(client_auth: TestClient, dbsession: Session, user):
     response = client_auth.post(f"{url}/request", json={"email": ""}, headers={"Authorization": login["token"]})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
+    response = client_auth.post(
+        f"{url}/request", json={"email": "not-an-email"}, headers={"Authorization": login["token"]}
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
     response = client_auth.post(f"{url}/request", json={"email": ""}, headers={"Authorization": ""})
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-def test_legacy_email_is_accepted(client_auth: TestClient, user):
+def test_email_without_domain_suffix_is_rejected(client_auth: TestClient, user):
     login = user["login_json"]
     response = client_auth.post(
         f"{url}/request",
         json={"email": "legacy@localhost"},
         headers={"Authorization": login["token"]},
     )
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 def test_email_comparison_ignores_case(client_auth: TestClient, user):

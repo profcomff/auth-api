@@ -5,7 +5,6 @@ psycopg[binary]
 pydantic
 uvicorn
 alembic
-SQLAlchemy
 gunicorn
 email-validator
 retrying
@@ -19,6 +18,7 @@ aiocache
 python-multipart
 sqladmin[full]
 auth-lib-profcomff[fastapi]
+SQLAlchemy[asyncio]
 
 # Google Auth Method
 google-api-python-client

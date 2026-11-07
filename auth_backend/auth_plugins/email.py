@@ -28,10 +28,7 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 
-def check_email(v, validate: bool):
-    if not validate:
-        return v
-
+def check_email(v: str) -> str:
     if not isinstance(v, str):
         raise ValueError("Email must be a string")
     if not v or v != v.strip() or any(char.isspace() for char in v):
@@ -58,11 +55,9 @@ def check_email(v, validate: bool):
         raise ValueError("Invalid email address")
 
     try:
-        validated = validate_email(v, check_deliverability=False, allow_smtputf8=False)
+        return validate_email(v, check_deliverability=False, allow_smtputf8=False).normalized
     except EmailNotValidError as exc:
         raise ValueError("Invalid email address") from exc
-
-    return validated.normalized
 
 
 class EmailLogin(Base):
@@ -75,11 +70,12 @@ class EmailLogin(Base):
 class EmailRegister(Base):
     email: Annotated[str, MinLen(1)]
     password: Annotated[str, MinLen(1)]
-    email_validator = field_validator("email")(lambda v: check_email(v, validate=True))
+    email_validator = field_validator("email")(check_email)
 
 
 class EmailChange(Base):
     email: Annotated[str, MinLen(1)]
+    email_validator = field_validator("email")(check_email)
 
 
 class ResetPassword(Base):
